@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Castreo</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <script>
+    const SUPABASE_URL = 'https://pdttjblnvxoitskhdtro.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_vxcNOoezd_FKxKWmWj-rZQ_w3IrSMaG';
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    async function init() {
+      // URL'de token varsa Supabase otomatik işler
+      const { data: { session } } = await client.auth.getSession();
+      
+      if (session) {
+        window.location.href = 'dashboard.html';
+      } else {
+        window.location.href = 'login.html';
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
