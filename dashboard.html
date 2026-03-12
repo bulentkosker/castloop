@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Castreo - Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f0f1a;
+      color: #fff;
+      min-height: 100vh;
+    }
+
+    /* Navbar */
+    .navbar {
+      background: #1a1a2e;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #2a2a3e;
+    }
+    .navbar h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #6366f1;
+    }
+    .navbar .user-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .navbar .user-email {
+      color: #888;
+      font-size: 13px;
+    }
+    .navbar button {
+      background: transparent;
+      border: 1px solid #2a2a3e;
+      color: #aaa;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    .navbar button:hover {
+      border-color: #6366f1;
+      color: #fff;
+    }
+
+    /* Main */
+    .main {
+      padding: 32px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    /* Stats */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .stat-card {
+      background: #1a1a2e;
+      border: 1px solid #2a2a3e;
+      border-radius: 12px;
+      padding: 24px;
+    }
+    .stat-card .label {
+      color: #888;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+    .stat-card .value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #6366f1;
+    }
+
+    /* Section */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .section-header h2 {
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .btn-primary {
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-primary:hover { background: #4f46e5; }
+
+    /* Empty state */
+    .empty-state {
+      background: #1a1a2e;
+      border: 1px dashed #2a2a3e;
+      border-radius: 12px;
+      padding: 48px;
+      text-align: center;
+      color: #555;
+    }
+    .empty-state .icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+    }
+    .empty-state p {
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+
+    /* Stream cards */
+    .streams-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+    }
+    .stream-card {
+      background: #1a1a2e;
+      border: 1px solid #2a2a3e;
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .stream-card .stream-name {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .stream-card .stream-platform {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 12px;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .status-stopped { background: #2a2a3e; color: #888; }
+    .status-running { background: #064e3b; color: #34d399; }
+    .status-error { background: #450a0a; color: #f87171; }
+
+    .stream-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .btn-start {
+      background: #064e3b;
+      color: #34d399;
+      border: 1px solid #34d399;
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-stop {
+      background: #450a0a;
+      color: #f87171;
+      border: 1px solid #f87171;
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-delete {
+      background: transparent;
+      color: #555;
+      border: 1px solid #2a2a3e;
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: #1a1a2e;
+      border: 1px solid #2a2a3e;
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 480px;
+    }
+    .modal h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      color: #aaa;
+      margin-bottom: 6px;
+    }
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 10px 14px;
+      background: #0f0f1a;
+      border: 1px solid #2a2a3e;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+    }
+    .form-group input:focus, .form-group select:focus {
+      border-color: #6366f1;
+    }
+    .form-group select option { background: #1a1a2e; }
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 24px;
+    }
+    .btn-cancel {
+      flex: 1;
+      background: transparent;
+      border: 1px solid #2a2a3e;
+      color: #aaa;
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .modal-message {
+      font-size: 13px;
+      margin-top: 10px;
+      color: #f87171;
+      min-height: 18px;
+    }
+    .modal-message.success { color: #34d399; }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <div class="navbar">
+    <h1>Castreo</h1>
+    <div class="user-info">
+      <span class="user-email" id="userEmail"></span>
+      <button onclick="logout()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- Stats -->
+    <div class="stats">
+      <div class="stat-card">
+        <div class="label">Total Streams</div>
+        <div class="value" id="totalStreams">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Running</div>
+        <div class="value" id="runningStreams">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Plan</div>
+        <div class="value" id="userPlan">Free</div>
+      </div>
+    </div>
+
+    <!-- Streams -->
+    <div class="section-header">
+      <h2>My Streams</h2>
+      <button class="btn-primary" onclick="openModal()">+ New Stream</button>
+    </div>
+
+    <div id="streamsContainer">
+      <div class="empty-state">
+        <div class="icon">📡</div>
+        <p>No streams yet. Create your first 24/7 stream!</p>
+        <button class="btn-primary" onclick="openModal()">+ New Stream</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- New Stream Modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <h3>New Stream</h3>
+      <div class="form-group">
+        <label>Stream Name</label>
+        <input type="text" id="streamName" placeholder="My YouTube Stream">
+      </div>
+      <div class="form-group">
+        <label>Platform</label>
+        <select id="streamPlatform">
+          <option value="youtube">YouTube</option>
+          <option value="twitch">Twitch</option>
+          <option value="facebook">Facebook</option>
+          <option value="instagram">Instagram</option>
+          <option value="x">X (Twitter)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>RTMP URL</label>
+        <input type="text" id="rtmpUrl" placeholder="rtmp://a.rtmp.youtube.com/live2">
+      </div>
+      <div class="form-group">
+        <label>Stream Key</label>
+        <input type="text" id="streamKey" placeholder="xxxx-xxxx-xxxx-xxxx">
+      </div>
+      <div class="modal-message" id="modalMessage"></div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+        <button class="btn-primary" style="flex:2" onclick="createStream()">Create Stream</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://pdttjblnvxoitskhdtro.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_vxcNOoezd_FKxKWmWj-rZQ_w3IrSMaG';
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentUser = null;
+    let streams = [];
+
+    // Init
+    async function init() {
+      const { data: { user } } = await client.auth.getUser();
+      if (!user) {
+        window.location.href = 'login.html';
+        return;
+      }
+      currentUser = user;
+      document.getElementById('userEmail').textContent = user.email;
+      await loadStreams();
+    }
+
+    // Load streams
+    async function loadStreams() {
+      const { data, error } = await client
+        .from('streams')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) { console.error(error); return; }
+
+      streams = data || [];
+      renderStreams();
+      updateStats();
+    }
+
+    // Render streams
+    function renderStreams() {
+      const container = document.getElementById('streamsContainer');
+
+      if (streams.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="icon">📡</div>
+            <p>No streams yet. Create your first 24/7 stream!</p>
+            <button class="btn-primary" onclick="openModal()">+ New Stream</button>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = `<div class="streams-grid">${streams.map(s => `
+        <div class="stream-card">
+          <div class="stream-name">${s.name}</div>
+          <div class="stream-platform">${s.platform.toUpperCase()}</div>
+          <span class="status-badge status-${s.status}">${s.status}</span>
+          <div class="stream-actions">
+            ${s.status !== 'running'
+              ? `<button class="btn-start" onclick="startStream('${s.id}')">▶ Start</button>`
+              : `<button class="btn-stop" onclick="stopStream('${s.id}')">■ Stop</button>`
+            }
+            <button class="btn-delete" onclick="deleteStream('${s.id}')">Delete</button>
+          </div>
+        </div>`).join('')}
+      </div>`;
+    }
+
+    // Update stats
+    function updateStats() {
+      document.getElementById('totalStreams').textContent = streams.length;
+      document.getElementById('runningStreams').textContent = streams.filter(s => s.status === 'running').length;
+    }
+
+    // Create stream
+    async function createStream() {
+      const name = document.getElementById('streamName').value;
+      const platform = document.getElementById('streamPlatform').value;
+      const rtmp_url = document.getElementById('rtmpUrl').value;
+      const stream_key = document.getElementById('streamKey').value;
+      const msg = document.getElementById('modalMessage');
+
+      if (!name || !rtmp_url || !stream_key) {
+        msg.textContent = 'Please fill in all fields.';
+        return;
+      }
+
+      const { error } = await client.from('streams').insert({
+        user_id: currentUser.id,
+        name, platform, rtmp_url, stream_key, status: 'stopped'
+      });
+
+      if (error) {
+        msg.textContent = error.message;
+        return;
+      }
+
+      closeModal();
+      await loadStreams();
+    }
+
+    // Start stream
+    async function startStream(id) {
+      await client.from('streams').update({ status: 'running' }).eq('id', id);
+      await loadStreams();
+    }
+
+    // Stop stream
+    async function stopStream(id) {
+      await client.from('streams').update({ status: 'stopped' }).eq('id', id);
+      await loadStreams();
+    }
+
+    // Delete stream
+    async function deleteStream(id) {
+      if (!confirm('Delete this stream?')) return;
+      await client.from('streams').delete().eq('id', id);
+      await loadStreams();
+    }
+
+    // Modal
+    function openModal() {
+      document.getElementById('modalOverlay').classList.add('active');
+      document.getElementById('modalMessage').textContent = '';
+    }
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.remove('active');
+      document.getElementById('streamName').value = '';
+      document.getElementById('rtmpUrl').value = '';
+      document.getElementById('streamKey').value = '';
+    }
+
+    // Logout
+    async function logout() {
+      await client.auth.signOut();
+      window.location.href = 'login.html';
+    }
+
+    init();
+  </script>
+</body>
+</html>
