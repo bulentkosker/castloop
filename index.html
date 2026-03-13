@@ -6,7 +6,7 @@
   <title>Castreo — 24/7 Live Stream Platform</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📡</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg: #080810;
@@ -45,7 +45,7 @@
       padding: 14px 48px;
     }
     .nav-logo {
-      font-family: 'Syne', sans-serif;
+      font-family: 'Figtree', sans-serif;
       font-size: 22px; font-weight: 800;
       color: var(--accent2);
       letter-spacing: -0.5px;
@@ -114,7 +114,7 @@
     .hero-badge .dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: pulse 2s infinite; }
     @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.3)} }
     .hero h1 {
-      font-family: 'Syne', sans-serif;
+      font-family: 'Figtree', sans-serif;
       font-size: clamp(42px, 7vw, 88px);
       font-weight: 800; line-height: 1.0;
       letter-spacing: -2px;
@@ -158,7 +158,7 @@
     }
     .stat-item { text-align: center; }
     .stat-item .num {
-      font-family: 'Syne', sans-serif;
+      font-family: 'Figtree', sans-serif;
       font-size: 36px; font-weight: 800;
       color: var(--text); display: block;
     }
@@ -171,7 +171,7 @@
       color: var(--accent2); text-transform: uppercase; margin-bottom: 16px;
     }
     .section-title {
-      font-family: 'Syne', sans-serif;
+      font-family: 'Figtree', sans-serif;
       font-size: clamp(32px, 4vw, 52px); font-weight: 800;
       letter-spacing: -1px; line-height: 1.1; margin-bottom: 16px;
     }
@@ -190,7 +190,7 @@
       font-size: 32px; margin-bottom: 18px; display: block;
     }
     .feature-card h3 {
-      font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700;
+      font-family: 'Figtree', sans-serif; font-size: 18px; font-weight: 700;
       margin-bottom: 10px;
     }
     .feature-card p { font-size: 14px; color: var(--muted); line-height: 1.7; }
@@ -209,12 +209,12 @@
       width: 64px; height: 64px; border-radius: 50%;
       background: var(--bg3); border: 2px solid var(--accent);
       display: flex; align-items: center; justify-content: center;
-      font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800;
+      font-family: 'Figtree', sans-serif; font-size: 20px; font-weight: 800;
       color: var(--accent2); margin: 0 auto 20px;
       position: relative; z-index: 1;
       box-shadow: 0 0 20px rgba(99,102,241,0.3);
     }
-    .step h3 { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .step h3 { font-family: 'Figtree', sans-serif; font-size: 16px; font-weight: 700; margin-bottom: 8px; }
     .step p { font-size: 13px; color: var(--muted); line-height: 1.6; }
 
     /* PLATFORMS */
@@ -244,7 +244,7 @@
       background: radial-gradient(ellipse at center, rgba(99,102,241,0.1) 0%, transparent 60%);
     }
     .cta-banner h2 {
-      font-family: 'Syne', sans-serif;
+      font-family: 'Figtree', sans-serif;
       font-size: clamp(28px, 4vw, 48px); font-weight: 800;
       letter-spacing: -1px; margin-bottom: 16px; position: relative;
     }
@@ -259,7 +259,7 @@
       max-width: 1200px; margin: 0 auto;
       display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 24px;
     }
-    .footer-logo { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--accent2); }
+    .footer-logo { font-family: 'Figtree', sans-serif; font-size: 18px; font-weight: 800; color: var(--accent2); }
     .footer-links { display: flex; gap: 32px; }
     .footer-links a { font-size: 13px; color: var(--muted); text-decoration: none; transition: color 0.2s; }
     .footer-links a:hover { color: var(--text); }
@@ -433,13 +433,13 @@
       <a href="pricing.html" data-i18n="nav.pricing">Pricing</a>
       <a href="faq.html" data-i18n="nav.faq">FAQ</a>
       <a href="about.html" data-i18n="nav.about">About</a>
-      <a href="mailto:hello@castreo.com">Contact</a>
+      <a href="/cdn-cgi/l/email-protection#28404d444447684b495b5c5a4d47064b4745">Contact</a>
     </div>
     <div class="footer-copy">© 2025 Castreo. All rights reserved.</div>
   </div>
 </footer>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
   // Navbar scroll
   window.addEventListener('scroll', () => {
     document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 20);
@@ -610,11 +610,4 @@
       const t = translations[lang]?.[key] || translations['en'][key];
       if (t) el.innerHTML = t;
     });
-    document.documentElement.lang = lang;
-    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-  }
-
-  setLang(currentLang);
-</script>
-</body>
-</html>
+    document.do
