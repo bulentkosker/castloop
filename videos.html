@@ -50,8 +50,6 @@
       margin-bottom: 24px;
     }
     .section-header h2 { font-size: 18px; font-weight: 600; }
-
-    /* Upload area */
     .upload-area {
       background: #1a1a2e;
       border: 2px dashed #2a2a3e;
@@ -79,8 +77,6 @@
     }
     .btn-primary:hover { background: #4f46e5; }
     input[type="file"] { display: none; }
-
-    /* Progress */
     .progress-container {
       display: none;
       background: #1a1a2e;
@@ -97,12 +93,7 @@
       color: #aaa;
       margin-bottom: 8px;
     }
-    .progress-bar {
-      background: #2a2a3e;
-      border-radius: 4px;
-      height: 8px;
-      overflow: hidden;
-    }
+    .progress-bar { background: #2a2a3e; border-radius: 4px; height: 8px; overflow: hidden; }
     .progress-fill {
       background: #6366f1;
       height: 100%;
@@ -110,8 +101,6 @@
       transition: width 0.3s;
       border-radius: 4px;
     }
-
-    /* Videos grid */
     .videos-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -124,15 +113,20 @@
       padding: 20px;
     }
     .video-card .video-icon { font-size: 32px; margin-bottom: 12px; }
-    .video-card .video-name {
+    .video-card .video-original-name {
       font-size: 14px;
       font-weight: 600;
       margin-bottom: 4px;
-      word-break: break-all;
+      color: #fff;
+    }
+    .video-card .video-size {
+      font-size: 11px;
+      color: #6366f1;
+      margin-bottom: 4px;
     }
     .video-card .video-path {
-      font-size: 11px;
-      color: #555;
+      font-size: 10px;
+      color: #444;
       margin-bottom: 12px;
       word-break: break-all;
     }
@@ -147,14 +141,16 @@
       cursor: pointer;
     }
     .btn-copy {
-      background: transparent;
-      color: #6366f1;
-      border: 1px solid #6366f1;
+      background: #6366f1;
+      color: #fff;
+      border: none;
       padding: 6px 14px;
       border-radius: 6px;
       font-size: 12px;
       cursor: pointer;
+      font-weight: 600;
     }
+    .btn-copy:hover { background: #4f46e5; }
     .empty-state {
       background: #1a1a2e;
       border: 1px dashed #2a2a3e;
@@ -197,7 +193,6 @@
 
     <div class="message" id="message"></div>
 
-    <!-- Upload Area -->
     <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
       <div class="icon">🎬</div>
       <p>Click to upload or drag & drop your video</p>
@@ -209,7 +204,6 @@
     </div>
     <input type="file" id="fileInput" accept="video/*" onchange="uploadVideo(this.files[0])">
 
-    <!-- Progress -->
     <div class="progress-container" id="progressContainer">
       <div class="progress-label">
         <span id="progressFilename">Uploading...</span>
@@ -220,7 +214,6 @@
       </div>
     </div>
 
-    <!-- Videos -->
     <div id="videosContainer">
       <div class="empty-state">
         <div class="icon">🎬</div>
@@ -255,6 +248,13 @@
       renderVideos(videos);
     }
 
+    function formatSize(bytes) {
+      if (!bytes) return '';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+      return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+    }
+
     function renderVideos(videos) {
       const container = document.getElementById('videosContainer');
       if (!videos.length) {
@@ -268,10 +268,11 @@
       container.innerHTML = `<div class="videos-grid">${videos.map(v => `
         <div class="video-card">
           <div class="video-icon">🎬</div>
-          <div class="video-name">${v.filename}</div>
+          <div class="video-original-name">${v.originalName || v.filename}</div>
+          ${v.size ? `<div class="video-size">${formatSize(v.size)}</div>` : ''}
           <div class="video-path">${v.path}</div>
           <div class="video-actions">
-            <button class="btn-copy" onclick="copyPath('${v.path}')">Copy Path</button>
+            <button class="btn-copy" onclick="copyPath('${v.path}', this)">📋 Copy Path</button>
             <button class="btn-delete" onclick="deleteVideo('${v.filename}')">Delete</button>
           </div>
         </div>`).join('')}
@@ -288,9 +289,11 @@
 
       progressContainer.classList.add('active');
       progressFilename.textContent = file.name;
+      progressFill.style.width = '0%';
 
       const formData = new FormData();
       formData.append('video', file);
+      formData.append('originalName', file.name);
 
       const xhr = new XMLHttpRequest();
       xhr.open('POST', `${SERVER_URL}/upload`);
@@ -307,7 +310,7 @@
       xhr.onload = async () => {
         progressContainer.classList.remove('active');
         if (xhr.status === 200) {
-          showMessage('Video uploaded successfully!', 'success');
+          showMessage('✅ Video uploaded: ' + file.name, 'success');
           await loadVideos();
         } else {
           showMessage('Upload failed. Try again.', 'error');
@@ -324,7 +327,7 @@
 
     async function deleteVideo(filename) {
       if (!confirm('Delete this video?')) return;
-      const res = await fetch(`${SERVER_URL}/videos/${filename}`, {
+      const res = await fetch(`${SERVER_URL}/videos/${encodeURIComponent(filename)}`, {
         method: 'DELETE',
         headers: { 'x-api-key': API_KEY }
       });
@@ -334,19 +337,24 @@
       }
     }
 
-    function copyPath(path) {
+    function copyPath(path, btn) {
       navigator.clipboard.writeText(path);
-      showMessage('Path copied to clipboard!', 'success');
+      const original = btn.textContent;
+      btn.textContent = '✅ Copied!';
+      btn.style.background = '#064e3b';
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.style.background = '';
+      }, 2000);
     }
 
     function showMessage(text, type) {
       const msg = document.getElementById('message');
       msg.textContent = text;
       msg.className = `message ${type}`;
-      setTimeout(() => { msg.className = 'message'; }, 3000);
+      setTimeout(() => { msg.className = 'message'; }, 4000);
     }
 
-    // Drag & drop
     const uploadArea = document.getElementById('uploadArea');
     uploadArea.addEventListener('dragover', (e) => {
       e.preventDefault();
