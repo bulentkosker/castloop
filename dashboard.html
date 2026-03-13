@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Castreo - Dashboard</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.9em%27 font-size=%2790%27>📡</text></svg>">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -41,7 +40,6 @@
     .stream-actions { display: flex; gap: 8px; margin-top: 16px; }
     .btn-start { background: #064e3b; color: #34d399; border: 1px solid #34d399; padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
     .btn-stop { background: #450a0a; color: #f87171; border: 1px solid #f87171; padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
-    .stream-error { font-size: 11px; color: #f87171; margin-top: 8px; min-height: 16px; }
     .btn-delete { background: transparent; color: #555; border: 1px solid #2a2a3e; padding: 7px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; }
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center; }
     .modal-overlay.active { display: flex; }
@@ -271,7 +269,7 @@
             }
             <button class="btn-delete" onclick="deleteStream('${s.id}')">Delete</button>
           </div>
-          <div class="stream-error" id="err-${s.id}"></div>
+          <div style="font-size:11px;color:#f87171;margin-top:8px;min-height:16px" id="err-${s.id}"></div>
         </div>`;
       }).join('')}
       </div>`;
@@ -310,8 +308,19 @@
 
     function showStreamError(id, msg) {
       const el = document.getElementById(`err-${id}`);
-      if (el) el.textContent = '⚠ ' + msg;
-      setTimeout(() => { if (el) el.textContent = ''; }, 6000);
+      if (el) { el.textContent = '⚠ ' + msg; setTimeout(() => { if (el) el.textContent = ''; }, 8000); }
+    }
+
+    async function checkStreamHealth(id) {
+      try {
+        const res = await fetch(`${SERVER_URL}/status/${id}`, { headers: { 'x-api-key': API_KEY } });
+        const data = await res.json();
+        if (!data.running) {
+          await client.from('streams').update({ status: 'stopped' }).eq('id', id);
+          await loadStreams();
+          showStreamError(id, 'Stream stopped. Check your RTMP URL and stream key.');
+        }
+      } catch (e) { console.error('Health check failed:', e); }
     }
 
     async function startStream(id, rtmpUrl, streamKey, videoPaths) {
@@ -327,13 +336,14 @@
         if (data.success) {
           await client.from('streams').update({ status: 'running' }).eq('id', id);
           await loadStreams();
+          setTimeout(() => checkStreamHealth(id), 10000);
         } else {
           if (btn) { btn.disabled = false; btn.textContent = '▶ Start'; }
           showStreamError(id, data.error || 'Failed to start stream.');
         }
       } catch (e) {
         if (btn) { btn.disabled = false; btn.textContent = '▶ Start'; }
-        showStreamError(id, 'Cannot reach stream server. Check your connection.');
+        showStreamError(id, 'Cannot reach stream server.');
       }
     }
 
@@ -348,8 +358,6 @@
         if (data.success) {
           await client.from('streams').update({ status: 'stopped' }).eq('id', id);
           await loadStreams();
-        } else {
-          showStreamError(id, data.error || 'Failed to stop stream.');
         }
       } catch (e) {
         showStreamError(id, 'Cannot reach stream server.');
