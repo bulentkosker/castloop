@@ -2,27 +2,619 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Castreo</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-<body>
-  <script>
-    const SUPABASE_URL = 'https://pdttjblnvxoitskhdtro.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_vxcNOoezd_FKxKWmWj-rZQ_w3IrSMaG';
-    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    async function init() {
-      // URL'de token varsa Supabase otomatik işler
-      const { data: { session } } = await client.auth.getSession();
-      
-      if (session) {
-        window.location.href = 'dashboard.html';
-      } else {
-        window.location.href = 'login.html';
-      }
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Castreo — 24/7 Live Stream Platform</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📡</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #080810;
+      --bg2: #0f0f1a;
+      --bg3: #1a1a2e;
+      --border: #1e1e35;
+      --accent: #6366f1;
+      --accent2: #818cf8;
+      --accent-glow: rgba(99,102,241,0.15);
+      --text: #f0f0ff;
+      --muted: #6b6b8a;
+      --green: #34d399;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
     }
 
-    init();
-  </script>
+    /* NAVBAR */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      padding: 20px 48px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid transparent;
+      transition: all 0.3s;
+      backdrop-filter: blur(0px);
+    }
+    nav.scrolled {
+      background: rgba(8,8,16,0.85);
+      border-color: var(--border);
+      backdrop-filter: blur(20px);
+      padding: 14px 48px;
+    }
+    .nav-logo {
+      font-family: 'Syne', sans-serif;
+      font-size: 22px; font-weight: 800;
+      color: var(--accent2);
+      letter-spacing: -0.5px;
+      text-decoration: none;
+    }
+    .nav-links { display: flex; align-items: center; gap: 32px; }
+    .nav-links a {
+      color: var(--muted); font-size: 14px; text-decoration: none;
+      transition: color 0.2s; font-weight: 500;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .lang-select {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--muted); padding: 6px 10px; border-radius: 6px;
+      font-size: 13px; cursor: pointer; font-family: 'DM Sans', sans-serif;
+    }
+    .lang-select option { background: var(--bg2); }
+    .btn-nav-login {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--muted); padding: 8px 18px; border-radius: 8px;
+      font-size: 14px; cursor: pointer; transition: all 0.2s;
+      font-family: 'DM Sans', sans-serif; text-decoration: none;
+    }
+    .btn-nav-login:hover { border-color: var(--accent); color: var(--text); }
+    .btn-nav-cta {
+      background: var(--accent); color: #fff;
+      border: none; padding: 8px 20px; border-radius: 8px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: all 0.2s; font-family: 'DM Sans', sans-serif;
+      text-decoration: none;
+    }
+    .btn-nav-cta:hover { background: #4f46e5; transform: translateY(-1px); }
+
+    /* HERO */
+    .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center;
+      padding: 120px 24px 80px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-bg {
+      position: absolute; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(99,102,241,0.2) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 40% at 80% 60%, rgba(129,140,248,0.08) 0%, transparent 60%);
+    }
+    .hero-grid {
+      position: absolute; inset: 0; z-index: 0;
+      background-image: linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 20%, transparent 80%);
+      opacity: 0.4;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.3);
+      padding: 6px 16px; border-radius: 100px; font-size: 13px; color: var(--accent2);
+      margin-bottom: 28px; position: relative; z-index: 1;
+      font-weight: 500;
+    }
+    .hero-badge .dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.3)} }
+    .hero h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(42px, 7vw, 88px);
+      font-weight: 800; line-height: 1.0;
+      letter-spacing: -2px;
+      margin-bottom: 24px;
+      position: relative; z-index: 1;
+    }
+    .hero h1 span { color: var(--accent2); }
+    .hero p {
+      font-size: clamp(16px, 2vw, 20px);
+      color: var(--muted); max-width: 560px;
+      line-height: 1.7; margin-bottom: 40px;
+      position: relative; z-index: 1;
+    }
+    .hero-cta { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; position: relative; z-index: 1; }
+    .btn-primary {
+      background: var(--accent); color: #fff;
+      padding: 14px 32px; border-radius: 10px;
+      font-size: 16px; font-weight: 600; cursor: pointer;
+      border: none; transition: all 0.2s;
+      font-family: 'DM Sans', sans-serif; text-decoration: none;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-primary:hover { background: #4f46e5; transform: translateY(-2px); box-shadow: 0 8px 30px rgba(99,102,241,0.4); }
+    .btn-secondary {
+      background: transparent; color: var(--text);
+      padding: 14px 32px; border-radius: 10px;
+      font-size: 16px; font-weight: 500; cursor: pointer;
+      border: 1px solid var(--border); transition: all 0.2s;
+      font-family: 'DM Sans', sans-serif; text-decoration: none;
+    }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent2); }
+    .hero-note { font-size: 12px; color: var(--muted); margin-top: 14px; position: relative; z-index: 1; }
+
+    /* STATS */
+    .stats-bar {
+      padding: 40px 48px;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      display: flex; justify-content: center; gap: 80px;
+      flex-wrap: wrap;
+    }
+    .stat-item { text-align: center; }
+    .stat-item .num {
+      font-family: 'Syne', sans-serif;
+      font-size: 36px; font-weight: 800;
+      color: var(--text); display: block;
+    }
+    .stat-item .label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+    /* FEATURES */
+    section { padding: 100px 48px; max-width: 1200px; margin: 0 auto; }
+    .section-tag {
+      font-size: 12px; font-weight: 600; letter-spacing: 2px;
+      color: var(--accent2); text-transform: uppercase; margin-bottom: 16px;
+    }
+    .section-title {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(32px, 4vw, 52px); font-weight: 800;
+      letter-spacing: -1px; line-height: 1.1; margin-bottom: 16px;
+    }
+    .section-sub { font-size: 17px; color: var(--muted); max-width: 500px; line-height: 1.7; margin-bottom: 60px; }
+
+    .features-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px;
+      background: var(--border); border-radius: 16px; overflow: hidden;
+    }
+    .feature-card {
+      background: var(--bg2); padding: 36px 32px;
+      transition: background 0.2s;
+    }
+    .feature-card:hover { background: var(--bg3); }
+    .feature-icon {
+      font-size: 32px; margin-bottom: 18px; display: block;
+    }
+    .feature-card h3 {
+      font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .feature-card p { font-size: 14px; color: var(--muted); line-height: 1.7; }
+
+    /* HOW IT WORKS */
+    .how-section { padding: 100px 48px; }
+    .how-inner { max-width: 1200px; margin: 0 auto; }
+    .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-top: 60px; position: relative; }
+    .steps::before {
+      content: ''; position: absolute;
+      top: 32px; left: 10%; right: 10%; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    }
+    .step { text-align: center; padding: 0 20px; }
+    .step-num {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: var(--bg3); border: 2px solid var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800;
+      color: var(--accent2); margin: 0 auto 20px;
+      position: relative; z-index: 1;
+      box-shadow: 0 0 20px rgba(99,102,241,0.3);
+    }
+    .step h3 { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .step p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* PLATFORMS */
+    .platforms-section { padding: 80px 48px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .platforms-inner { max-width: 1200px; margin: 0 auto; text-align: center; }
+    .platforms-inner p { font-size: 13px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 32px; }
+    .platform-logos { display: flex; justify-content: center; align-items: center; gap: 48px; flex-wrap: wrap; }
+    .platform-logo {
+      font-size: 15px; font-weight: 600; color: var(--muted);
+      opacity: 0.6; transition: opacity 0.2s; display: flex; align-items: center; gap: 8px;
+    }
+    .platform-logo:hover { opacity: 1; }
+    .platform-logo span { font-size: 22px; }
+
+    /* CTA BANNER */
+    .cta-banner {
+      margin: 0 48px 100px;
+      max-width: 1200px; margin-left: auto; margin-right: auto;
+      background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(129,140,248,0.05));
+      border: 1px solid rgba(99,102,241,0.3);
+      border-radius: 20px; padding: 64px;
+      text-align: center; position: relative; overflow: hidden;
+    }
+    .cta-banner::before {
+      content: ''; position: absolute;
+      top: -50%; left: -50%; width: 200%; height: 200%;
+      background: radial-gradient(ellipse at center, rgba(99,102,241,0.1) 0%, transparent 60%);
+    }
+    .cta-banner h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(28px, 4vw, 48px); font-weight: 800;
+      letter-spacing: -1px; margin-bottom: 16px; position: relative;
+    }
+    .cta-banner p { color: var(--muted); font-size: 17px; margin-bottom: 32px; position: relative; }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 48px;
+    }
+    .footer-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 24px;
+    }
+    .footer-logo { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--accent2); }
+    .footer-links { display: flex; gap: 32px; }
+    .footer-links a { font-size: 13px; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { font-size: 12px; color: var(--muted); }
+
+    @media (max-width: 900px) {
+      nav { padding: 16px 24px; }
+      nav.scrolled { padding: 12px 24px; }
+      .nav-links { display: none; }
+      section { padding: 60px 24px; }
+      .stats-bar { padding: 40px 24px; gap: 40px; }
+      .features-grid { grid-template-columns: 1fr; }
+      .steps { grid-template-columns: repeat(2, 1fr); gap: 40px; }
+      .steps::before { display: none; }
+      .how-section { padding: 60px 24px; }
+      .platforms-section { padding: 60px 24px; }
+      .cta-banner { margin: 0 24px 60px; padding: 40px 24px; }
+      footer { padding: 32px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav id="navbar">
+  <a href="index.html" class="nav-logo">Castreo</a>
+  <div class="nav-links">
+    <a href="#features" data-i18n="nav.features">Features</a>
+    <a href="pricing.html" data-i18n="nav.pricing">Pricing</a>
+    <a href="faq.html" data-i18n="nav.faq">FAQ</a>
+    <a href="about.html" data-i18n="nav.about">About</a>
+  </div>
+  <div class="nav-right">
+    <select class="lang-select" onchange="setLang(this.value)">
+      <option value="en">🌐 EN</option>
+      <option value="tr">🇹🇷 TR</option>
+      <option value="ar">🇸🇦 AR</option>
+      <option value="hi">🇮🇳 HI</option>
+      <option value="id">🇮🇩 ID</option>
+      <option value="ja">🇯🇵 JA</option>
+    </select>
+    <a href="dashboard.html" class="btn-nav-login" data-i18n="nav.login">Sign In</a>
+    <a href="dashboard.html" class="btn-nav-cta" data-i18n="nav.trial">Start Free Trial</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-badge">
+    <span class="dot"></span>
+    <span data-i18n="hero.badge">Trusted by 10,000+ streamers worldwide</span>
+  </div>
+  <h1 data-i18n="hero.title">Stream <span>24/7</span><br>Without Lifting a Finger</h1>
+  <p data-i18n="hero.sub">Upload your videos once. Castreo streams them live — forever. No software, no server, no technical skills needed.</p>
+  <div class="hero-cta">
+    <a href="dashboard.html" class="btn-primary" data-i18n="hero.cta1">▶ Start Free Trial</a>
+    <a href="pricing.html" class="btn-secondary" data-i18n="hero.cta2">View Pricing</a>
+  </div>
+  <p class="hero-note" data-i18n="hero.note">7-day free trial · No credit card required</p>
+</section>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stat-item"><span class="num">10K+</span><span class="label" data-i18n="stats.streamers">Active Streamers</span></div>
+  <div class="stat-item"><span class="num">99.9%</span><span class="label" data-i18n="stats.uptime">Uptime</span></div>
+  <div class="stat-item"><span class="num">5</span><span class="label" data-i18n="stats.platforms">Platforms Supported</span></div>
+  <div class="stat-item"><span class="num">24/7</span><span class="label" data-i18n="stats.support">Live Support</span></div>
+</div>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-tag" data-i18n="features.tag">Features</div>
+  <h2 class="section-title" data-i18n="features.title">Everything you need to<br>stream non-stop</h2>
+  <p class="section-sub" data-i18n="features.sub">No OBS. No dedicated PC. No technical setup. Just upload and go live.</p>
+  <div class="features-grid">
+    <div class="feature-card">
+      <span class="feature-icon">🔁</span>
+      <h3 data-i18n="f1.title">Infinite Loop Streaming</h3>
+      <p data-i18n="f1.sub">Your videos play on repeat, 24 hours a day, 7 days a week. Never go offline again.</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">📋</span>
+      <h3 data-i18n="f2.title">Smart Playlists</h3>
+      <p data-i18n="f2.sub">Queue multiple videos in any order. Castreo cycles through them automatically.</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">🛡️</span>
+      <h3 data-i18n="f3.title">Auto-Restart Watchdog</h3>
+      <p data-i18n="f3.sub">If your stream drops, Castreo detects it and restarts automatically in seconds.</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">☁️</span>
+      <h3 data-i18n="f4.title">Cloud-Powered</h3>
+      <p data-i18n="f4.sub">Runs entirely in the cloud. No PC required. Your stream keeps going even when you sleep.</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">📡</span>
+      <h3 data-i18n="f5.title">Multi-Platform</h3>
+      <p data-i18n="f5.sub">Stream simultaneously to YouTube, Twitch, Facebook, Instagram, X and more via RTMP.</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">⚡</span>
+      <h3 data-i18n="f6.title">Instant Setup</h3>
+      <p data-i18n="f6.sub">Sign up, upload your video, paste your stream key. You're live in under 2 minutes.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<div class="how-section" id="how">
+  <div class="how-inner">
+    <div style="text-align:center">
+      <div class="section-tag" style="display:inline-block" data-i18n="how.tag">How It Works</div>
+      <h2 class="section-title" data-i18n="how.title">Up and running<br>in 4 simple steps</h2>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3 data-i18n="s1.title">Create Account</h3>
+        <p data-i18n="s1.sub">Sign up in seconds with your email or Google account. No credit card needed.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3 data-i18n="s2.title">Upload Video</h3>
+        <p data-i18n="s2.sub">Upload any MP4, MOV or AVI file up to 10GB directly to our servers.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3 data-i18n="s3.title">Add Stream Key</h3>
+        <p data-i18n="s3.sub">Paste your RTMP URL and stream key from YouTube, Twitch or any platform.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <h3 data-i18n="s4.title">Go Live</h3>
+        <p data-i18n="s4.sub">Hit Start. Your stream is live instantly and loops forever automatically.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PLATFORMS -->
+<div class="platforms-section">
+  <div class="platforms-inner">
+    <p data-i18n="platforms.label">Stream to any platform</p>
+    <div class="platform-logos">
+      <div class="platform-logo"><span>▶</span> YouTube</div>
+      <div class="platform-logo"><span>🎮</span> Twitch</div>
+      <div class="platform-logo"><span>📘</span> Facebook</div>
+      <div class="platform-logo"><span>📸</span> Instagram</div>
+      <div class="platform-logo"><span>✖</span> X (Twitter)</div>
+      <div class="platform-logo"><span>⚡</span> Custom RTMP</div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div style="padding: 100px 48px;">
+  <div class="cta-banner">
+    <h2 data-i18n="cta.title">Ready to stream forever?</h2>
+    <p data-i18n="cta.sub">Join thousands of creators who never go offline. Start your free trial today.</p>
+    <a href="dashboard.html" class="btn-primary" style="font-size:17px;padding:16px 40px" data-i18n="cta.btn">Start Free Trial — No Credit Card</a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo">Castreo</div>
+    <div class="footer-links">
+      <a href="pricing.html" data-i18n="nav.pricing">Pricing</a>
+      <a href="faq.html" data-i18n="nav.faq">FAQ</a>
+      <a href="about.html" data-i18n="nav.about">About</a>
+      <a href="mailto:hello@castreo.com">Contact</a>
+    </div>
+    <div class="footer-copy">© 2025 Castreo. All rights reserved.</div>
+  </div>
+</footer>
+
+<script>
+  // Navbar scroll
+  window.addEventListener('scroll', () => {
+    document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 20);
+  });
+
+  // i18n
+  const translations = {
+    en: {
+      'nav.features': 'Features', 'nav.pricing': 'Pricing', 'nav.faq': 'FAQ', 'nav.about': 'About',
+      'nav.login': 'Sign In', 'nav.trial': 'Start Free Trial',
+      'hero.badge': 'Trusted by 10,000+ streamers worldwide',
+      'hero.title': 'Stream <span>24/7</span><br>Without Lifting a Finger',
+      'hero.sub': 'Upload your videos once. Castreo streams them live — forever. No software, no server, no technical skills needed.',
+      'hero.cta1': '▶ Start Free Trial', 'hero.cta2': 'View Pricing',
+      'hero.note': '7-day free trial · No credit card required',
+      'stats.streamers': 'Active Streamers', 'stats.uptime': 'Uptime', 'stats.platforms': 'Platforms Supported', 'stats.support': 'Live Support',
+      'features.tag': 'Features', 'features.title': 'Everything you need to<br>stream non-stop',
+      'features.sub': 'No OBS. No dedicated PC. No technical setup. Just upload and go live.',
+      'f1.title': 'Infinite Loop Streaming', 'f1.sub': 'Your videos play on repeat, 24 hours a day, 7 days a week. Never go offline again.',
+      'f2.title': 'Smart Playlists', 'f2.sub': 'Queue multiple videos in any order. Castreo cycles through them automatically.',
+      'f3.title': 'Auto-Restart Watchdog', 'f3.sub': 'If your stream drops, Castreo detects it and restarts automatically in seconds.',
+      'f4.title': 'Cloud-Powered', 'f4.sub': 'Runs entirely in the cloud. No PC required. Your stream keeps going even when you sleep.',
+      'f5.title': 'Multi-Platform', 'f5.sub': 'Stream simultaneously to YouTube, Twitch, Facebook, Instagram, X and more via RTMP.',
+      'f6.title': 'Instant Setup', 'f6.sub': 'Sign up, upload your video, paste your stream key. You\'re live in under 2 minutes.',
+      'how.tag': 'How It Works', 'how.title': 'Up and running<br>in 4 simple steps',
+      's1.title': 'Create Account', 's1.sub': 'Sign up in seconds with your email or Google account. No credit card needed.',
+      's2.title': 'Upload Video', 's2.sub': 'Upload any MP4, MOV or AVI file up to 10GB directly to our servers.',
+      's3.title': 'Add Stream Key', 's3.sub': 'Paste your RTMP URL and stream key from YouTube, Twitch or any platform.',
+      's4.title': 'Go Live', 's4.sub': 'Hit Start. Your stream is live instantly and loops forever automatically.',
+      'platforms.label': 'Stream to any platform',
+      'cta.title': 'Ready to stream forever?', 'cta.sub': 'Join thousands of creators who never go offline. Start your free trial today.', 'cta.btn': 'Start Free Trial — No Credit Card',
+    },
+    tr: {
+      'nav.features': 'Özellikler', 'nav.pricing': 'Fiyatlar', 'nav.faq': 'SSS', 'nav.about': 'Hakkında',
+      'nav.login': 'Giriş Yap', 'nav.trial': 'Ücretsiz Dene',
+      'hero.badge': '10.000+ yayıncının tercihi',
+      'hero.title': '<span>7/24</span> Canlı Yayın<br>Hiç Uğraşmadan',
+      'hero.sub': 'Vidyolarını bir kez yükle. Castreo onları sonsuza kadar canlı yayınlar. Yazılım, sunucu veya teknik bilgi gerekmez.',
+      'hero.cta1': '▶ Ücretsiz Başla', 'hero.cta2': 'Fiyatları Gör',
+      'hero.note': '7 günlük ücretsiz deneme · Kredi kartı gerekmez',
+      'stats.streamers': 'Aktif Yayıncı', 'stats.uptime': 'Uptime', 'stats.platforms': 'Desteklenen Platform', 'stats.support': 'Canlı Destek',
+      'features.tag': 'Özellikler', 'features.title': '7/24 yayın için<br>ihtiyacın olan her şey',
+      'features.sub': 'OBS yok. Bilgisayar yok. Teknik kurulum yok. Sadece yükle ve yayına geç.',
+      'f1.title': 'Sonsuz Döngü Yayını', 'f1.sub': 'Videolarınız haftanın 7 günü, günün 24 saati tekrar eder. Bir daha çevrimdışı olmayın.',
+      'f2.title': 'Akıllı Oynatma Listeleri', 'f2.sub': 'Birden fazla videoyu istediğin sırayla sıraya koy. Castreo onları otomatik döndürür.',
+      'f3.title': 'Otomatik Yeniden Başlatma', 'f3.sub': 'Yayınınız düşerse Castreo bunu anında algılar ve saniyeler içinde yeniden başlatır.',
+      'f4.title': 'Bulut Tabanlı', 'f4.sub': 'Tamamen bulutta çalışır. PC gerekmez. Siz uyurken bile yayınınız devam eder.',
+      'f5.title': 'Çoklu Platform', 'f5.sub': 'YouTube, Twitch, Facebook, Instagram, X ve daha fazlasına RTMP üzerinden yayın yapın.',
+      'f6.title': 'Anında Kurulum', 'f6.sub': 'Kaydol, videonu yükle, stream key\'ini yapıştır. 2 dakikada yayındasın.',
+      'how.tag': 'Nasıl Çalışır?', 'how.title': '4 basit adımda<br>yayına başla',
+      's1.title': 'Hesap Oluştur', 's1.sub': 'E-posta veya Google hesabınla saniyeler içinde kaydol. Kredi kartı gerekmez.',
+      's2.title': 'Video Yükle', 's2.sub': 'Sunucularımıza 10GB\'a kadar MP4, MOV veya AVI dosyası yükle.',
+      's3.title': 'Stream Key Ekle', 's3.sub': 'YouTube, Twitch veya herhangi bir platformdan RTMP URL ve stream key\'ini yapıştır.',
+      's4.title': 'Yayına Geç', 's4.sub': 'Başlat\'a bas. Yayının anında başlar ve otomatik olarak sonsuza kadar döner.',
+      'platforms.label': 'İstediğin platforma yayın yap',
+      'cta.title': 'Sonsuza kadar yayın yapmaya hazır mısın?', 'cta.sub': 'Hiç çevrimdışı olmayan binlerce içerik üreticisine katıl. Bugün ücretsiz dene.', 'cta.btn': 'Ücretsiz Başla — Kredi Kartı Gerekmez',
+    },
+    ar: {
+      'nav.features': 'المميزات', 'nav.pricing': 'الأسعار', 'nav.faq': 'الأسئلة', 'nav.about': 'عن كاستريو',
+      'nav.login': 'تسجيل الدخول', 'nav.trial': 'ابدأ مجاناً',
+      'hero.badge': 'يثق به أكثر من 10,000 مبث حول العالم',
+      'hero.title': 'بث <span>24/7</span><br>دون أي جهد',
+      'hero.sub': 'ارفع مقاطع الفيديو مرة واحدة. كاستريو يبثها مباشرة للأبد. لا برامج، لا خادم، لا خبرة تقنية.',
+      'hero.cta1': '▶ ابدأ التجربة المجانية', 'hero.cta2': 'عرض الأسعار',
+      'hero.note': 'تجربة مجانية 7 أيام · لا يلزم بطاقة ائتمانية',
+      'stats.streamers': 'مبث نشط', 'stats.uptime': 'وقت التشغيل', 'stats.platforms': 'منصة مدعومة', 'stats.support': 'دعم مباشر',
+      'features.tag': 'المميزات', 'features.title': 'كل ما تحتاجه<br>للبث المستمر',
+      'features.sub': 'لا OBS. لا حاسوب مخصص. لا إعداد تقني. فقط ارفع وابدأ البث.',
+      'f1.title': 'بث حلقي لا نهائي', 'f1.sub': 'تعمل مقاطع الفيديو الخاصة بك على التكرار، 24 ساعة في اليوم، 7 أيام في الأسبوع.',
+      'f2.title': 'قوائم تشغيل ذكية', 'f2.sub': 'رتب مقاطع فيديو متعددة بأي ترتيب. كاستريو يدورها تلقائياً.',
+      'f3.title': 'إعادة تشغيل تلقائية', 'f3.sub': 'إذا انقطع البث، يكتشف كاستريو ذلك ويعيد التشغيل تلقائياً في ثوانٍ.',
+      'f4.title': 'يعمل على السحابة', 'f4.sub': 'يعمل بالكامل على السحابة. لا حاجة لجهاز كمبيوتر. يستمر بثك حتى أثناء نومك.',
+      'f5.title': 'متعدد المنصات', 'f5.sub': 'بث في وقت واحد على يوتيوب وتويتش وفيسبوك وإنستغرام وX والمزيد.',
+      'f6.title': 'إعداد فوري', 'f6.sub': 'سجل، ارفع الفيديو، الصق مفتاح البث. ستكون مباشراً في أقل من دقيقتين.',
+      'how.tag': 'كيف يعمل؟', 'how.title': 'جاهز للبث<br>في 4 خطوات بسيطة',
+      's1.title': 'إنشاء حساب', 's1.sub': 'سجل في ثوانٍ بالبريد الإلكتروني أو حساب Google. لا بطاقة ائتمانية.',
+      's2.title': 'رفع الفيديو', 's2.sub': 'ارفع أي ملف MP4 أو MOV أو AVI حتى 10GB مباشرة إلى خوادمنا.',
+      's3.title': 'إضافة مفتاح البث', 's3.sub': 'الصق RTMP URL ومفتاح البث من يوتيوب أو تويتش أو أي منصة.',
+      's4.title': 'ابدأ البث', 's4.sub': 'اضغط على ابدأ. بثك مباشر على الفور ويتكرر تلقائياً للأبد.',
+      'platforms.label': 'ابث على أي منصة',
+      'cta.title': 'هل أنت مستعد للبث إلى الأبد؟', 'cta.sub': 'انضم إلى آلاف المبدعين الذين لا يتوقفون أبداً عن البث.', 'cta.btn': 'ابدأ مجاناً — لا بطاقة ائتمانية',
+    },
+    hi: {
+      'nav.features': 'विशेषताएं', 'nav.pricing': 'मूल्य', 'nav.faq': 'FAQ', 'nav.about': 'हमारे बारे में',
+      'nav.login': 'साइन इन', 'nav.trial': 'मुफ्त शुरू करें',
+      'hero.badge': '10,000+ स्ट्रीमर्स का भरोसा',
+      'hero.title': '<span>24/7</span> लाइव स्ट्रीम<br>बिना किसी मेहनत के',
+      'hero.sub': 'एक बार वीडियो अपलोड करें। Castreo उन्हें हमेशा के लिए लाइव स्ट्रीम करता है।',
+      'hero.cta1': '▶ मुफ्त शुरू करें', 'hero.cta2': 'मूल्य देखें',
+      'hero.note': '7 दिन मुफ्त · क्रेडिट कार्ड की जरूरत नहीं',
+      'stats.streamers': 'सक्रिय स्ट्रीमर', 'stats.uptime': 'अपटाइम', 'stats.platforms': 'प्लेटफॉर्म', 'stats.support': 'लाइव सपोर्ट',
+      'features.tag': 'विशेषताएं', 'features.title': '24/7 स्ट्रीमिंग के लिए<br>सब कुछ',
+      'features.sub': 'कोई OBS नहीं। कोई PC नहीं। बस अपलोड करें और लाइव जाएं।',
+      'f1.title': 'अनंत लूप स्ट्रीमिंग', 'f1.sub': 'आपके वीडियो दिन-रात, हफ्ते के सातों दिन चलते रहते हैं।',
+      'f2.title': 'स्मार्ट प्लेलिस्ट', 'f2.sub': 'कई वीडियो किसी भी क्रम में जोड़ें। Castreo उन्हें अपने आप चलाता है।',
+      'f3.title': 'ऑटो-रीस्टार्ट', 'f3.sub': 'स्ट्रीम गिरने पर Castreo सेकंडों में इसे फिर से शुरू करता है।',
+      'f4.title': 'क्लाउड-पावर्ड', 'f4.sub': 'पूरी तरह से क्लाउड पर चलता है। सोते समय भी आपकी स्ट्रीम चलती रहती है।',
+      'f5.title': 'मल्टी-प्लेटफॉर्म', 'f5.sub': 'YouTube, Twitch, Facebook, Instagram, X पर एक साथ स्ट्रीम करें।',
+      'f6.title': 'तुरंत सेटअप', 'f6.sub': 'साइन अप करें, वीडियो अपलोड करें, स्ट्रीम की पेस्ट करें। 2 मिनट में लाइव।',
+      'how.tag': 'कैसे काम करता है?', 'how.title': '4 आसान चरणों में<br>लाइव जाएं',
+      's1.title': 'खाता बनाएं', 's1.sub': 'ईमेल या Google से सेकंडों में साइन अप करें।',
+      's2.title': 'वीडियो अपलोड करें', 's2.sub': '10GB तक MP4, MOV या AVI फ़ाइल अपलोड करें।',
+      's3.title': 'स्ट्रीम की जोड़ें', 's3.sub': 'YouTube या किसी भी प्लेटफॉर्म से RTMP URL और स्ट्रीम की पेस्ट करें।',
+      's4.title': 'लाइव जाएं', 's4.sub': 'स्टार्ट दबाएं। आपकी स्ट्रीम तुरंत लाइव हो जाती है।',
+      'platforms.label': 'किसी भी प्लेटफॉर्म पर स्ट्रीम करें',
+      'cta.title': 'हमेशा के लिए स्ट्रीम करने के लिए तैयार हैं?', 'cta.sub': 'हजारों क्रिएटर्स से जुड़ें जो कभी ऑफलाइन नहीं जाते।', 'cta.btn': 'मुफ्त शुरू करें — कोई क्रेडिट कार्ड नहीं',
+    },
+    id: {
+      'nav.features': 'Fitur', 'nav.pricing': 'Harga', 'nav.faq': 'FAQ', 'nav.about': 'Tentang',
+      'nav.login': 'Masuk', 'nav.trial': 'Coba Gratis',
+      'hero.badge': 'Dipercaya oleh 10.000+ streamer di seluruh dunia',
+      'hero.title': 'Stream <span>24/7</span><br>Tanpa Usaha',
+      'hero.sub': 'Upload video sekali. Castreo streaming mereka selamanya. Tidak perlu software atau server.',
+      'hero.cta1': '▶ Mulai Gratis', 'hero.cta2': 'Lihat Harga',
+      'hero.note': 'Uji coba gratis 7 hari · Tidak perlu kartu kredit',
+      'stats.streamers': 'Streamer Aktif', 'stats.uptime': 'Uptime', 'stats.platforms': 'Platform Didukung', 'stats.support': 'Dukungan Langsung',
+      'features.tag': 'Fitur', 'features.title': 'Semua yang Anda butuhkan<br>untuk stream tanpa henti',
+      'features.sub': 'Tidak ada OBS. Tidak ada PC khusus. Upload dan langsung live.',
+      'f1.title': 'Loop Streaming Tanpa Batas', 'f1.sub': 'Video Anda diputar berulang, 24 jam sehari, 7 hari seminggu.',
+      'f2.title': 'Playlist Cerdas', 'f2.sub': 'Tambahkan beberapa video dalam urutan apapun. Castreo memutarnya secara otomatis.',
+      'f3.title': 'Auto-Restart', 'f3.sub': 'Jika stream Anda putus, Castreo mendeteksinya dan restart otomatis dalam detik.',
+      'f4.title': 'Berbasis Cloud', 'f4.sub': 'Berjalan sepenuhnya di cloud. Stream Anda terus berjalan bahkan saat Anda tidur.',
+      'f5.title': 'Multi-Platform', 'f5.sub': 'Stream ke YouTube, Twitch, Facebook, Instagram, X dan lainnya sekaligus.',
+      'f6.title': 'Setup Instan', 'f6.sub': 'Daftar, upload video, tempel stream key. Live dalam 2 menit.',
+      'how.tag': 'Cara Kerja', 'how.title': 'Siap streaming<br>dalam 4 langkah mudah',
+      's1.title': 'Buat Akun', 's1.sub': 'Daftar dalam detik dengan email atau Google. Tidak perlu kartu kredit.',
+      's2.title': 'Upload Video', 's2.sub': 'Upload file MP4, MOV atau AVI hingga 10GB langsung ke server kami.',
+      's3.title': 'Tambah Stream Key', 's3.sub': 'Tempel RTMP URL dan stream key dari YouTube, Twitch atau platform manapun.',
+      's4.title': 'Go Live', 's4.sub': 'Tekan Start. Stream Anda langsung live dan loop selamanya otomatis.',
+      'platforms.label': 'Stream ke platform manapun',
+      'cta.title': 'Siap streaming selamanya?', 'cta.sub': 'Bergabunglah dengan ribuan kreator yang tidak pernah offline.', 'cta.btn': 'Mulai Gratis — Tanpa Kartu Kredit',
+    },
+    ja: {
+      'nav.features': '機能', 'nav.pricing': '料金', 'nav.faq': 'よくある質問', 'nav.about': '会社概要',
+      'nav.login': 'ログイン', 'nav.trial': '無料で始める',
+      'hero.badge': '世界10,000人以上のストリーマーに信頼されています',
+      'hero.title': '<span>24/7</span>ライブ配信<br>手間いらずで',
+      'hero.sub': '動画を一度アップロードするだけ。Castreoが永遠にライブ配信します。ソフトウェア不要、サーバー不要。',
+      'hero.cta1': '▶ 無料で始める', 'hero.cta2': '料金を見る',
+      'hero.note': '7日間無料トライアル · クレジットカード不要',
+      'stats.streamers': 'アクティブストリーマー', 'stats.uptime': '稼働率', 'stats.platforms': '対応プラットフォーム', 'stats.support': 'ライブサポート',
+      'features.tag': '機能', 'features.title': '24/7配信に必要な<br>すべてが揃っています',
+      'features.sub': 'OBS不要。専用PCも不要。アップロードしてライブ配信するだけ。',
+      'f1.title': '無限ループ配信', 'f1.sub': '動画が24時間365日リピート再生されます。もうオフラインになりません。',
+      'f2.title': 'スマートプレイリスト', 'f2.sub': '複数の動画を好きな順番に並べると、Castreoが自動的に順番に再生します。',
+      'f3.title': '自動再起動', 'f3.sub': '配信が落ちると、Castreoが検知して数秒で自動的に再起動します。',
+      'f4.title': 'クラウド動作', 'f4.sub': '完全にクラウド上で動作。PCは不要。寝ている間も配信は続きます。',
+      'f5.title': 'マルチプラットフォーム', 'f5.sub': 'YouTube、Twitch、Facebook、Instagram、Xなど複数に同時配信。',
+      'f6.title': '即時セットアップ', 'f6.sub': '登録して、動画をアップロードして、ストリームキーを貼るだけ。2分でライブ開始。',
+      'how.tag': '仕組み', 'how.title': '4ステップで<br>配信開始',
+      's1.title': 'アカウント作成', 's1.sub': 'メールまたはGoogleで数秒で登録。クレジットカード不要。',
+      's2.title': '動画アップロード', 's2.sub': 'MP4、MOV、AVIファイル（最大10GB）をサーバーに直接アップロード。',
+      's3.title': 'ストリームキーを追加', 's3.sub': 'YouTube、TwitchなどからRTMP URLとストリームキーを貼り付け。',
+      's4.title': 'ライブ開始', 's4.sub': 'スタートを押すと即座にライブ配信が始まり、自動的にループし続けます。',
+      'platforms.label': 'あらゆるプラットフォームに配信',
+      'cta.title': '永遠に配信する準備はできていますか？', 'cta.sub': 'オフラインにならない何千ものクリエイターに参加しましょう。', 'cta.btn': '無料で始める — クレジットカード不要',
+    }
+  };
+
+  let currentLang = localStorage.getItem('castreo_lang') || 'en';
+
+  function setLang(lang) {
+    currentLang = lang;
+    localStorage.setItem('castreo_lang', lang);
+    document.querySelector('.lang-select').value = lang;
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      const t = translations[lang]?.[key] || translations['en'][key];
+      if (t) el.innerHTML = t;
+    });
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  }
+
+  setLang(currentLang);
+</script>
 </body>
 </html>
