@@ -308,7 +308,7 @@
 
     function showStreamError(id, msg) {
       const el = document.getElementById(`err-${id}`);
-      if (el) { el.textContent = '⚠ ' + msg; setTimeout(() => { if (el) el.textContent = ''; }, 8000); }
+      if (el) { el.textContent = '⚠ ' + msg; setTimeout(() => { if (el) el.textContent = ''; }, 10000); }
     }
 
     async function checkStreamHealth(id) {
@@ -318,7 +318,7 @@
         if (!data.running) {
           await client.from('streams').update({ status: 'stopped' }).eq('id', id);
           await loadStreams();
-          showStreamError(id, 'Stream stopped. Check your RTMP URL and stream key.');
+          showStreamError(id, 'Stream failed to start. Check your RTMP URL and stream key.');
         }
       } catch (e) { console.error('Health check failed:', e); }
     }
@@ -336,7 +336,7 @@
         if (data.success) {
           await client.from('streams').update({ status: 'running' }).eq('id', id);
           await loadStreams();
-          setTimeout(() => checkStreamHealth(id), 10000);
+          setTimeout(() => checkStreamHealth(id), 15000);
         } else {
           if (btn) { btn.disabled = false; btn.textContent = '▶ Start'; }
           showStreamError(id, data.error || 'Failed to start stream.');
@@ -358,6 +358,8 @@
         if (data.success) {
           await client.from('streams').update({ status: 'stopped' }).eq('id', id);
           await loadStreams();
+        } else {
+          showStreamError(id, data.error || 'Failed to stop stream.');
         }
       } catch (e) {
         showStreamError(id, 'Cannot reach stream server.');
