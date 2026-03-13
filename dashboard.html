@@ -159,38 +159,25 @@
     <div class="modal">
       <h3>Edit Stream</h3>
       <input type="hidden" id="editStreamId">
-      <div class="form-group">
-        <label>Stream Name</label>
-        <input type="text" id="editStreamName" placeholder="My YouTube Stream">
-      </div>
+      <div class="form-group"><label>Stream Name</label><input type="text" id="editStreamName"></div>
       <div class="form-group">
         <label>Platform</label>
         <select id="editStreamPlatform">
-          <option value="youtube">YouTube</option>
-          <option value="twitch">Twitch</option>
-          <option value="facebook">Facebook</option>
-          <option value="instagram">Instagram</option>
+          <option value="youtube">YouTube</option><option value="twitch">Twitch</option>
+          <option value="facebook">Facebook</option><option value="instagram">Instagram</option>
           <option value="x">X (Twitter)</option>
         </select>
       </div>
-      <div class="form-group">
-        <label>RTMP URL</label>
-        <input type="text" id="editRtmpUrl">
-      </div>
-      <div class="form-group">
-        <label>Stream Key</label>
-        <input type="text" id="editStreamKey">
-      </div>
+      <div class="form-group"><label>RTMP URL</label><input type="text" id="editRtmpUrl"></div>
+      <div class="form-group"><label>Stream Key</label><input type="text" id="editStreamKey"></div>
       <div class="form-group">
         <label>Playlist</label>
         <div class="playlist-builder">
           <div class="playlist-add">
-            <select id="editVideoSelect"><option value="">Loading videos...</option></select>
+            <select id="editVideoSelect"><option value="">Loading...</option></select>
             <button class="btn-add" onclick="addToEditPlaylist()">+ Add</button>
           </div>
-          <div class="playlist-items" id="editPlaylistItems">
-            <div class="playlist-empty">No videos added yet</div>
-          </div>
+          <div class="playlist-items" id="editPlaylistItems"><div class="playlist-empty">No videos added yet</div></div>
         </div>
         <div class="hint">Add one or more videos. They will loop in order forever.</div>
       </div>
@@ -316,7 +303,7 @@
               ? `<button class="btn-start" id="btn-start-${s.id}" onclick="startStream('${s.id}', '${s.rtmp_url}', '${s.stream_key}', ${JSON.stringify(paths).replace(/"/g, '&quot;')})">▶ Start</button>`
               : `<button class="btn-stop" onclick="stopStream('${s.id}')">■ Stop</button>`
             }
-            <button class="btn-edit" onclick="openEditModal('${s.id}')">✎ Edit</button>
+            ${s.status !== 'running' ? `<button class="btn-edit" onclick="openEditModal('${s.id}')">✎ Edit</button>` : ''}
             <button class="btn-delete" onclick="deleteStream('${s.id}')">Delete</button>
           </div>
           <div style="font-size:11px;color:#f87171;margin-top:8px;min-height:16px" id="err-${s.id}"></div>
@@ -368,8 +355,7 @@
         if (!data.running) {
           await client.from('streams').update({ status: 'stopped' }).eq('id', id);
           await loadStreams();
-          // loadStreams kartı yeniden render ediyor, hata sonrasında göster
-          setTimeout(() => showStreamError(id, 'Stream failed to start. Check your RTMP URL and stream key.'), 100);
+          showStreamError(id, 'Stream failed to start. Check your RTMP URL and stream key.');
         }
       } catch (e) { console.error('Health check failed:', e); }
     }
@@ -456,54 +442,31 @@
       document.getElementById('editRtmpUrl').value = s.rtmp_url;
       document.getElementById('editStreamKey').value = s.stream_key;
       document.getElementById('editModalMessage').textContent = '';
-
       const select = document.getElementById('editVideoSelect');
       select.innerHTML = '<option value="">Loading...</option>';
       try {
-        const res = await fetch(`${SERVER_URL}/videos`, {
-          headers: { 'x-api-key': API_KEY, 'x-user-id': currentUser.id }
-        });
+        const res = await fetch(`${SERVER_URL}/videos`, { headers: { 'x-api-key': API_KEY, 'x-user-id': currentUser.id } });
         availableVideos = await res.json();
         select.innerHTML = '<option value="">Select a video...</option>' +
           availableVideos.map(v => `<option value="${v.path}">${v.originalName}</option>`).join('');
-      } catch (e) {
-        select.innerHTML = '<option value="">Could not load videos</option>';
-      }
-
+      } catch (e) { select.innerHTML = '<option value="">Could not load videos</option>'; }
       const paths = s.video_paths ? JSON.parse(s.video_paths) : (s.video_path ? [s.video_path] : []);
-      editPlaylist = paths.map(p => {
-        const v = availableVideos.find(v => v.path === p);
-        return { path: p, name: v ? v.originalName : p.split('/').pop() };
-      });
+      editPlaylist = paths.map(p => { const v = availableVideos.find(v => v.path === p); return { path: p, name: v ? v.originalName : p.split('/').pop() }; });
       renderEditPlaylist();
       document.getElementById('editModalOverlay').classList.add('active');
     }
 
-    function closeEditModal() {
-      document.getElementById('editModalOverlay').classList.remove('active');
-      editPlaylist = [];
-    }
-
-    function addToEditPlaylist() {
-      const select = document.getElementById('editVideoSelect');
-      const path = select.value;
-      if (!path) return;
-      const video = availableVideos.find(v => v.path === path);
-      if (!video) return;
-      editPlaylist.push({ path: video.path, name: video.originalName });
-      renderEditPlaylist();
-    }
-
+    function closeEditModal() { document.getElementById('editModalOverlay').classList.remove('active'); editPlaylist = []; }
+    function addToEditPlaylist() { const s = document.getElementById('editVideoSelect'); const v = availableVideos.find(v => v.path === s.value); if (!v) return; editPlaylist.push({ path: v.path, name: v.originalName }); renderEditPlaylist(); }
     function removeFromEditPlaylist(i) { editPlaylist.splice(i, 1); renderEditPlaylist(); }
     function moveEditUp(i) { if (i === 0) return; [editPlaylist[i-1], editPlaylist[i]] = [editPlaylist[i], editPlaylist[i-1]]; renderEditPlaylist(); }
     function moveEditDown(i) { if (i === editPlaylist.length-1) return; [editPlaylist[i], editPlaylist[i+1]] = [editPlaylist[i+1], editPlaylist[i]]; renderEditPlaylist(); }
-
     function renderEditPlaylist() {
-      const container = document.getElementById('editPlaylistItems');
-      if (!editPlaylist.length) { container.innerHTML = '<div class="playlist-empty">No videos added yet</div>'; return; }
-      container.innerHTML = editPlaylist.map((v, i) => `
+      const c = document.getElementById('editPlaylistItems');
+      if (!editPlaylist.length) { c.innerHTML = '<div class="playlist-empty">No videos added yet</div>'; return; }
+      c.innerHTML = editPlaylist.map((v, i) => `
         <div class="playlist-item">
-          <span class="order-num">${i + 1}</span>
+          <span class="order-num">${i+1}</span>
           <span class="item-name" title="${v.name}">${v.name}</span>
           <button class="btn-move" onclick="moveEditUp(${i})">▲</button>
           <button class="btn-move" onclick="moveEditDown(${i})">▼</button>
