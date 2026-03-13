@@ -175,11 +175,11 @@
       </div>
       <div class="form-group">
         <label>RTMP URL</label>
-        <input type="text" id="editRtmpUrl" placeholder="rtmp://a.rtmp.youtube.com/live2">
+        <input type="text" id="editRtmpUrl">
       </div>
       <div class="form-group">
         <label>Stream Key</label>
-        <input type="text" id="editStreamKey" placeholder="xxxx-xxxx-xxxx-xxxx">
+        <input type="text" id="editStreamKey">
       </div>
       <div class="form-group">
         <label>Playlist</label>
@@ -368,7 +368,8 @@
         if (!data.running) {
           await client.from('streams').update({ status: 'stopped' }).eq('id', id);
           await loadStreams();
-          showStreamError(id, 'Stream failed to start. Check your RTMP URL and stream key.');
+          // loadStreams kartı yeniden render ediyor, hata sonrasında göster
+          setTimeout(() => showStreamError(id, 'Stream failed to start. Check your RTMP URL and stream key.'), 100);
         }
       } catch (e) { console.error('Health check failed:', e); }
     }
@@ -449,7 +450,6 @@
     async function openEditModal(id) {
       const s = streams.find(s => s.id === id);
       if (!s) return;
-
       document.getElementById('editStreamId').value = s.id;
       document.getElementById('editStreamName').value = s.name;
       document.getElementById('editStreamPlatform').value = s.platform;
@@ -457,7 +457,6 @@
       document.getElementById('editStreamKey').value = s.stream_key;
       document.getElementById('editModalMessage').textContent = '';
 
-      // Load videos for dropdown
       const select = document.getElementById('editVideoSelect');
       select.innerHTML = '<option value="">Loading...</option>';
       try {
@@ -471,14 +470,12 @@
         select.innerHTML = '<option value="">Could not load videos</option>';
       }
 
-      // Load existing playlist
       const paths = s.video_paths ? JSON.parse(s.video_paths) : (s.video_path ? [s.video_path] : []);
       editPlaylist = paths.map(p => {
         const v = availableVideos.find(v => v.path === p);
         return { path: p, name: v ? v.originalName : p.split('/').pop() };
       });
       renderEditPlaylist();
-
       document.getElementById('editModalOverlay').classList.add('active');
     }
 
@@ -497,36 +494,20 @@
       renderEditPlaylist();
     }
 
-    function removeFromEditPlaylist(index) {
-      editPlaylist.splice(index, 1);
-      renderEditPlaylist();
-    }
-
-    function moveEditUp(index) {
-      if (index === 0) return;
-      [editPlaylist[index - 1], editPlaylist[index]] = [editPlaylist[index], editPlaylist[index - 1]];
-      renderEditPlaylist();
-    }
-
-    function moveEditDown(index) {
-      if (index === editPlaylist.length - 1) return;
-      [editPlaylist[index], editPlaylist[index + 1]] = [editPlaylist[index + 1], editPlaylist[index]];
-      renderEditPlaylist();
-    }
+    function removeFromEditPlaylist(i) { editPlaylist.splice(i, 1); renderEditPlaylist(); }
+    function moveEditUp(i) { if (i === 0) return; [editPlaylist[i-1], editPlaylist[i]] = [editPlaylist[i], editPlaylist[i-1]]; renderEditPlaylist(); }
+    function moveEditDown(i) { if (i === editPlaylist.length-1) return; [editPlaylist[i], editPlaylist[i+1]] = [editPlaylist[i+1], editPlaylist[i]]; renderEditPlaylist(); }
 
     function renderEditPlaylist() {
       const container = document.getElementById('editPlaylistItems');
-      if (!editPlaylist.length) {
-        container.innerHTML = '<div class="playlist-empty">No videos added yet</div>';
-        return;
-      }
+      if (!editPlaylist.length) { container.innerHTML = '<div class="playlist-empty">No videos added yet</div>'; return; }
       container.innerHTML = editPlaylist.map((v, i) => `
         <div class="playlist-item">
           <span class="order-num">${i + 1}</span>
           <span class="item-name" title="${v.name}">${v.name}</span>
-          <button class="btn-move" onclick="moveEditUp(${i})" title="Move up">▲</button>
-          <button class="btn-move" onclick="moveEditDown(${i})" title="Move down">▼</button>
-          <button class="btn-remove" onclick="removeFromEditPlaylist(${i})" title="Remove">✕</button>
+          <button class="btn-move" onclick="moveEditUp(${i})">▲</button>
+          <button class="btn-move" onclick="moveEditDown(${i})">▼</button>
+          <button class="btn-remove" onclick="removeFromEditPlaylist(${i})">✕</button>
         </div>`).join('');
     }
 
@@ -537,18 +518,13 @@
       const rtmp_url = document.getElementById('editRtmpUrl').value;
       const stream_key = document.getElementById('editStreamKey').value;
       const msg = document.getElementById('editModalMessage');
-
       if (!name || !rtmp_url || !stream_key) { msg.textContent = 'Please fill in all fields.'; return; }
       if (!editPlaylist.length) { msg.textContent = 'Please add at least one video.'; return; }
-
       const video_paths = editPlaylist.map(v => v.path);
-      const video_path = video_paths[0];
-
       const { error } = await client.from('streams').update({
         name, platform, rtmp_url, stream_key,
-        video_path, video_paths: JSON.stringify(video_paths)
+        video_path: video_paths[0], video_paths: JSON.stringify(video_paths)
       }).eq('id', id);
-
       if (error) { msg.textContent = error.message; return; }
       closeEditModal();
       await loadStreams();
