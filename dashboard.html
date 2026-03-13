@@ -41,6 +41,7 @@
     .btn-start { background: #064e3b; color: #34d399; border: 1px solid #34d399; padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
     .btn-stop { background: #450a0a; color: #f87171; border: 1px solid #f87171; padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
     .btn-edit { background: transparent; color: #6366f1; border: 1px solid #6366f1; padding: 7px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+    .btn-edit:disabled, .btn-delete:disabled { opacity: 0.3; cursor: not-allowed; }
     .btn-delete { background: transparent; color: #555; border: 1px solid #2a2a3e; padding: 7px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; }
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center; }
     .modal-overlay.active { display: flex; }
@@ -189,6 +190,19 @@
     </div>
   </div>
 
+  <!-- Delete Confirm Modal -->
+  <div class="modal-overlay" id="deleteModalOverlay">
+    <div class="modal" style="max-width:380px">
+      <h3 style="color:#f87171">Delete Stream</h3>
+      <p style="color:#aaa;font-size:14px;margin:16px 0">Are you sure you want to delete <strong id="deleteStreamName" style="color:#fff"></strong>? This cannot be undone.</p>
+      <input type="hidden" id="deleteStreamId">
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+        <button style="flex:1;background:#450a0a;color:#f87171;border:1px solid #f87171;padding:10px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600" onclick="confirmDeleteAction()">Delete</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const SUPABASE_URL = 'https://pdttjblnvxoitskhdtro.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_vxcNOoezd_FKxKWmWj-rZQ_w3IrSMaG';
@@ -303,8 +317,8 @@
               ? `<button class="btn-start" id="btn-start-${s.id}" onclick="startStream('${s.id}', '${s.rtmp_url}', '${s.stream_key}', ${JSON.stringify(paths).replace(/"/g, '&quot;')})">▶ Start</button>`
               : `<button class="btn-stop" onclick="stopStream('${s.id}')">■ Stop</button>`
             }
-            ${s.status !== 'running' ? `<button class="btn-edit" onclick="openEditModal('${s.id}')">✎ Edit</button>` : ''}
-            <button class="btn-delete" onclick="deleteStream('${s.id}')">Delete</button>
+            <button class="btn-edit" onclick="openEditModal('${s.id}')" ${s.status === 'running' ? 'disabled' : ''}>✎ Edit</button>
+            <button class="btn-delete" onclick="confirmDelete('${s.id}', '${s.name.replace(/'/g, "\\'")}')" ${s.status === 'running' ? 'disabled' : ''}>Delete</button>
           </div>
           <div style="font-size:11px;color:#f87171;margin-top:8px;min-height:16px" id="err-${s.id}"></div>
         </div>`;
@@ -343,11 +357,6 @@
       await loadStreams();
     }
 
-    function showStreamError(id, msg) {
-      const el = document.getElementById(`err-${id}`);
-      if (el) { el.textContent = '⚠ ' + msg; setTimeout(() => { if (el) el.textContent = ''; }, 10000); }
-    }
-
     async function checkStreamHealth(id) {
       try {
         const res = await fetch(`${SERVER_URL}/status/${id}`, { headers: { 'x-api-key': API_KEY } });
@@ -355,9 +364,14 @@
         if (!data.running) {
           await client.from('streams').update({ status: 'stopped' }).eq('id', id);
           await loadStreams();
-          showStreamError(id, 'Stream failed to start. Check your RTMP URL and stream key.');
+          setTimeout(() => showStreamError(id, 'Stream failed to start. Check your RTMP URL and stream key.'), 100);
         }
       } catch (e) { console.error('Health check failed:', e); }
+    }
+
+    function showStreamError(id, msg) {
+      const el = document.getElementById(`err-${id}`);
+      if (el) { el.textContent = '⚠ ' + msg; setTimeout(() => { if (el) el.textContent = ''; }, 10000); }
     }
 
     async function startStream(id, rtmpUrl, streamKey, videoPaths) {
@@ -403,8 +417,21 @@
       }
     }
 
+    function confirmDelete(id, name) {
+      document.getElementById('deleteStreamId').value = id;
+      document.getElementById('deleteStreamName').textContent = name;
+      document.getElementById('deleteModalOverlay').classList.add('active');
+    }
+    function closeDeleteModal() { document.getElementById('deleteModalOverlay').classList.remove('active'); }
+    async function confirmDeleteAction() {
+      const id = document.getElementById('deleteStreamId').value;
+      closeDeleteModal();
+      await stopStream(id).catch(() => {});
+      await client.from('streams').delete().eq('id', id);
+      await loadStreams();
+    }
+
     async function deleteStream(id) {
-      if (!confirm('Delete this stream?')) return;
       await stopStream(id).catch(() => {});
       await client.from('streams').delete().eq('id', id);
       await loadStreams();
@@ -459,12 +486,12 @@
     function closeEditModal() { document.getElementById('editModalOverlay').classList.remove('active'); editPlaylist = []; }
     function addToEditPlaylist() { const s = document.getElementById('editVideoSelect'); const v = availableVideos.find(v => v.path === s.value); if (!v) return; editPlaylist.push({ path: v.path, name: v.originalName }); renderEditPlaylist(); }
     function removeFromEditPlaylist(i) { editPlaylist.splice(i, 1); renderEditPlaylist(); }
-    function moveEditUp(i) { if (i === 0) return; [editPlaylist[i-1], editPlaylist[i]] = [editPlaylist[i], editPlaylist[i-1]]; renderEditPlaylist(); }
-    function moveEditDown(i) { if (i === editPlaylist.length-1) return; [editPlaylist[i], editPlaylist[i+1]] = [editPlaylist[i+1], editPlaylist[i]]; renderEditPlaylist(); }
+    function moveEditUp(i) { if (i===0) return; [editPlaylist[i-1],editPlaylist[i]]=[editPlaylist[i],editPlaylist[i-1]]; renderEditPlaylist(); }
+    function moveEditDown(i) { if (i===editPlaylist.length-1) return; [editPlaylist[i],editPlaylist[i+1]]=[editPlaylist[i+1],editPlaylist[i]]; renderEditPlaylist(); }
     function renderEditPlaylist() {
       const c = document.getElementById('editPlaylistItems');
       if (!editPlaylist.length) { c.innerHTML = '<div class="playlist-empty">No videos added yet</div>'; return; }
-      c.innerHTML = editPlaylist.map((v, i) => `
+      c.innerHTML = editPlaylist.map((v,i) => `
         <div class="playlist-item">
           <span class="order-num">${i+1}</span>
           <span class="item-name" title="${v.name}">${v.name}</span>
