@@ -216,11 +216,20 @@
     let playlist = []; // { path, name }
     let availableVideos = [];
 
+    const PLAN_LIMITS = { free: 1, basic: 2, pro: 4, business: 8, enterprise: 12 };
+    let userPlan = 'free';
+
     async function init() {
       const { data: { user } } = await client.auth.getUser();
       if (!user) { window.location.href = 'login.html'; return; }
       currentUser = user;
       document.getElementById('userEmail').textContent = user.email;
+
+      // Plan bilgisini yükle
+      const { data: profile } = await client.from('profiles').select('plan').eq('id', user.id).single();
+      userPlan = (profile?.plan || 'free').toLowerCase();
+      document.getElementById('userPlan').textContent = userPlan.charAt(0).toUpperCase() + userPlan.slice(1);
+
       await loadStreams();
     }
 
@@ -328,8 +337,11 @@
     }
 
     function updateStats() {
+      const running = streams.filter(s => s.status === 'running').length;
+      const limit = PLAN_LIMITS[userPlan] || 1;
       document.getElementById('totalStreams').textContent = streams.length;
-      document.getElementById('runningStreams').textContent = streams.filter(s => s.status === 'running').length;
+      document.getElementById('runningStreams').textContent = `${running} / ${limit}`;
+      document.getElementById('userPlan').textContent = userPlan.charAt(0).toUpperCase() + userPlan.slice(1);
     }
 
     async function createStream() {
@@ -376,6 +388,14 @@
     }
 
     async function startStream(id, rtmpUrl, streamKey, videoPaths) {
+      // Plan limit kontrolü
+      const limit = PLAN_LIMITS[userPlan] || 1;
+      const running = streams.filter(s => s.status === 'running').length;
+      if (running >= limit) {
+        showStreamError(id, `Plan limitine ulaştınız (${limit} aktif yayın). Planınızı yükseltin.`);
+        return;
+      }
+
       const btn = document.getElementById(`btn-start-${id}`);
       if (btn) { btn.disabled = true; btn.textContent = 'Starting...'; }
       try {
