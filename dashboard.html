@@ -13,8 +13,6 @@
       color: #fff;
       min-height: 100vh;
     }
-
-    /* Navbar */
     .navbar {
       background: #1a1a2e;
       padding: 16px 32px;
@@ -23,20 +21,17 @@
       justify-content: space-between;
       border-bottom: 1px solid #2a2a3e;
     }
-    .navbar h1 {
-      font-size: 22px;
-      font-weight: 700;
-      color: #6366f1;
-    }
-    .navbar .user-info {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-    .navbar .user-email {
+    .navbar h1 { font-size: 22px; font-weight: 700; color: #6366f1; }
+    .nav-links { display: flex; gap: 24px; }
+    .nav-links a {
       color: #888;
-      font-size: 13px;
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.2s;
     }
+    .nav-links a:hover, .nav-links a.active { color: #fff; }
+    .navbar .user-info { display: flex; align-items: center; gap: 16px; }
+    .navbar .user-email { color: #888; font-size: 13px; }
     .navbar button {
       background: transparent;
       border: 1px solid #2a2a3e;
@@ -47,19 +42,8 @@
       font-size: 13px;
       transition: all 0.2s;
     }
-    .navbar button:hover {
-      border-color: #6366f1;
-      color: #fff;
-    }
-
-    /* Main */
-    .main {
-      padding: 32px;
-      max-width: 1100px;
-      margin: 0 auto;
-    }
-
-    /* Stats */
+    .navbar button:hover { border-color: #6366f1; color: #fff; }
+    .main { padding: 32px; max-width: 1100px; margin: 0 auto; }
     .stats {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -72,28 +56,15 @@
       border-radius: 12px;
       padding: 24px;
     }
-    .stat-card .label {
-      color: #888;
-      font-size: 13px;
-      margin-bottom: 8px;
-    }
-    .stat-card .value {
-      font-size: 28px;
-      font-weight: 700;
-      color: #6366f1;
-    }
-
-    /* Section */
+    .stat-card .label { color: #888; font-size: 13px; margin-bottom: 8px; }
+    .stat-card .value { font-size: 28px; font-weight: 700; color: #6366f1; }
     .section-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       margin-bottom: 16px;
     }
-    .section-header h2 {
-      font-size: 18px;
-      font-weight: 600;
-    }
+    .section-header h2 { font-size: 18px; font-weight: 600; }
     .btn-primary {
       background: #6366f1;
       color: #fff;
@@ -106,8 +77,6 @@
       transition: background 0.2s;
     }
     .btn-primary:hover { background: #4f46e5; }
-
-    /* Empty state */
     .empty-state {
       background: #1a1a2e;
       border: 1px dashed #2a2a3e;
@@ -116,16 +85,8 @@
       text-align: center;
       color: #555;
     }
-    .empty-state .icon {
-      font-size: 40px;
-      margin-bottom: 12px;
-    }
-    .empty-state p {
-      font-size: 14px;
-      margin-bottom: 16px;
-    }
-
-    /* Stream cards */
+    .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; margin-bottom: 16px; }
     .streams-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -137,16 +98,8 @@
       border-radius: 12px;
       padding: 20px;
     }
-    .stream-card .stream-name {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
-    .stream-card .stream-platform {
-      font-size: 12px;
-      color: #888;
-      margin-bottom: 12px;
-    }
+    .stream-card .stream-name { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+    .stream-card .stream-platform { font-size: 12px; color: #888; margin-bottom: 12px; }
     .status-badge {
       display: inline-block;
       padding: 4px 10px;
@@ -157,128 +110,67 @@
     .status-stopped { background: #2a2a3e; color: #888; }
     .status-running { background: #064e3b; color: #34d399; }
     .status-error { background: #450a0a; color: #f87171; }
-
-    .stream-actions {
-      display: flex;
-      gap: 8px;
-      margin-top: 16px;
-    }
+    .stream-actions { display: flex; gap: 8px; margin-top: 16px; }
     .btn-start {
-      background: #064e3b;
-      color: #34d399;
-      border: 1px solid #34d399;
-      padding: 7px 14px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
+      background: #064e3b; color: #34d399;
+      border: 1px solid #34d399; padding: 7px 14px;
+      border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
     }
     .btn-stop {
-      background: #450a0a;
-      color: #f87171;
-      border: 1px solid #f87171;
-      padding: 7px 14px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
+      background: #450a0a; color: #f87171;
+      border: 1px solid #f87171; padding: 7px 14px;
+      border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
     }
     .btn-delete {
-      background: transparent;
-      color: #555;
-      border: 1px solid #2a2a3e;
-      padding: 7px 14px;
-      border-radius: 6px;
-      font-size: 12px;
-      cursor: pointer;
+      background: transparent; color: #555;
+      border: 1px solid #2a2a3e; padding: 7px 14px;
+      border-radius: 6px; font-size: 12px; cursor: pointer;
     }
-
-    /* Modal */
     .modal-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.7);
-      z-index: 100;
-      align-items: center;
-      justify-content: center;
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); z-index: 100;
+      align-items: center; justify-content: center;
     }
     .modal-overlay.active { display: flex; }
     .modal {
-      background: #1a1a2e;
-      border: 1px solid #2a2a3e;
-      border-radius: 16px;
-      padding: 32px;
-      width: 100%;
-      max-width: 480px;
+      background: #1a1a2e; border: 1px solid #2a2a3e;
+      border-radius: 16px; padding: 32px; width: 100%; max-width: 480px;
     }
-    .modal h3 {
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 24px;
-    }
-    .form-group {
-      margin-bottom: 16px;
-    }
-    .form-group label {
-      display: block;
-      font-size: 13px;
-      color: #aaa;
-      margin-bottom: 6px;
-    }
+    .modal h3 { font-size: 18px; font-weight: 600; margin-bottom: 24px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 13px; color: #aaa; margin-bottom: 6px; }
     .form-group input, .form-group select {
-      width: 100%;
-      padding: 10px 14px;
-      background: #0f0f1a;
-      border: 1px solid #2a2a3e;
-      border-radius: 8px;
-      color: #fff;
-      font-size: 14px;
-      outline: none;
+      width: 100%; padding: 10px 14px;
+      background: #0f0f1a; border: 1px solid #2a2a3e;
+      border-radius: 8px; color: #fff; font-size: 14px; outline: none;
     }
-    .form-group input:focus, .form-group select:focus {
-      border-color: #6366f1;
-    }
+    .form-group input:focus, .form-group select:focus { border-color: #6366f1; }
     .form-group select option { background: #1a1a2e; }
-    .modal-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 24px;
-    }
+    .form-group .hint { font-size: 11px; color: #555; margin-top: 4px; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 24px; }
     .btn-cancel {
-      flex: 1;
-      background: transparent;
-      border: 1px solid #2a2a3e;
-      color: #aaa;
-      padding: 10px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 14px;
+      flex: 1; background: transparent; border: 1px solid #2a2a3e;
+      color: #aaa; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 14px;
     }
-    .modal-message {
-      font-size: 13px;
-      margin-top: 10px;
-      color: #f87171;
-      min-height: 18px;
-    }
+    .modal-message { font-size: 13px; margin-top: 10px; color: #f87171; min-height: 18px; }
     .modal-message.success { color: #34d399; }
   </style>
 </head>
 <body>
 
-  <!-- Navbar -->
   <div class="navbar">
     <h1>Castreo</h1>
+    <div class="nav-links">
+      <a href="dashboard.html" class="active">Streams</a>
+      <a href="videos.html">Videos</a>
+    </div>
     <div class="user-info">
       <span class="user-email" id="userEmail"></span>
       <button onclick="logout()">Sign Out</button>
     </div>
   </div>
 
-  <!-- Main -->
   <div class="main">
-
-    <!-- Stats -->
     <div class="stats">
       <div class="stat-card">
         <div class="label">Total Streams</div>
@@ -294,7 +186,6 @@
       </div>
     </div>
 
-    <!-- Streams -->
     <div class="section-header">
       <h2>My Streams</h2>
       <button class="btn-primary" onclick="openModal()">+ New Stream</button>
@@ -307,7 +198,6 @@
         <button class="btn-primary" onclick="openModal()">+ New Stream</button>
       </div>
     </div>
-
   </div>
 
   <!-- New Stream Modal -->
@@ -336,6 +226,11 @@
         <label>Stream Key</label>
         <input type="text" id="streamKey" placeholder="xxxx-xxxx-xxxx-xxxx">
       </div>
+      <div class="form-group">
+        <label>Video Path</label>
+        <input type="text" id="videoPath" placeholder="/var/castreo/videos/video.mp4">
+        <div class="hint">Upload your video from the Videos page, then copy the path here.</div>
+      </div>
       <div class="modal-message" id="modalMessage"></div>
       <div class="modal-actions">
         <button class="btn-cancel" onclick="closeModal()">Cancel</button>
@@ -349,39 +244,33 @@
     const SUPABASE_KEY = 'sb_publishable_vxcNOoezd_FKxKWmWj-rZQ_w3IrSMaG';
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    const SERVER_URL = 'http://SUNUCU_IP:3000';
+    const API_KEY = 'castreo-secret-2024';
+
     let currentUser = null;
     let streams = [];
 
-    // Init
     async function init() {
       const { data: { user } } = await client.auth.getUser();
-      if (!user) {
-        window.location.href = 'login.html';
-        return;
-      }
+      if (!user) { window.location.href = 'login.html'; return; }
       currentUser = user;
       document.getElementById('userEmail').textContent = user.email;
       await loadStreams();
     }
 
-    // Load streams
     async function loadStreams() {
       const { data, error } = await client
         .from('streams')
         .select('*')
         .order('created_at', { ascending: false });
-
       if (error) { console.error(error); return; }
-
       streams = data || [];
       renderStreams();
       updateStats();
     }
 
-    // Render streams
     function renderStreams() {
       const container = document.getElementById('streamsContainer');
-
       if (streams.length === 0) {
         container.innerHTML = `
           <div class="empty-state">
@@ -391,7 +280,6 @@
           </div>`;
         return;
       }
-
       container.innerHTML = `<div class="streams-grid">${streams.map(s => `
         <div class="stream-card">
           <div class="stream-name">${s.name}</div>
@@ -399,7 +287,7 @@
           <span class="status-badge status-${s.status}">${s.status}</span>
           <div class="stream-actions">
             ${s.status !== 'running'
-              ? `<button class="btn-start" onclick="startStream('${s.id}')">▶ Start</button>`
+              ? `<button class="btn-start" onclick="startStream('${s.id}', '${s.rtmp_url}', '${s.stream_key}', '${s.video_path}')">▶ Start</button>`
               : `<button class="btn-stop" onclick="stopStream('${s.id}')">■ Stop</button>`
             }
             <button class="btn-delete" onclick="deleteStream('${s.id}')">Delete</button>
@@ -408,59 +296,77 @@
       </div>`;
     }
 
-    // Update stats
     function updateStats() {
       document.getElementById('totalStreams').textContent = streams.length;
       document.getElementById('runningStreams').textContent = streams.filter(s => s.status === 'running').length;
     }
 
-    // Create stream
     async function createStream() {
       const name = document.getElementById('streamName').value;
       const platform = document.getElementById('streamPlatform').value;
       const rtmp_url = document.getElementById('rtmpUrl').value;
       const stream_key = document.getElementById('streamKey').value;
+      const video_path = document.getElementById('videoPath').value;
       const msg = document.getElementById('modalMessage');
 
-      if (!name || !rtmp_url || !stream_key) {
+      if (!name || !rtmp_url || !stream_key || !video_path) {
         msg.textContent = 'Please fill in all fields.';
         return;
       }
 
       const { error } = await client.from('streams').insert({
         user_id: currentUser.id,
-        name, platform, rtmp_url, stream_key, status: 'stopped'
+        name, platform, rtmp_url, stream_key, video_path, status: 'stopped'
       });
 
-      if (error) {
-        msg.textContent = error.message;
-        return;
-      }
-
+      if (error) { msg.textContent = error.message; return; }
       closeModal();
       await loadStreams();
     }
 
-    // Start stream
-    async function startStream(id) {
-      await client.from('streams').update({ status: 'running' }).eq('id', id);
-      await loadStreams();
+    async function startStream(id, rtmpUrl, streamKey, videoPath) {
+      try {
+        const res = await fetch(`${SERVER_URL}/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+          body: JSON.stringify({ streamId: id, rtmpUrl, streamKey, videoPath })
+        });
+        const data = await res.json();
+        if (data.success) {
+          await client.from('streams').update({ status: 'running' }).eq('id', id);
+          await loadStreams();
+        } else {
+          alert('Error: ' + data.error);
+        }
+      } catch (e) {
+        alert('Cannot connect to stream server. Check SERVER_URL.');
+      }
     }
 
-    // Stop stream
     async function stopStream(id) {
-      await client.from('streams').update({ status: 'stopped' }).eq('id', id);
-      await loadStreams();
+      try {
+        const res = await fetch(`${SERVER_URL}/stop`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+          body: JSON.stringify({ streamId: id })
+        });
+        const data = await res.json();
+        if (data.success) {
+          await client.from('streams').update({ status: 'stopped' }).eq('id', id);
+          await loadStreams();
+        }
+      } catch (e) {
+        alert('Cannot connect to stream server.');
+      }
     }
 
-    // Delete stream
     async function deleteStream(id) {
       if (!confirm('Delete this stream?')) return;
+      await stopStream(id).catch(() => {});
       await client.from('streams').delete().eq('id', id);
       await loadStreams();
     }
 
-    // Modal
     function openModal() {
       document.getElementById('modalOverlay').classList.add('active');
       document.getElementById('modalMessage').textContent = '';
@@ -470,9 +376,9 @@
       document.getElementById('streamName').value = '';
       document.getElementById('rtmpUrl').value = '';
       document.getElementById('streamKey').value = '';
+      document.getElementById('videoPath').value = '';
     }
 
-    // Logout
     async function logout() {
       await client.auth.signOut();
       window.location.href = 'login.html';
