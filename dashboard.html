@@ -40,8 +40,6 @@
     .stream-actions { display: flex; gap: 8px; margin-top: 16px; }
     .btn-start { background: #064e3b; color: #34d399; border: 1px solid #34d399; padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
     .btn-stop { background: #450a0a; color: #f87171; border: 1px solid #f87171; padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
-    .btn-edit { background: transparent; color: #6366f1; border: 1px solid #6366f1; padding: 7px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; }
-    .btn-edit:disabled, .btn-delete:disabled { opacity: 0.3; cursor: not-allowed; }
     .btn-delete { background: transparent; color: #555; border: 1px solid #2a2a3e; padding: 7px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; }
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center; }
     .modal-overlay.active { display: flex; }
@@ -155,47 +153,13 @@
     </div>
   </div>
 
-  <!-- Edit Stream Modal -->
-  <div class="modal-overlay" id="editModalOverlay">
-    <div class="modal">
-      <h3>Edit Stream</h3>
-      <input type="hidden" id="editStreamId">
-      <div class="form-group"><label>Stream Name</label><input type="text" id="editStreamName"></div>
-      <div class="form-group">
-        <label>Platform</label>
-        <select id="editStreamPlatform">
-          <option value="youtube">YouTube</option><option value="twitch">Twitch</option>
-          <option value="facebook">Facebook</option><option value="instagram">Instagram</option>
-          <option value="x">X (Twitter)</option>
-        </select>
-      </div>
-      <div class="form-group"><label>RTMP URL</label><input type="text" id="editRtmpUrl"></div>
-      <div class="form-group"><label>Stream Key</label><input type="text" id="editStreamKey"></div>
-      <div class="form-group">
-        <label>Playlist</label>
-        <div class="playlist-builder">
-          <div class="playlist-add">
-            <select id="editVideoSelect"><option value="">Loading...</option></select>
-            <button class="btn-add" onclick="addToEditPlaylist()">+ Add</button>
-          </div>
-          <div class="playlist-items" id="editPlaylistItems"><div class="playlist-empty">No videos added yet</div></div>
-        </div>
-        <div class="hint">Add one or more videos. They will loop in order forever.</div>
-      </div>
-      <div class="modal-message" id="editModalMessage"></div>
-      <div class="modal-actions">
-        <button class="btn-cancel" onclick="closeEditModal()">Cancel</button>
-        <button class="btn-primary" style="flex:2" onclick="saveStream()">Save Changes</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Delete Confirm Modal -->
   <div class="modal-overlay" id="deleteModalOverlay">
     <div class="modal" style="max-width:380px">
       <h3 style="color:#f87171">Delete Stream</h3>
       <p style="color:#aaa;font-size:14px;margin:16px 0">Are you sure you want to delete <strong id="deleteStreamName" style="color:#fff"></strong>? This cannot be undone.</p>
       <input type="hidden" id="deleteStreamId">
+      <input type="hidden" id="deleteStreamStatus">
       <div class="modal-actions">
         <button class="btn-cancel" onclick="closeDeleteModal()">Cancel</button>
         <button style="flex:1;background:#450a0a;color:#f87171;border:1px solid #f87171;padding:10px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600" onclick="confirmDeleteAction()">Delete</button>
@@ -317,8 +281,7 @@
               ? `<button class="btn-start" id="btn-start-${s.id}" onclick="startStream('${s.id}', '${s.rtmp_url}', '${s.stream_key}', ${JSON.stringify(paths).replace(/"/g, '&quot;')})">▶ Start</button>`
               : `<button class="btn-stop" onclick="stopStream('${s.id}')">■ Stop</button>`
             }
-            <button class="btn-edit" onclick="openEditModal('${s.id}')" ${s.status === 'running' ? 'disabled' : ''}>✎ Edit</button>
-            <button class="btn-delete" onclick="confirmDelete('${s.id}', '${s.name.replace(/'/g, "\\'")}')" ${s.status === 'running' ? 'disabled' : ''}>Delete</button>
+            <button class="btn-delete" onclick="confirmDelete('${s.id}', '${s.name.replace(/'/g, "\\'")}', '${s.status}')">Delete</button>
           </div>
           <div style="font-size:11px;color:#f87171;margin-top:8px;min-height:16px" id="err-${s.id}"></div>
         </div>`;
@@ -357,6 +320,11 @@
       await loadStreams();
     }
 
+    function showStreamError(id, msg) {
+      const el = document.getElementById(`err-${id}`);
+      if (el) { el.textContent = '⚠ ' + msg; setTimeout(() => { if (el) el.textContent = ''; }, 10000); }
+    }
+
     async function checkStreamHealth(id) {
       try {
         const res = await fetch(`${SERVER_URL}/status/${id}`, { headers: { 'x-api-key': API_KEY } });
@@ -364,14 +332,9 @@
         if (!data.running) {
           await client.from('streams').update({ status: 'stopped' }).eq('id', id);
           await loadStreams();
-          setTimeout(() => showStreamError(id, 'Stream failed to start. Check your RTMP URL and stream key.'), 100);
+          showStreamError(id, 'Stream failed to start. Check your RTMP URL and stream key.');
         }
       } catch (e) { console.error('Health check failed:', e); }
-    }
-
-    function showStreamError(id, msg) {
-      const el = document.getElementById(`err-${id}`);
-      if (el) { el.textContent = '⚠ ' + msg; setTimeout(() => { if (el) el.textContent = ''; }, 10000); }
     }
 
     async function startStream(id, rtmpUrl, streamKey, videoPaths) {
@@ -417,16 +380,18 @@
       }
     }
 
-    function confirmDelete(id, name) {
+    function confirmDelete(id, name, status) {
       document.getElementById('deleteStreamId').value = id;
+      document.getElementById('deleteStreamStatus').value = status;
       document.getElementById('deleteStreamName').textContent = name;
       document.getElementById('deleteModalOverlay').classList.add('active');
     }
     function closeDeleteModal() { document.getElementById('deleteModalOverlay').classList.remove('active'); }
     async function confirmDeleteAction() {
       const id = document.getElementById('deleteStreamId').value;
+      const status = document.getElementById('deleteStreamStatus').value;
       closeDeleteModal();
-      await stopStream(id).catch(() => {});
+      if (status === 'running') await stopStream(id).catch(() => {});
       await client.from('streams').delete().eq('id', id);
       await loadStreams();
     }
@@ -456,68 +421,6 @@
     async function logout() {
       await client.auth.signOut();
       window.location.href = 'login.html';
-    }
-
-    let editPlaylist = [];
-
-    async function openEditModal(id) {
-      const s = streams.find(s => s.id === id);
-      if (!s) return;
-      document.getElementById('editStreamId').value = s.id;
-      document.getElementById('editStreamName').value = s.name;
-      document.getElementById('editStreamPlatform').value = s.platform;
-      document.getElementById('editRtmpUrl').value = s.rtmp_url;
-      document.getElementById('editStreamKey').value = s.stream_key;
-      document.getElementById('editModalMessage').textContent = '';
-      const select = document.getElementById('editVideoSelect');
-      select.innerHTML = '<option value="">Loading...</option>';
-      try {
-        const res = await fetch(`${SERVER_URL}/videos`, { headers: { 'x-api-key': API_KEY, 'x-user-id': currentUser.id } });
-        availableVideos = await res.json();
-        select.innerHTML = '<option value="">Select a video...</option>' +
-          availableVideos.map(v => `<option value="${v.path}">${v.originalName}</option>`).join('');
-      } catch (e) { select.innerHTML = '<option value="">Could not load videos</option>'; }
-      const paths = s.video_paths ? JSON.parse(s.video_paths) : (s.video_path ? [s.video_path] : []);
-      editPlaylist = paths.map(p => { const v = availableVideos.find(v => v.path === p); return { path: p, name: v ? v.originalName : p.split('/').pop() }; });
-      renderEditPlaylist();
-      document.getElementById('editModalOverlay').classList.add('active');
-    }
-
-    function closeEditModal() { document.getElementById('editModalOverlay').classList.remove('active'); editPlaylist = []; }
-    function addToEditPlaylist() { const s = document.getElementById('editVideoSelect'); const v = availableVideos.find(v => v.path === s.value); if (!v) return; editPlaylist.push({ path: v.path, name: v.originalName }); renderEditPlaylist(); }
-    function removeFromEditPlaylist(i) { editPlaylist.splice(i, 1); renderEditPlaylist(); }
-    function moveEditUp(i) { if (i===0) return; [editPlaylist[i-1],editPlaylist[i]]=[editPlaylist[i],editPlaylist[i-1]]; renderEditPlaylist(); }
-    function moveEditDown(i) { if (i===editPlaylist.length-1) return; [editPlaylist[i],editPlaylist[i+1]]=[editPlaylist[i+1],editPlaylist[i]]; renderEditPlaylist(); }
-    function renderEditPlaylist() {
-      const c = document.getElementById('editPlaylistItems');
-      if (!editPlaylist.length) { c.innerHTML = '<div class="playlist-empty">No videos added yet</div>'; return; }
-      c.innerHTML = editPlaylist.map((v,i) => `
-        <div class="playlist-item">
-          <span class="order-num">${i+1}</span>
-          <span class="item-name" title="${v.name}">${v.name}</span>
-          <button class="btn-move" onclick="moveEditUp(${i})">▲</button>
-          <button class="btn-move" onclick="moveEditDown(${i})">▼</button>
-          <button class="btn-remove" onclick="removeFromEditPlaylist(${i})">✕</button>
-        </div>`).join('');
-    }
-
-    async function saveStream() {
-      const id = document.getElementById('editStreamId').value;
-      const name = document.getElementById('editStreamName').value;
-      const platform = document.getElementById('editStreamPlatform').value;
-      const rtmp_url = document.getElementById('editRtmpUrl').value;
-      const stream_key = document.getElementById('editStreamKey').value;
-      const msg = document.getElementById('editModalMessage');
-      if (!name || !rtmp_url || !stream_key) { msg.textContent = 'Please fill in all fields.'; return; }
-      if (!editPlaylist.length) { msg.textContent = 'Please add at least one video.'; return; }
-      const video_paths = editPlaylist.map(v => v.path);
-      const { error } = await client.from('streams').update({
-        name, platform, rtmp_url, stream_key,
-        video_path: video_paths[0], video_paths: JSON.stringify(video_paths)
-      }).eq('id', id);
-      if (error) { msg.textContent = error.message; return; }
-      closeEditModal();
-      await loadStreams();
     }
 
     init();
