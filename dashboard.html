@@ -7,135 +7,60 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #0f0f1a;
-      color: #fff;
-      min-height: 100vh;
-    }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f0f1a; color: #fff; min-height: 100vh; }
     .navbar {
-      background: #1a1a2e;
-      padding: 16px 32px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      background: #1a1a2e; padding: 16px 32px;
+      display: flex; align-items: center; justify-content: space-between;
       border-bottom: 1px solid #2a2a3e;
     }
     .navbar h1 { font-size: 22px; font-weight: 700; color: #6366f1; }
     .nav-links { display: flex; gap: 24px; }
-    .nav-links a {
-      color: #888;
-      text-decoration: none;
-      font-size: 14px;
-      transition: color 0.2s;
-    }
+    .nav-links a { color: #888; text-decoration: none; font-size: 14px; transition: color 0.2s; }
     .nav-links a:hover, .nav-links a.active { color: #fff; }
     .navbar .user-info { display: flex; align-items: center; gap: 16px; }
     .navbar .user-email { color: #888; font-size: 13px; }
     .navbar button {
-      background: transparent;
-      border: 1px solid #2a2a3e;
-      color: #aaa;
-      padding: 6px 14px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-      transition: all 0.2s;
+      background: transparent; border: 1px solid #2a2a3e; color: #aaa;
+      padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.2s;
     }
     .navbar button:hover { border-color: #6366f1; color: #fff; }
     .main { padding: 32px; max-width: 1100px; margin: 0 auto; }
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-      margin-bottom: 32px;
-    }
-    .stat-card {
-      background: #1a1a2e;
-      border: 1px solid #2a2a3e;
-      border-radius: 12px;
-      padding: 24px;
-    }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
+    .stat-card { background: #1a1a2e; border: 1px solid #2a2a3e; border-radius: 12px; padding: 24px; }
     .stat-card .label { color: #888; font-size: 13px; margin-bottom: 8px; }
     .stat-card .value { font-size: 28px; font-weight: 700; color: #6366f1; }
-    .section-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 16px;
-    }
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
     .section-header h2 { font-size: 18px; font-weight: 600; }
     .btn-primary {
-      background: #6366f1;
-      color: #fff;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s;
+      background: #6366f1; color: #fff; border: none; padding: 10px 20px;
+      border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s;
     }
     .btn-primary:hover { background: #4f46e5; }
     .empty-state {
-      background: #1a1a2e;
-      border: 1px dashed #2a2a3e;
-      border-radius: 12px;
-      padding: 48px;
-      text-align: center;
-      color: #555;
+      background: #1a1a2e; border: 1px dashed #2a2a3e;
+      border-radius: 12px; padding: 48px; text-align: center; color: #555;
     }
     .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
     .empty-state p { font-size: 14px; margin-bottom: 16px; }
-    .streams-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 16px;
-    }
-    .stream-card {
-      background: #1a1a2e;
-      border: 1px solid #2a2a3e;
-      border-radius: 12px;
-      padding: 20px;
-    }
+    .streams-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+    .stream-card { background: #1a1a2e; border: 1px solid #2a2a3e; border-radius: 12px; padding: 20px; }
     .stream-card .stream-name { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
     .stream-card .stream-platform { font-size: 12px; color: #888; margin-bottom: 12px; }
-    .status-badge {
-      display: inline-block;
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 11px;
-      font-weight: 600;
-    }
+    .status-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
     .status-stopped { background: #2a2a3e; color: #888; }
     .status-running { background: #064e3b; color: #34d399; }
     .status-error { background: #450a0a; color: #f87171; }
     .stream-actions { display: flex; gap: 8px; margin-top: 16px; }
-    .btn-start {
-      background: #064e3b; color: #34d399;
-      border: 1px solid #34d399; padding: 7px 14px;
-      border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
-    }
-    .btn-stop {
-      background: #450a0a; color: #f87171;
-      border: 1px solid #f87171; padding: 7px 14px;
-      border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
-    }
-    .btn-delete {
-      background: transparent; color: #555;
-      border: 1px solid #2a2a3e; padding: 7px 14px;
-      border-radius: 6px; font-size: 12px; cursor: pointer;
-    }
+    .btn-start { background: #064e3b; color: #34d399; border: 1px solid #34d399; padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .btn-stop { background: #450a0a; color: #f87171; border: 1px solid #f87171; padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .btn-delete { background: transparent; color: #555; border: 1px solid #2a2a3e; padding: 7px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; }
     .modal-overlay {
       display: none; position: fixed; inset: 0;
       background: rgba(0,0,0,0.7); z-index: 100;
       align-items: center; justify-content: center;
     }
     .modal-overlay.active { display: flex; }
-    .modal {
-      background: #1a1a2e; border: 1px solid #2a2a3e;
-      border-radius: 16px; padding: 32px; width: 100%; max-width: 480px;
-    }
+    .modal { background: #1a1a2e; border: 1px solid #2a2a3e; border-radius: 16px; padding: 32px; width: 100%; max-width: 480px; }
     .modal h3 { font-size: 18px; font-weight: 600; margin-bottom: 24px; }
     .form-group { margin-bottom: 16px; }
     .form-group label { display: block; font-size: 13px; color: #aaa; margin-bottom: 6px; }
@@ -148,12 +73,10 @@
     .form-group select option { background: #1a1a2e; }
     .form-group .hint { font-size: 11px; color: #555; margin-top: 4px; }
     .modal-actions { display: flex; gap: 10px; margin-top: 24px; }
-    .btn-cancel {
-      flex: 1; background: transparent; border: 1px solid #2a2a3e;
-      color: #aaa; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 14px;
-    }
+    .btn-cancel { flex: 1; background: transparent; border: 1px solid #2a2a3e; color: #aaa; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 14px; }
     .modal-message { font-size: 13px; margin-top: 10px; color: #f87171; min-height: 18px; }
     .modal-message.success { color: #34d399; }
+    .video-loading { font-size: 12px; color: #555; margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -227,9 +150,11 @@
         <input type="text" id="streamKey" placeholder="xxxx-xxxx-xxxx-xxxx">
       </div>
       <div class="form-group">
-        <label>Video Path</label>
-        <input type="text" id="videoPath" placeholder="/var/castreo/videos/video.mp4">
-        <div class="hint">Upload your video from the Videos page, then copy the path here.</div>
+        <label>Video</label>
+        <select id="videoPath">
+          <option value="">Loading videos...</option>
+        </select>
+        <div class="hint">Upload videos from the <a href="videos.html" style="color:#6366f1">Videos</a> page.</div>
       </div>
       <div class="modal-message" id="modalMessage"></div>
       <div class="modal-actions">
@@ -243,7 +168,6 @@
     const SUPABASE_URL = 'https://pdttjblnvxoitskhdtro.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_vxcNOoezd_FKxKWmWj-rZQ_w3IrSMaG';
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
     const SERVER_URL = 'https://api.castreo.com';
     const API_KEY = 'castreo-secret-2024';
 
@@ -258,11 +182,28 @@
       await loadStreams();
     }
 
+    async function loadVideos() {
+      const select = document.getElementById('videoPath');
+      select.innerHTML = '<option value="">Loading...</option>';
+      try {
+        const res = await fetch(`${SERVER_URL}/videos`, {
+          headers: { 'x-api-key': API_KEY }
+        });
+        const videos = await res.json();
+        if (!videos.length) {
+          select.innerHTML = '<option value="">No videos uploaded yet</option>';
+          return;
+        }
+        select.innerHTML = '<option value="">Select a video...</option>' +
+          videos.map(v => `<option value="${v.path}">${v.originalName}</option>`).join('');
+      } catch (e) {
+        select.innerHTML = '<option value="">Could not load videos</option>';
+      }
+    }
+
     async function loadStreams() {
       const { data, error } = await client
-        .from('streams')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .from('streams').select('*').order('created_at', { ascending: false });
       if (error) { console.error(error); return; }
       streams = data || [];
       renderStreams();
@@ -339,7 +280,7 @@
           alert('Error: ' + data.error);
         }
       } catch (e) {
-        alert('Cannot connect to stream server. Check SERVER_URL.');
+        alert('Cannot connect to stream server.');
       }
     }
 
@@ -367,16 +308,17 @@
       await loadStreams();
     }
 
-    function openModal() {
+    async function openModal() {
       document.getElementById('modalOverlay').classList.add('active');
       document.getElementById('modalMessage').textContent = '';
+      await loadVideos();
     }
+
     function closeModal() {
       document.getElementById('modalOverlay').classList.remove('active');
       document.getElementById('streamName').value = '';
       document.getElementById('rtmpUrl').value = '';
       document.getElementById('streamKey').value = '';
-      document.getElementById('videoPath').value = '';
     }
 
     async function logout() {
