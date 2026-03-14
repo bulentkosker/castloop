@@ -119,7 +119,7 @@
     <input type="checkbox" id="billingToggle" onchange="toggleBilling()">
     <span class="toggle-slider"></span>
   </label>
-  <span class="toggle-label" data-i18n="pricing.yearly">Yearly <span class="badge-save">SAVE 20%</span></span>
+  <span class="toggle-label" data-i18n="pricing.yearly">Yearly <span class="badge-save">2 MONTHS FREE</span></span>
 </div>
 
 <div class="pricing-grid" id="pricingGrid">
@@ -127,7 +127,7 @@
   <div class="plan-card">
     <div class="plan-name">Lite</div>
     <div class="plan-price">
-      <span class="amount" data-monthly="$29" data-yearly="$23">$29</span>
+      <span class="amount" data-monthly="$29" data-yearly="$24">$29</span>
       <span class="period">/mo</span>
     </div>
     <div class="plan-trial">✓ 7-day free trial</div>
@@ -261,19 +261,68 @@
     </div>
     <div class="footer-copy" data-i18n="footer.copy">© 2025 Castreo. All rights reserved.</div>
   </div>
-</footer
+</footer>
 <script>
+  // ── Toggle billing ──────────────────────────────────────────────────────────
   let isYearly = false;
   function toggleBilling() {
     isYearly = document.getElementById('billingToggle').checked;
     document.querySelectorAll('.amount').forEach(el => {
       el.textContent = isYearly ? el.dataset.yearly : el.dataset.monthly;
     });
+    // Period label güncelle
     document.querySelectorAll('.plan-trial').forEach((el, i) => {
-      if (i === 0) return;
-      el.textContent = isYearly ? (translations[localStorage.getItem('castreo_lang')||'en']?.['pricing.yearly_billing']||'Billed yearly') : (translations[localStorage.getItem('castreo_lang')||'en']?.['pricing.monthly_billing']||'Billed monthly');
+      if (i === 0) return; // Lite trial label'ı değiştirme
+      const lang = localStorage.getItem('castreo_lang') || 'en';
+      const t = (typeof translations !== 'undefined' && translations[lang]) ? translations[lang] : {};
+      el.textContent = isYearly
+        ? (t['pricing.yearly_billing'] || 'Billed yearly — 2 months free')
+        : (t['pricing.monthly_billing'] || 'Billed monthly');
     });
   }
   function toggleFaq(el) { el.classList.toggle('open'); }
 </script>
-<script 
+
+<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+<script>
+  // Sandbox mode — production'a geçince kaldır
+  Paddle.Environment.set('sandbox');
+  Paddle.Initialize({ token: 'live_dc277bbcc2cab6e58e5cce04974' });
+
+  const PRICES = {
+    lite:       { monthly: 'pri_01kkq2qhxdmqreg93wfa90cqqr', yearly: 'pri_01kkq68n48m06g366npzg7fk01' },
+    basic:      { monthly: 'pri_01kkq6k6kr5xmza70p6n574378', yearly: 'pri_01kkq6n0p98rx63q3dj6qd4c83' },
+    pro:        { monthly: 'pri_01kkq6tjh7rmq5s19ns35n52d7', yearly: 'pri_01kkq6vvphytz0xjk2y2vqswv2' },
+    business:   { monthly: 'pri_01kkq6y9a729e82r153t4ckakr', yearly: 'pri_01kkq70cs983hs30fqxq5s2sga' },
+    enterprise: { monthly: 'pri_01kkq72xsn1hvest90mdw6ag4e', yearly: 'pri_01kkq748ydd7tcdbky4zfsdkda' },
+  };
+
+  function openCheckout(plan) {
+    const billing = document.getElementById('billingToggle').checked ? 'yearly' : 'monthly';
+    const priceId = PRICES[plan][billing];
+
+    // Supabase session'dan email al
+    const storageKey = Object.keys(localStorage).find(k => k.includes('auth-token'));
+    let userEmail;
+    if (storageKey) {
+      try {
+        const session = JSON.parse(localStorage.getItem(storageKey));
+        userEmail = session?.user?.email || session?.access_token ? undefined : undefined;
+        // Token'dan email çek
+        if (session?.user?.email) userEmail = session.user.email;
+      } catch(e) {}
+    }
+
+    const checkoutConfig = {
+      items: [{ priceId, quantity: 1 }],
+      customData: { source: 'castreo', plan, billing },
+      successUrl: window.location.origin + '/dashboard.html?subscribed=1',
+    };
+    if (userEmail) checkoutConfig.customer = { email: userEmail };
+
+    Paddle.Checkout.open(checkoutConfig);
+  }
+</script>
+<script src="i18n.js"></script>
+</body>
+</html>
