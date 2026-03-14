@@ -355,7 +355,7 @@ const translations = {
       'about.v2_sub': 'Çevrimdışı olan bir yayın platformu işe yaramaz. Çalışma süresi ve otomatik kurtarma konusunda takıntılıyız.',
       'about.v3_sub': 'Gizli ücret yok, sürpriz ücret yok. Ne görüyorsanız onu ödersiniz.',
       'about.v4_sub': 'Her yerden içerik üreticileri için inşa edildi. Çok dilli, çok para birimli.',
-      'about.story_p1': 'Castreo hayal kırıklığından doğdu. İçerik üreticileri olarak saatlerce OBS kurulumu yaptık ve yayınların gece 3'te çöktüğünü izledik.',
+      'about.story_p1': 'Castreo hayal kırıklığından doğdu. İçerik üreticileri olarak saatlerce OBS kurulumu yaptık ve yayınların gece 3te çöktüğünü izledik.',
       'about.story_p2': 'Daha iyi bir yol olması gerektiğine inandık. Videonuzu yükleyip başlatırsınız ve sonsuza kadar yayın yapar.',
       'about.story_p3': 'İşte bu Castreo. Her zaman aktif olmak isteyen içerik üreticileri için inşa edilmiş global bir yayın platformu.',
     },
@@ -383,6 +383,122 @@ const translations = {
   for (var lang in keys) {
     if (!t[lang]) continue;
     for (var k in keys[lang]) { t[lang][k] = keys[lang][k]; }
+  }
+})();
+
+
+// ── FAQ answers + pricing billing labels ──────────────────────────────────────
+(function(){
+  var t = translations;
+  var faqAnswers = {
+    en: {
+      a1: 'Castreo is a cloud-based platform that streams your pre-recorded videos as live streams 24/7. Upload your video once, and Castreo will loop it continuously on YouTube, Twitch, Facebook, or any platform that accepts RTMP.',
+      a2: 'No. Castreo is designed for everyone. If you can copy-paste a stream key from YouTube, you can use Castreo. No OBS, no servers, no command line.',
+      a3: 'Most users go live within 2 minutes of signing up. Create account → Upload video → Paste stream key → Hit Start.',
+      a4: 'MP4, MOV, AVI, MKV and most common video formats. We recommend MP4 (H.264) for best results. Maximum file size is 10GB per file.',
+      a5: 'YouTube, Twitch, Facebook Live, Instagram Live, X (Twitter), Kick, MixCloud, and any custom RTMP destination.',
+      a6: "Castreo's auto-restart watchdog monitors your stream continuously. If it detects a drop, it automatically restarts within seconds.",
+      a7: 'Yes! Create a playlist with multiple videos in any order. Castreo will loop through them continuously.',
+      a8: 'All plans support Full HD 1080p streaming at 30fps. Your stream quality depends on the source video.',
+      a9: 'No credit card required for the 7-day free trial on the Lite plan. Just sign up and start streaming immediately.',
+      a10: 'Your active streams will pause. All your videos, settings and stream configurations are saved. Subscribe to any plan to resume instantly.',
+      a11: 'Yes, you can change plans at any time from your dashboard. Upgrades take effect immediately.',
+      a12: 'Absolutely. Cancel any time from your account settings. No questions asked, no cancellation fees.',
+      a13: 'Castreo accepts all major credit and debit cards (Visa, Mastercard, Amex), PayPal, and many local payment methods worldwide — powered by Paddle.',
+    },
+    tr: {
+      a1: 'Castreo, önceden kaydedilmiş videolarınızı 7/24 canlı yayın olarak aktaran bulut tabanlı bir platformdur. Videonuzu bir kez yükleyin, Castreo onu sürekli olarak döngüye alır.',
+      a2: 'Hayır. Castreo herkes için tasarlanmıştır. YouTube\'dan stream key kopyalayıp yapıştırabiliyorsanız, Castreo\'yu kullanabilirsiniz.',
+      a3: 'Çoğu kullanıcı kayıt olduktan 2 dakika içinde yayına girer. Hesap oluştur → Video yükle → Stream key yapıştır → Başlat.',
+      a4: 'MP4, MOV, AVI, MKV ve diğer yaygın video formatları. En iyi sonuçlar için MP4 (H.264) önerilir. Maksimum dosya boyutu 10GB\'dır.',
+      a5: 'YouTube, Twitch, Facebook Live, Instagram Live, X (Twitter), Kick, MixCloud ve RTMP kabul eden herhangi bir platform.',
+      a6: 'Castreo otomatik yeniden başlatma sistemi yayınınızı sürekli izler. Bir kesinti algılarsa saniyeler içinde otomatik olarak yeniden başlatır.',
+      a7: 'Evet! Birden fazla videoyu istediğiniz sırayla içeren bir oynatma listesi oluşturun. Castreo onları sürekli döngüye alır.',
+      a8: 'Tüm planlar 30fps\'de Full HD 1080p yayını destekler.',
+      a9: 'Lite planındaki 7 günlük ücretsiz deneme için kredi kartı gerekmez.',
+      a10: 'Aktif yayınlarınız duraklar. Tüm videolarınız, ayarlarınız ve yayın konfigürasyonlarınız kaydedilir.',
+      a11: 'Evet, planınızı istediğiniz zaman değiştirebilirsiniz. Yükseltmeler hemen geçerli olur.',
+      a12: 'Kesinlikle. Hesap ayarlarınızdan istediğiniz zaman iptal edin. Soru sorulmaz, iptal ücreti alınmaz.',
+      a13: 'Castreo tüm büyük kredi ve banka kartlarını (Visa, Mastercard, Amex), PayPal ve dünya genelinde birçok yerel ödeme yöntemini kabul eder — Paddle tarafından desteklenmektedir.',
+    },
+    ar: {
+      a1: 'كاستريو هو منصة سحابية تبث مقاطع الفيديو المسجلة مسبقاً كبث مباشر 24/7. ارفع الفيديو مرة واحدة وسيكرره كاستريو باستمرار.',
+      a2: 'لا. كاستريو مصمم للجميع. إذا كان بإمكانك نسخ ولصق مفتاح بث من يوتيوب، يمكنك استخدام كاستريو.',
+      a3: 'معظم المستخدمين يبثون مباشرة في غضون دقيقتين من التسجيل.',
+      a4: 'MP4, MOV, AVI, MKV وجميع صيغ الفيديو الشائعة. الحجم الأقصى للملف 10GB.',
+      a5: 'يوتيوب وتويتش وفيسبوك لايف وإنستغرام لايف وX وKick وMixCloud وأي وجهة RTMP مخصصة.',
+      a6: 'يراقب نظام إعادة التشغيل التلقائي في كاستريو بثك باستمرار. إذا اكتشف انقطاعاً، يعيد التشغيل تلقائياً في ثوانٍ.',
+      a7: 'نعم! أنشئ قائمة تشغيل بمقاطع فيديو متعددة بأي ترتيب. سيكررها كاستريو باستمرار.',
+      a8: 'تدعم جميع الخطط بث Full HD 1080p بمعدل 30fps.',
+      a9: 'لا تلزم بطاقة ائتمانية للتجربة المجانية لمدة 7 أيام على خطة Lite.',
+      a10: 'ستتوقف بثوثك النشطة. يتم حفظ جميع مقاطع الفيديو والإعدادات.',
+      a11: 'نعم، يمكنك تغيير الخطط في أي وقت من لوحة التحكم.',
+      a12: 'بالتأكيد. ألغِ في أي وقت من إعدادات حسابك. لا أسئلة، لا رسوم إلغاء.',
+      a13: 'يقبل كاستريو جميع بطاقات الائتمان والخصم الرئيسية، وPayPal، والعديد من طرق الدفع المحلية حول العالم — مدعوم من Paddle.',
+    },
+  };
+
+  // For other languages fallback to EN answers
+  var otherLangs = ['hi','id','ja','pt','es','ru','ko','fr'];
+  for (var i = 0; i < otherLangs.length; i++) {
+    faqAnswers[otherLangs[i]] = faqAnswers.en;
+  }
+  // Spanish overrides
+  faqAnswers.es = {
+    a1: 'Castreo es una plataforma en la nube que transmite tus videos pregrabados como streams en vivo 24/7.',
+    a2: 'No. Castreo está diseñado para todos. Si puedes copiar y pegar una stream key de YouTube, puedes usar Castreo.',
+    a3: 'La mayoría de los usuarios están en vivo en 2 minutos. Crear cuenta → Subir video → Pegar stream key → Iniciar.',
+    a4: 'MP4, MOV, AVI, MKV y los formatos de video más comunes. Tamaño máximo 10GB.',
+    a5: 'YouTube, Twitch, Facebook Live, Instagram Live, X, Kick, MixCloud y cualquier destino RTMP personalizado.',
+    a6: 'El sistema de reinicio automático de Castreo monitorea tu stream continuamente y lo reinicia en segundos si detecta una caída.',
+    a7: 'Sí. Crea una lista de reproducción con múltiples videos en cualquier orden. Castreo los reproducirá continuamente.',
+    a8: 'Todos los planes soportan streaming Full HD 1080p a 30fps.',
+    a9: 'No se requiere tarjeta de crédito para la prueba gratuita de 7 días en el plan Lite.',
+    a10: 'Tus streams activos se pausarán. Todos tus videos y configuraciones se guardan.',
+    a11: 'Sí, puedes cambiar de plan en cualquier momento desde tu panel.',
+    a12: 'Por supuesto. Cancela cuando quieras desde la configuración de tu cuenta.',
+    a13: 'Castreo acepta todas las principales tarjetas de crédito y débito, PayPal y muchos métodos de pago locales — con Paddle.',
+  };
+  faqAnswers.pt = {
+    a1: 'Castreo é uma plataforma na nuvem que transmite seus vídeos pré-gravados como streams ao vivo 24/7.',
+    a2: 'Não. Castreo é projetado para todos. Se você consegue copiar e colar uma stream key do YouTube, pode usar o Castreo.',
+    a3: 'A maioria dos usuários vai ao vivo em 2 minutos. Criar conta → Enviar vídeo → Colar stream key → Iniciar.',
+    a4: 'MP4, MOV, AVI, MKV e os formatos de vídeo mais comuns. Tamanho máximo 10GB.',
+    a5: 'YouTube, Twitch, Facebook Live, Instagram Live, X, Kick, MixCloud e qualquer destino RTMP personalizado.',
+    a6: 'O sistema de reinício automático do Castreo monitora seu stream continuamente e reinicia em segundos se detectar uma queda.',
+    a7: 'Sim! Crie uma playlist com vários vídeos em qualquer ordem. O Castreo os reproduzirá continuamente.',
+    a8: 'Todos os planos suportam streaming Full HD 1080p a 30fps.',
+    a9: 'Não é necessário cartão de crédito para o teste gratuito de 7 dias no plano Lite.',
+    a10: 'Seus streams ativos serão pausados. Todos os seus vídeos e configurações são salvos.',
+    a11: 'Sim, você pode mudar de plano a qualquer momento no painel.',
+    a12: 'Absolutamente. Cancele a qualquer momento nas configurações da conta.',
+    a13: 'O Castreo aceita todos os principais cartões de crédito e débito, PayPal e muitos métodos de pagamento locais — com Paddle.',
+  };
+
+  for (var lang in faqAnswers) {
+    if (!t[lang]) continue;
+    var ans = faqAnswers[lang];
+    for (var k in ans) { t[lang]['faq.' + k] = ans[k]; }
+  }
+
+  // Pricing billing labels (missing from current i18n.js)
+  var billingLabels = {
+    en: { monthly_billing: 'Billed monthly', yearly_billing: 'Billed yearly' },
+    tr: { monthly_billing: 'Aylık faturalandırma', yearly_billing: 'Yıllık faturalandırma' },
+    ar: { monthly_billing: 'فاتورة شهرية', yearly_billing: 'فاتورة سنوية' },
+    hi: { monthly_billing: 'मासिक बिलिंग', yearly_billing: 'वार्षिक बिलिंग' },
+    id: { monthly_billing: 'Tagihan bulanan', yearly_billing: 'Tagihan tahunan' },
+    ja: { monthly_billing: '月次請求', yearly_billing: '年次請求' },
+    pt: { monthly_billing: 'Cobrado mensalmente', yearly_billing: 'Cobrado anualmente' },
+    es: { monthly_billing: 'Facturado mensualmente', yearly_billing: 'Facturado anualmente' },
+    ru: { monthly_billing: 'Ежемесячная оплата', yearly_billing: 'Ежегодная оплата' },
+    ko: { monthly_billing: '월간 청구', yearly_billing: '연간 청구' },
+    fr: { monthly_billing: 'Facturé mensuellement', yearly_billing: 'Facturé annuellement' },
+  };
+  for (var lang in billingLabels) {
+    if (!t[lang]) continue;
+    t[lang]['pricing.monthly_billing'] = billingLabels[lang].monthly_billing;
+    t[lang]['pricing.yearly_billing'] = billingLabels[lang].yearly_billing;
   }
 })();
 

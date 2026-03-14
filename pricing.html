@@ -266,9 +266,14 @@
     document.querySelectorAll('.amount').forEach(el => {
       el.textContent = isYearly ? el.dataset.yearly : el.dataset.monthly;
     });
+    // Update "Billed monthly/yearly" labels
     document.querySelectorAll('.plan-trial').forEach((el, i) => {
-      if (i === 0) return;
-      el.textContent = isYearly ? (translations[localStorage.getItem('castreo_lang')||'en']?.['pricing.yearly_billing']||'Billed yearly') : (translations[localStorage.getItem('castreo_lang')||'en']?.['pricing.monthly_billing']||'Billed monthly');
+      if (i === 0) return; // skip first (free trial label)
+      const lang = localStorage.getItem('castreo_lang') || 'en';
+      const t = (typeof translations !== 'undefined' && translations[lang]) ? translations[lang] : {};
+      el.textContent = isYearly
+        ? (t['pricing.yearly_billing'] || 'Billed yearly')
+        : (t['pricing.monthly_billing'] || 'Billed monthly');
     });
   }
   function toggleFaq(el) { el.classList.toggle('open'); }
