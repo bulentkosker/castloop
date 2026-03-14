@@ -92,6 +92,7 @@
       <div class="stat-card"><div class="label">Total Streams</div><div class="value" id="totalStreams">0</div></div>
       <div class="stat-card"><div class="label">Running</div><div class="value" id="runningStreams">0</div></div>
       <div class="stat-card"><div class="label">Plan</div><div class="value" id="userPlan">Free</div></div>
+      <div class="stat-card" id="trialCard" style="display:none"><div class="label">Trial</div><div class="value" id="trialDays" style="font-size:18px">—</div></div>
     </div>
 
     <div class="section-header">
@@ -216,8 +217,9 @@
     let playlist = []; // { path, name }
     let availableVideos = [];
 
-    const PLAN_LIMITS = { free: 1, basic: 2, pro: 4, business: 8, enterprise: 12 };
+    const PLAN_LIMITS = { free: 1, lite: 1, basic: 2, pro: 4, business: 8, enterprise: 12 };
     let userPlan = 'free';
+    let trialExpired = false;
 
     async function init() {
       const { data: { user } } = await client.auth.getUser();
@@ -225,12 +227,51 @@
       currentUser = user;
       document.getElementById('userEmail').textContent = user.email;
 
-      // Plan bilgisini yükle
-      const { data: profile } = await client.from('profiles').select('plan').eq('id', user.id).single();
+      // Plan + trial bilgisini yükle
+      const { data: profile } = await client.from('profiles').select('plan, trial_started_at').eq('id', user.id).single();
       userPlan = (profile?.plan || 'free').toLowerCase();
-      document.getElementById('userPlan').textContent = userPlan.charAt(0).toUpperCase() + userPlan.slice(1);
+
+      // Trial kontrolü
+      const isPaidPlan = ['lite','basic','pro','business','enterprise'].includes(userPlan);
+      if (!isPaidPlan && profile?.trial_started_at) {
+        const trialStart = new Date(profile.trial_started_at);
+        const now = new Date();
+        const daysPassed = Math.floor((now - trialStart) / (1000 * 60 * 60 * 24));
+        const daysLeft = 7 - daysPassed;
+        if (daysLeft <= 0) {
+          trialExpired = true;
+          document.getElementById('userPlan').textContent = 'Trial Expired';
+          document.getElementById('userPlan').style.color = '#f87171';
+          document.getElementById('trialCard').style.display = '';
+          document.getElementById('trialDays').textContent = 'Expired';
+          document.getElementById('trialDays').style.color = '#f87171';
+          showTrialBanner('expired');
+        } else {
+          document.getElementById('userPlan').textContent = 'Trial';
+          document.getElementById('trialCard').style.display = '';
+          document.getElementById('trialDays').textContent = daysLeft + 'd left';
+          document.getElementById('trialDays').style.color = daysLeft <= 2 ? '#fbbf24' : '#34d399';
+          if (daysLeft <= 2) showTrialBanner('expiring', daysLeft);
+        }
+      } else {
+        document.getElementById('userPlan').textContent = userPlan.charAt(0).toUpperCase() + userPlan.slice(1);
+      }
 
       await loadStreams();
+    }
+
+    function showTrialBanner(type, daysLeft) {
+      const existing = document.getElementById('trialBanner');
+      if (existing) existing.remove();
+      const banner = document.createElement('div');
+      banner.id = 'trialBanner';
+      banner.style.cssText = `background:${type==='expired'?'#7f1d1d':'#78350f'};border:1px solid ${type==='expired'?'#f87171':'#fbbf24'};color:${type==='expired'?'#fca5a5':'#fde68a'};padding:12px 24px;text-align:center;font-size:14px;font-weight:500;`;
+      if (type === 'expired') {
+        banner.innerHTML = '⚠ Your 7-day free trial has expired. <a href="pricing.html" style="color:#f87171;font-weight:700;text-decoration:underline">Upgrade your plan</a> to continue streaming.';
+      } else {
+        banner.innerHTML = `⏳ Your free trial expires in <strong>${daysLeft} day${daysLeft>1?'s':''}</strong>. <a href="pricing.html" style="color:#fbbf24;font-weight:700;text-decoration:underline">Upgrade now</a> to keep streaming.`;
+      }
+      document.querySelector('.main').prepend(banner);
     }
 
     async function loadVideos() {
@@ -341,7 +382,11 @@
       const limit = PLAN_LIMITS[userPlan] || 1;
       document.getElementById('totalStreams').textContent = streams.length;
       document.getElementById('runningStreams').textContent = `${running} / ${limit}`;
-      document.getElementById('userPlan').textContent = userPlan.charAt(0).toUpperCase() + userPlan.slice(1);
+      // Plan label'ı sadece normal planda güncelle, trial'da init zaten ayarladı
+      const isPaidPlan = ['lite','basic','pro','business','enterprise'].includes(userPlan);
+      if (isPaidPlan) {
+        document.getElementById('userPlan').textContent = userPlan.charAt(0).toUpperCase() + userPlan.slice(1);
+      }
     }
 
     async function createStream() {
@@ -388,6 +433,11 @@
     }
 
     async function startStream(id, rtmpUrl, streamKey, videoPaths) {
+      // Trial süresi kontrolü
+      if (trialExpired) {
+        showStreamError(id, 'Trial süreniz doldu. Lütfen planınızı yükseltin.');
+        return;
+      }
       // Plan limit kontrolü
       const limit = PLAN_LIMITS[userPlan] || 1;
       const running = streams.filter(s => s.status === 'running').length;
