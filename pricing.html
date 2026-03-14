@@ -83,6 +83,22 @@
     @media(max-width:1100px){.pricing-grid{grid-template-columns:repeat(2,1fr);}}
     @media(max-width:600px){.pricing-grid{grid-template-columns:1fr;padding:0 24px 60px;}.page-header{padding:100px 24px 40px;}.faq-section{padding:0 24px 60px;}nav{padding:16px 24px;}.nav-links{display:none;}}
   </style>
+<script>
+  let isYearly = false;
+  function toggleBilling() {
+    isYearly = document.getElementById('billingToggle').checked;
+    document.querySelectorAll('.amount').forEach(el => {
+      el.textContent = isYearly ? el.dataset.yearly : el.dataset.monthly;
+    });
+    document.querySelectorAll('.plan-trial').forEach((el, i) => {
+      if (i === 0) return;
+      const lang = localStorage.getItem('castreo_lang') || 'en';
+      const t = (typeof translations !== 'undefined' && translations[lang]) ? translations[lang] : {};
+      el.textContent = isYearly ? (t['pricing.yearly_billing'] || 'Billed yearly') : (t['pricing.monthly_billing'] || 'Billed monthly');
+    });
+  }
+  function toggleFaq(el) { el.classList.toggle('open'); }
+</script>
 <script src="i18n.js"></script>
 </head>
 <body>
@@ -260,23 +276,7 @@
     <div class="footer-copy" data-i18n="footer.copy">© 2025 Castreo. All rights reserved.</div>
   </div>
 </footer
-<script>
-  let isYearly = false;
-  function toggleBilling() {
-    isYearly = document.getElementById('billingToggle').checked;
-    document.querySelectorAll('.amount').forEach(el => {
-      el.textContent = isYearly ? el.dataset.yearly : el.dataset.monthly;
-    });
-    document.querySelectorAll('.plan-trial').forEach((el, i) => {
-      if (i === 0) return;
-      const lang = localStorage.getItem('castreo_lang') || 'en';
-      const t = (typeof translations !== 'undefined' && translations[lang]) ? translations[lang] : {};
-      el.textContent = isYearly
-        ? (t['pricing.yearly_billing'] || 'Billed yearly')
-        : (t['pricing.monthly_billing'] || 'Billed monthly');
-    });
-  }
-  function toggleFaq(el) { el.classList.toggle('open'); }
-</script>
+
+
 </body>
 </html>
