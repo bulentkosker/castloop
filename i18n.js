@@ -516,7 +516,7 @@ function setLang(lang) {
   document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
 }
 
-(function() {
+document.addEventListener('DOMContentLoaded', function() {
   const lang = localStorage.getItem('castreo_lang') || 'en';
   document.querySelectorAll('.lang-select').forEach(s => {
     s.innerHTML = LANG_SELECT_HTML;
@@ -524,4 +524,4 @@ function setLang(lang) {
     s.onchange = function() { setLang(this.value); };
   });
   setLang(lang);
-})();
+});
