@@ -140,13 +140,13 @@
       <li><span class="check">✓</span> Auto-restart</li>
       <li><span class="check">✓</span> HD 1080p</li>
     </ul>
-    <a href="dashboard.html" class="btn-plan btn-plan-outline">Start Free Trial</a>
+    <button class="btn-plan btn-plan-outline" onclick="openCheckout('lite')">Start Free Trial</button>
   </div>
 
   <div class="plan-card">
     <div class="plan-name">Basic</div>
     <div class="plan-price">
-      <span class="amount" data-monthly="$49" data-yearly="$39">$49</span>
+      <span class="amount" data-monthly="$49" data-yearly="$41">$49</span>
       <span class="period">/mo</span>
     </div>
     <div class="plan-trial" style="color:var(--muted)">Billed monthly</div>
@@ -159,14 +159,14 @@
       <li><span class="check">✓</span> Auto-restart</li>
       <li><span class="check">✓</span> HD 1080p</li>
     </ul>
-    <a href="dashboard.html" class="btn-plan btn-plan-outline">Get Started</a>
+    <button class="btn-plan btn-plan-outline" onclick="openCheckout('basic')">Get Started</button>
   </div>
 
   <div class="plan-card popular">
     <div class="popular-badge">MOST POPULAR</div>
     <div class="plan-name">Pro</div>
     <div class="plan-price">
-      <span class="amount" data-monthly="$79" data-yearly="$63">$79</span>
+      <span class="amount" data-monthly="$79" data-yearly="$66">$79</span>
       <span class="period">/mo</span>
     </div>
     <div class="plan-trial" style="color:var(--muted)">Billed monthly</div>
@@ -179,13 +179,13 @@
       <li><span class="check">✓</span> Auto-restart</li>
       <li><span class="check">✓</span> HD 1080p</li>
     </ul>
-    <a href="dashboard.html" class="btn-plan btn-plan-primary">Get Started</a>
+    <button class="btn-plan btn-plan-primary" onclick="openCheckout('pro')">Get Started</button>
   </div>
 
   <div class="plan-card">
     <div class="plan-name">Business</div>
     <div class="plan-price">
-      <span class="amount" data-monthly="$149" data-yearly="$119">$149</span>
+      <span class="amount" data-monthly="$149" data-yearly="$124">$149</span>
       <span class="period">/mo</span>
     </div>
     <div class="plan-trial" style="color:var(--muted)">Billed monthly</div>
@@ -198,13 +198,13 @@
       <li><span class="check">✓</span> Auto-restart</li>
       <li><span class="check">✓</span> HD 1080p</li>
     </ul>
-    <a href="dashboard.html" class="btn-plan btn-plan-outline">Get Started</a>
+    <button class="btn-plan btn-plan-outline" onclick="openCheckout('business')">Get Started</button>
   </div>
 
   <div class="plan-card">
     <div class="plan-name">Enterprise</div>
     <div class="plan-price">
-      <span class="amount" data-monthly="$199" data-yearly="$159">$199</span>
+      <span class="amount" data-monthly="$199" data-yearly="$166">$199</span>
       <span class="period">/mo</span>
     </div>
     <div class="plan-trial" style="color:var(--muted)">Billed monthly</div>
@@ -217,7 +217,7 @@
       <li><span class="check">✓</span> Auto-restart</li>
       <li><span class="check">✓</span> Priority support</li>
     </ul>
-    <a href="dashboard.html" class="btn-plan btn-plan-outline">Get Started</a>
+    <button class="btn-plan btn-plan-outline" onclick="openCheckout('enterprise')">Get Started</button>
   </div>
 
 </div>
@@ -257,7 +257,7 @@
       <a href="privacy.html">Privacy</a>
       <a href="terms.html">Terms</a>
       <a href="refund.html">Refunds</a>
-      <a href="mailto:hello@castreo.com">Contact</a>
+      <a href="/cdn-cgi/l/email-protection#79111c151516391a180a0d0b1c16571a1614">Contact</a>
     </div>
     <div class="footer-copy" data-i18n="footer.copy">© 2025 Castreo. All rights reserved.</div>
   </div>
@@ -276,6 +276,4 @@
   }
   function toggleFaq(el) { el.classList.toggle('open'); }
 </script>
-<script src="i18n.js"></script>
-</body>
-</html>
+<script 
