@@ -336,6 +336,56 @@ const translations = {
   for (var lang in footer_copy) { if (t[lang]) t[lang]['footer.copy'] = footer_copy[lang]; }
 })();
 
+
+// Extra about keys
+(function() {
+  var t = translations;
+  var keys = {
+    en: {
+      'about.v1_sub': 'Every decision we make asks: does this make it simpler? Complexity is the enemy of reliability.',
+      'about.v2_sub': 'A streaming platform that goes offline is worthless. We obsess over uptime and auto-recovery.',
+      'about.v3_sub': 'No hidden fees, no surprise charges, no bait-and-switch. What you see is what you pay.',
+      'about.v4_sub': 'Built for creators everywhere — from Istanbul to Jakarta to São Paulo. Multilingual, multi-currency.',
+      'about.story_p1': 'Castreo was born out of frustration. As content creators ourselves, we spent hours setting up OBS, babysitting streams, and watching them crash at 3am. The existing tools were either too complex, too expensive, or simply unreliable.',
+      'about.story_p2': 'We believed there had to be a better way. A platform that just works — where you upload your video, hit start, and it streams forever without you having to think about it.',
+      'about.story_p3': "That's Castreo. A global streaming platform built for creators who want to be always-on without the headaches.",
+    },
+    tr: {
+      'about.v1_sub': 'Her kararımızda şunu sorarız: Bu daha basit mi yapıyor? Karmaşıklık, güvenilirliğin düşmanıdır.',
+      'about.v2_sub': 'Çevrimdışı olan bir yayın platformu işe yaramaz. Çalışma süresi ve otomatik kurtarma konusunda takıntılıyız.',
+      'about.v3_sub': 'Gizli ücret yok, sürpriz ücret yok. Ne görüyorsanız onu ödersiniz.',
+      'about.v4_sub': 'Her yerden içerik üreticileri için inşa edildi. Çok dilli, çok para birimli.',
+      'about.story_p1': 'Castreo hayal kırıklığından doğdu. İçerik üreticileri olarak saatlerce OBS kurulumu yaptık ve yayınların gece 3'te çöktüğünü izledik.',
+      'about.story_p2': 'Daha iyi bir yol olması gerektiğine inandık. Videonuzu yükleyip başlatırsınız ve sonsuza kadar yayın yapar.',
+      'about.story_p3': 'İşte bu Castreo. Her zaman aktif olmak isteyen içerik üreticileri için inşa edilmiş global bir yayın platformu.',
+    },
+    ar: {
+      'about.v1_sub': 'كل قرار نتخذه يسأل: هل هذا يجعله أبسط؟ التعقيد هو عدو الموثوقية.',
+      'about.v2_sub': 'منصة البث التي تنقطع عن الإنترنت لا قيمة لها. نحن مهووسون بوقت التشغيل والاسترداد التلقائي.',
+      'about.v3_sub': 'لا رسوم خفية، لا رسوم مفاجئة. ما تراه هو ما تدفعه.',
+      'about.v4_sub': 'مبني للمبدعين في كل مكان. متعدد اللغات، متعدد العملات.',
+      'about.story_p1': 'وُلد كاستريو من الإحباط. كمنشئي محتوى، أمضينا ساعات في إعداد OBS ومشاهدة البث ينقطع في الساعة الثالثة صباحاً.',
+      'about.story_p2': 'آمنا بأن هناك طريقة أفضل. منصة تعمل فقط — حيث تقوم بتحميل الفيديو والضغط على البدء ويبث إلى الأبد.',
+      'about.story_p3': 'هذا هو كاستريو. منصة بث عالمية مبنية للمبدعين الذين يريدون الاتصال الدائم.',
+    },
+  };
+  // For other languages, copy English
+  var langs = ['hi','id','ja','pt','es','ru','ko','fr'];
+  for (var lang of langs) {
+    keys[lang] = {};
+    for (var k in keys.en) { keys[lang][k] = keys.en[k]; }
+  }
+  // Partial overrides for major languages
+  keys.pt['about.v1_sub'] = 'Cada decisão que tomamos pergunta: isso torna mais simples? A complexidade é inimiga da confiabilidade.';
+  keys.es['about.v1_sub'] = 'Cada decisión que tomamos pregunta: ¿esto lo hace más simple? La complejidad es enemiga de la confiabilidad.';
+  keys.ru['about.v1_sub'] = 'Каждое наше решение задаётся вопросом: делает ли это проще? Сложность — враг надёжности.';
+
+  for (var lang in keys) {
+    if (!t[lang]) continue;
+    for (var k in keys[lang]) { t[lang][k] = keys[lang][k]; }
+  }
+})();
+
 const LANG_SELECT_HTML = `<option value="en">🌐 EN</option><option value="tr">🇹🇷 TR</option><option value="ar">🇸🇦 AR</option><option value="hi">🇮🇳 HI</option><option value="id">🇮🇩 ID</option><option value="ja">🇯🇵 JA</option><option value="pt">🇧🇷 PT</option><option value="es">🇪🇸 ES</option><option value="ru">🇷🇺 RU</option><option value="ko">🇰🇷 KO</option><option value="fr">🇫🇷 FR</option>`;
 
 function setLang(lang) {
