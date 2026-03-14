@@ -420,16 +420,47 @@
       if (el) { el.textContent = '⚠ ' + msg; setTimeout(() => { if (el) el.textContent = ''; }, 10000); }
     }
 
-    async function checkStreamHealth(id) {
+    async function checkStreamHealth(id, server) {
       try {
-        const res = await fetch(`${SERVER_URL}/status/${id}`, { headers: { 'x-api-key': API_KEY } });
+        const apiUrl = server ? server.api_url : SERVER_URL;
+        const res = await fetch(`${apiUrl}/status/${id}`, { headers: { 'x-api-key': API_KEY } });
         const data = await res.json();
         if (!data.running) {
           await client.from('streams').update({ status: 'stopped' }).eq('id', id);
+          // Sunucu sayacını azalt
+          if (server) {
+            const newCount = Math.max(0, (server.active_streams || 1) - 1);
+            await client.from('servers').update({ active_streams: newCount }).eq('id', server.id);
+          }
           await loadStreams();
           showStreamError(id, 'Stream failed to start. Check your RTMP URL and stream key.');
         }
       } catch (e) { console.error('Health check failed:', e); }
+    }
+
+    // Müsait sunucu bul
+    async function getAvailableServer() {
+      const { data: servers, error } = await client
+        .from('servers')
+        .select('*')
+        .eq('status', 'active')
+        .order('active_streams', { ascending: true });
+      if (error || !servers || servers.length === 0) return null;
+      // En az yüklü ve kapasitesi olan sunucuyu seç
+      const available = servers.find(s => s.active_streams < s.max_streams);
+      return available || null;
+    }
+
+    // Stream'in sunucusunu bul
+    async function getStreamServer(streamId) {
+      const stream = streams.find(s => s.id === streamId);
+      if (stream?.server_id) {
+        const { data: server } = await client.from('servers').select('*').eq('id', stream.server_id).single();
+        return server;
+      }
+      // server_id yoksa default sunucuyu döndür
+      const { data: server } = await client.from('servers').select('*').eq('name', 'server-1').single();
+      return server;
     }
 
     async function startStream(id, rtmpUrl, streamKey, videoPaths) {
@@ -446,19 +477,29 @@
         return;
       }
 
+      // Müsait sunucu bul
+      const server = await getAvailableServer();
+      if (!server) {
+        showStreamError(id, 'No available server. Please try again later.');
+        return;
+      }
+
       const btn = document.getElementById(`btn-start-${id}`);
       if (btn) { btn.disabled = true; btn.textContent = 'Starting...'; }
       try {
-        const res = await fetch(`${SERVER_URL}/start`, {
+        const res = await fetch(`${server.api_url}/start`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
           body: JSON.stringify({ streamId: id, rtmpUrl, streamKey, videoPaths })
         });
         const data = await res.json();
         if (data.success) {
-          await client.from('streams').update({ status: 'running' }).eq('id', id);
+          // Stream'i güncelle: status + server_id
+          await client.from('streams').update({ status: 'running', server_id: server.id }).eq('id', id);
+          // Sunucu active_streams sayacını artır
+          await client.from('servers').update({ active_streams: server.active_streams + 1 }).eq('id', server.id);
           await loadStreams();
-          setTimeout(() => checkStreamHealth(id), 15000);
+          setTimeout(() => checkStreamHealth(id, server), 15000);
         } else {
           if (btn) { btn.disabled = false; btn.textContent = '▶ Start'; }
           showStreamError(id, data.error || 'Failed to start stream.');
@@ -471,7 +512,9 @@
 
     async function stopStream(id) {
       try {
-        const res = await fetch(`${SERVER_URL}/stop`, {
+        const server = await getStreamServer(id);
+        const apiUrl = server ? server.api_url : SERVER_URL;
+        const res = await fetch(`${apiUrl}/stop`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
           body: JSON.stringify({ streamId: id })
@@ -479,6 +522,11 @@
         const data = await res.json();
         if (data.success) {
           await client.from('streams').update({ status: 'stopped' }).eq('id', id);
+          // Sunucu active_streams sayacını azalt
+          if (server) {
+            const newCount = Math.max(0, (server.active_streams || 1) - 1);
+            await client.from('servers').update({ active_streams: newCount }).eq('id', server.id);
+          }
           await loadStreams();
         } else {
           showStreamError(id, data.error || 'Failed to stop stream.');
@@ -596,18 +644,6 @@
     function showStreamError(id, msg) {
       const el = document.getElementById(`err-${id}`);
       if (el) { el.textContent = '⚠ ' + msg; setTimeout(() => { if (el) el.textContent = ''; }, 10000); }
-    }
-
-    async function checkStreamHealth(id) {
-      try {
-        const res = await fetch(`${SERVER_URL}/status/${id}`, { headers: { 'x-api-key': API_KEY } });
-        const data = await res.json();
-        if (!data.running) {
-          await client.from('streams').update({ status: 'stopped' }).eq('id', id);
-          await loadStreams();
-          setTimeout(() => showStreamError(id, 'Stream failed to start. Check your RTMP URL and stream key.'), 100);
-        }
-      } catch (e) { console.error('Health check failed:', e); }
     }
 
     init();
