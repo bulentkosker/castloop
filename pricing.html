@@ -89,37 +89,37 @@
 <nav>
   <a href="index.html" class="nav-logo">Castreo</a>
   <div class="nav-links">
-    <a href="index.html#features">Features</a>
-    <a href="pricing.html" class="active">Pricing</a>
-    <a href="faq.html">FAQ</a>
-    <a href="about.html">About</a>
+    <a href="index.html#features" data-i18n="nav.features">Features</a>
+    <a href="pricing.html" class="active" data-i18n="nav.pricing">Pricing</a>
+    <a href="faq.html" data-i18n="nav.faq">FAQ</a>
+    <a href="about.html" data-i18n="nav.about">About</a>
   </div>
   <div class="nav-right">
     <select class="lang-select" onchange="setLang(this.value)">
-      <option value="en">🌐 EN</option>
-      <option value="tr">🇹🇷 TR</option>
-      <option value="ar">🇸🇦 AR</option>
-      <option value="hi">🇮🇳 HI</option>
-      <option value="id">🇮🇩 ID</option>
-      <option value="ja">🇯🇵 JA</option>
+      <option value="en">🌐 EN</option><option value="tr">🇹🇷 TR</option>
+      <option value="ar">🇸🇦 AR</option><option value="hi">🇮🇳 HI</option>
+      <option value="id">🇮🇩 ID</option><option value="ja">🇯🇵 JA</option>
+      <option value="pt">🇧🇷 PT</option><option value="es">🇪🇸 ES</option>
+      <option value="ru">🇷🇺 RU</option><option value="ko">🇰🇷 KO</option>
+      <option value="fr">🇫🇷 FR</option>
     </select>
-    <a href="dashboard.html" class="btn-nav-login">Sign In</a>
-    <a href="dashboard.html" class="btn-nav-cta">Start Free Trial</a>
+    <a href="dashboard.html" class="btn-nav-login" data-i18n="nav.login">Sign In</a>
+    <a href="dashboard.html" class="btn-nav-cta" data-i18n="nav.trial">Start Free Trial</a>
   </div>
 </nav>
 
 <div class="page-header">
-  <h1>Simple, Honest Pricing</h1>
-  <p>Start free for 7 days. No credit card required. Cancel anytime.</p>
+  <h1 data-i18n="pricing.title">Simple, Honest Pricing</h1>
+  <p data-i18n="pricing.sub">Start free for 7 days. No credit card required. Cancel anytime.</p>
 </div>
 
 <div class="toggle-wrap">
-  <span class="toggle-label">Monthly</span>
+  <span class="toggle-label" data-i18n="pricing.monthly">Monthly</span>
   <label class="toggle">
     <input type="checkbox" id="billingToggle" onchange="toggleBilling()">
     <span class="toggle-slider"></span>
   </label>
-  <span class="toggle-label">Yearly <span class="badge-save">SAVE 20%</span></span>
+  <span class="toggle-label" data-i18n="pricing.yearly">Yearly <span class="badge-save">SAVE 20%</span></span>
 </div>
 
 <div class="pricing-grid" id="pricingGrid">
@@ -256,10 +256,9 @@
       <a href="about.html">About</a>
       <a href="/cdn-cgi/l/email-protection#c7afa2ababa887a4a6b4b3b5a2a8e9a4a8aa">Contact</a>
     </div>
-    <div class="footer-copy">© 2025 Castreo. All rights reserved.</div>
+    <div class="footer-copy" data-i18n="footer.copy">© 2025 Castreo. All rights reserved.</div>
   </div>
-</footer>
-
+</footer
 <script>
   let isYearly = false;
   function toggleBilling() {
@@ -269,15 +268,11 @@
     });
     document.querySelectorAll('.plan-trial').forEach((el, i) => {
       if (i === 0) return;
-      el.textContent = isYearly ? 'Billed yearly' : 'Billed monthly';
+      el.textContent = isYearly ? (translations[localStorage.getItem('castreo_lang')||'en']?.['pricing.yearly_billing']||'Billed yearly') : (translations[localStorage.getItem('castreo_lang')||'en']?.['pricing.monthly_billing']||'Billed monthly');
     });
   }
-  function toggleFaq(el) {
-    el.classList.toggle('open');
-  }
-
-  // Lang
-  const
+  function toggleFaq(el) { el.classList.toggle('open'); }
+</script>
 <script src="i18n.js"></script>
 </body>
 </html>

@@ -51,60 +51,67 @@
 <nav>
   <a href="index.html" class="nav-logo">Castreo</a>
   <div class="nav-links">
-    <a href="index.html#features">Features</a>
-    <a href="pricing.html">Pricing</a>
-    <a href="faq.html" class="active">FAQ</a>
-    <a href="about.html">About</a>
+    <a href="index.html#features" data-i18n="nav.features">Features</a>
+    <a href="pricing.html" data-i18n="nav.pricing">Pricing</a>
+    <a href="faq.html" class="active" data-i18n="nav.faq">FAQ</a>
+    <a href="about.html" data-i18n="nav.about">About</a>
   </div>
   <div class="nav-right">
-    <select class="lang-select"><option value="en">🌐 EN</option><option value="tr">🇹🇷 TR</option><option value="ar">🇸🇦 AR</option><option value="hi">🇮🇳 HI</option><option value="id">🇮🇩 ID</option><option value="ja">🇯🇵 JA</option><option value="pt">🇧🇷 PT</option><option value="es">🇪🇸 ES</option><option value="ru">🇷🇺 RU</option><option value="ko">🇰🇷 KO</option><option value="fr">🇫🇷 FR</option></select>
-    <a href="dashboard.html" class="btn-nav-login">Sign In</a>
-    <a href="dashboard.html" class="btn-nav-cta">Start Free Trial</a>
+    <select class="lang-select" onchange="setLang(this.value)">
+      <option value="en">🌐 EN</option><option value="tr">🇹🇷 TR</option>
+      <option value="ar">🇸🇦 AR</option><option value="hi">🇮🇳 HI</option>
+      <option value="id">🇮🇩 ID</option><option value="ja">🇯🇵 JA</option>
+      <option value="pt">🇧🇷 PT</option><option value="es">🇪🇸 ES</option>
+      <option value="ru">🇷🇺 RU</option><option value="ko">🇰🇷 KO</option>
+      <option value="fr">🇫🇷 FR</option>
+    </select>
+    <a href="dashboard.html" class="btn-nav-login" data-i18n="nav.login">Sign In</a>
+    <a href="dashboard.html" class="btn-nav-cta" data-i18n="nav.trial">Start Free Trial</a>
   </div>
 </nav>
 
 <div class="page-header">
-  <h1>Frequently Asked Questions</h1>
-  <p>Everything you need to know about Castreo.</p>
+  <h1 data-i18n="faq.title">Frequently Asked Questions</h1>
+  <p data-i18n="faq.sub">Everything you need to know about Castreo.</p>
 </div>
 
 <div class="faq-wrap">
   <div class="faq-category">
-    <h2>Getting Started</h2>
+    <h2 data-i18n="faq.cat1">Getting Started</h2>
     <div class="faq-item" onclick="this.classList.toggle('open')">
-      <div class="faq-q">What is Castreo? <span class="arrow">▾</span></div>
+      <div class="faq-q" data-i18n="faq.q1">What is Castreo? <span class="arrow">▾</span></div>
       <div class="faq-a">Castreo is a cloud-based platform that streams your pre-recorded videos as live streams 24/7. Upload your video once, and Castreo will loop it continuously on YouTube, Twitch, Facebook, or any platform that accepts RTMP.</div>
     </div>
     <div class="faq-item" onclick="this.classList.toggle('open')">
-      <div class="faq-q">Do I need any technical knowledge? <span class="arrow">▾</span></div>
+      <div class="faq-q" data-i18n="faq.q2">Do I need any technical knowledge? <span class="arrow">▾</span></div>
       <div class="faq-a">No. Castreo is designed for everyone. If you can copy-paste a stream key from YouTube, you can use Castreo. No OBS, no servers, no command line.</div>
     </div>
     <div class="faq-item" onclick="this.classList.toggle('open')">
-      <div class="faq-q">How long does setup take? <span class="arrow">▾</span></div>
+      <div class="faq-q" data-i18n="faq.q3">How long does setup take? <span class="arrow">▾</span></div>
       <div class="faq-a">Most users go live within 2 minutes of signing up. Create account → Upload video → Paste stream key → Hit Start.</div>
     </div>
     <div class="faq-item" onclick="this.classList.toggle('open')">
-      <div class="faq-q">What video formats are supported? <span class="arrow">▾</span></div>
+      <div class="faq-q" data-i18n="faq.q4">What video formats are supported? <span class="arrow">▾</span></div>
       <div class="faq-a">MP4, MOV, AVI, MKV and most common video formats. We recommend MP4 (H.264) for best results. Maximum file size is 10GB per file.</div>
     </div>
   </div>
 
   <div class="faq-category">
-    <h2>Streaming</h2>
+    <h2 data-i18n="faq.cat2">Streaming</h2>
     <div class="faq-item" onclick="this.classList.toggle('open')">
-      <div class="faq-q">Which platforms does Castreo support? <span class="arrow">▾</span></div>
+      <div class="faq-q" data-i18n="faq.q5">Which platforms does Castreo support? <span class="arrow">▾</span></div>
       <div class="faq-a">YouTube, Twitch, Facebook Live, Instagram Live, X (Twitter), Kick, MixCloud, and any custom RTMP destination. If a platform provides an RTMP URL and stream key, Castreo can stream to it.</div>
     </div>
     <div class="faq-item" onclick="this.classList.toggle('open')">
-      <div class="faq-q">What happens if my stream disconnects? <span class="arrow">▾</span></div>
+      <div class="faq-q" data-i18n="faq.q6">What happens if my stream disconnects? <span class="arrow">▾</span></div>
       <div class="faq-a">Castreo's auto-restart watchdog monitors your stream continuously. If it detects a drop, it automatically restarts within seconds. You'll never have to manually restart.</div>
     </div>
     <div class="faq-item" onclick="this.classList.toggle('open')">
-      <div class="faq-q">Can I stream multiple videos in a playlist? <span class="arrow">▾</span></div>
+      <div class="faq-q" data-i18n="faq.q7">Can I stream multiple videos in a playlist? <span class="arrow">▾</span></div>
       <div class="faq-a">Yes! Create a playlist with multiple videos in any order. Castreo will loop through them continuously. Perfect for music channels, nature streams, or multi-topic content.</div>
     </div>
     <div class="faq-item" onclick="this.classList.toggle('open')">
-      <div class="faq-q">What is the video quality? <span class="arrow">▾</span></div>
+      <div class="faq-q" data-i18n="faq.q8">What is the video quality? <span class="arrow">▾</span></div>
       <div class="faq-a">All plans support Full HD 1080p streaming at 30fps. Your stream quality depends on the source video — Castreo will stream at the quality of your uploaded file.</div>
     </div>
   </div>
@@ -112,23 +119,23 @@
   <div class="faq-category">
     <h2>Billing & Plans</h2>
     <div class="faq-item" onclick="this.classList.toggle('open')">
-      <div class="faq-q">Do I need a credit card for the free trial? <span class="arrow">▾</span></div>
+      <div class="faq-q" data-i18n="faq.q9">Do I need a credit card for the free trial? <span class="arrow">▾</span></div>
       <div class="faq-a">No credit card required for the 7-day free trial on the Lite plan. Just sign up and start streaming immediately.</div>
     </div>
     <div class="faq-item" onclick="this.classList.toggle('open')">
-      <div class="faq-q">What happens after the trial ends? <span class="arrow">▾</span></div>
+      <div class="faq-q" data-i18n="faq.q10">What happens after the trial ends? <span class="arrow">▾</span></div>
       <div class="faq-a">Your active streams will pause. All your videos, settings and stream configurations are saved. Subscribe to any plan to resume instantly.</div>
     </div>
     <div class="faq-item" onclick="this.classList.toggle('open')">
-      <div class="faq-q">Can I upgrade or downgrade my plan? <span class="arrow">▾</span></div>
+      <div class="faq-q" data-i18n="faq.q11">Can I upgrade or downgrade my plan? <span class="arrow">▾</span></div>
       <div class="faq-a">Yes, you can change plans at any time from your dashboard. Upgrades take effect immediately. Downgrades take effect at the next billing cycle.</div>
     </div>
     <div class="faq-item" onclick="this.classList.toggle('open')">
-      <div class="faq-q">Can I cancel anytime? <span class="arrow">▾</span></div>
+      <div class="faq-q" data-i18n="faq.q12">Can I cancel anytime? <span class="arrow">▾</span></div>
       <div class="faq-a">Absolutely. Cancel any time from your account settings. No questions asked, no cancellation fees. You keep access until the end of your billing period.</div>
     </div>
     <div class="faq-item" onclick="this.classList.toggle('open')">
-      <div class="faq-q">What payment methods are accepted? <span class="arrow">▾</span></div>
+      <div class="faq-q" data-i18n="faq.q13">What payment methods are accepted? <span class="arrow">▾</span></div>
       <div class="faq-a">Castreo accepts all major credit and debit cards (Visa, Mastercard, Amex), PayPal, and many local payment methods worldwide — powered by Paddle.</div>
     </div>
   </div>

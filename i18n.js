@@ -254,6 +254,88 @@ const translations = {
   },
 };
 
+
+// Extra page keys appended after translations object
+(function() {
+  var t = translations;
+
+  // Pricing page
+  var pricing = {
+    en: { title:'Simple, Honest Pricing', sub:'Start free for 7 days. No credit card required. Cancel anytime.', monthly:'Monthly', yearly:'Yearly', monthly_billing:'Billed monthly', yearly_billing:'Billed yearly' },
+    tr: { title:'Sade ve Dürüst Fiyatlar', sub:'7 gün ücretsiz başla. Kredi kartı gerekmez. İstediğin zaman iptal et.', monthly:'Aylık', yearly:'Yıllık', monthly_billing:'Aylık faturalandırma', yearly_billing:'Yıllık faturalandırma' },
+    ar: { title:'أسعار بسيطة وصادقة', sub:'ابدأ مجاناً لمدة 7 أيام. لا بطاقة ائتمانية.', monthly:'شهري', yearly:'سنوي', monthly_billing:'فاتورة شهرية', yearly_billing:'فاتورة سنوية' },
+    hi: { title:'सरल, ईमानदार मूल्य', sub:'7 दिन मुफ्त शुरू करें।', monthly:'मासिक', yearly:'वार्षिक', monthly_billing:'मासिक बिलिंग', yearly_billing:'वार्षिक बिलिंग' },
+    id: { title:'Harga Sederhana & Jujur', sub:'Mulai gratis 7 hari. Tidak perlu kartu kredit.', monthly:'Bulanan', yearly:'Tahunan', monthly_billing:'Tagihan bulanan', yearly_billing:'Tagihan tahunan' },
+    ja: { title:'シンプルで正直な料金', sub:'7日間無料でスタート。クレジットカード不要。', monthly:'月払い', yearly:'年払い', monthly_billing:'月次請求', yearly_billing:'年次請求' },
+    pt: { title:'Preços Simples e Honestos', sub:'Comece grátis por 7 dias. Sem cartão de crédito.', monthly:'Mensal', yearly:'Anual', monthly_billing:'Cobrado mensalmente', yearly_billing:'Cobrado anualmente' },
+    es: { title:'Precios Simples y Honestos', sub:'Comienza gratis 7 días. Sin tarjeta de crédito.', monthly:'Mensual', yearly:'Anual', monthly_billing:'Facturado mensualmente', yearly_billing:'Facturado anualmente' },
+    ru: { title:'Простые и Честные Цены', sub:'Начните бесплатно на 7 дней. Без кредитной карты.', monthly:'Ежемесячно', yearly:'Ежегодно', monthly_billing:'Ежемесячная оплата', yearly_billing:'Ежегодная оплата' },
+    ko: { title:'간단하고 정직한 요금', sub:'7일 무료로 시작하세요. 신용카드 불필요.', monthly:'월간', yearly:'연간', monthly_billing:'월간 청구', yearly_billing:'연간 청구' },
+    fr: { title:'Tarifs Simples et Honnêtes', sub:'Commencez gratuitement 7 jours. Sans carte de crédit.', monthly:'Mensuel', yearly:'Annuel', monthly_billing:'Facturé mensuellement', yearly_billing:'Facturé annuellement' },
+  };
+  for (var lang in pricing) {
+    if (!t[lang]) continue;
+    for (var k in pricing[lang]) { t[lang]['pricing.' + k] = pricing[lang][k]; }
+  }
+
+  // FAQ page
+  var faq = {
+    en: { title:'Frequently Asked Questions', sub:'Everything you need to know about Castreo.', cat1:'Getting Started', cat2:'Streaming', cat3:'Billing & Plans',
+      q1:'What is Castreo?', q2:'Do I need any technical knowledge?', q3:'How long does setup take?', q4:'What video formats are supported?',
+      q5:'Which platforms does Castreo support?', q6:'What happens if my stream disconnects?', q7:'Can I stream multiple videos in a playlist?', q8:'What is the video quality?',
+      q9:'Do I need a credit card for the free trial?', q10:'What happens after the trial ends?', q11:'Can I upgrade or downgrade my plan?', q12:'Can I cancel anytime?', q13:'What payment methods are accepted?' },
+    tr: { title:'Sık Sorulan Sorular', sub:'Castreo hakkında bilmeniz gereken her şey.', cat1:'Başlarken', cat2:'Yayın', cat3:'Fatura ve Planlar',
+      q1:'Castreo nedir?', q2:'Teknik bilgiye ihtiyacım var mı?', q3:'Kurulum ne kadar sürer?', q4:'Hangi video formatları destekleniyor?',
+      q5:'Castreo hangi platformları destekliyor?', q6:'Yayınım kesilirse ne olur?', q7:'Oynatma listesiyle birden fazla video yayınlayabilir miyim?', q8:'Video kalitesi nedir?',
+      q9:'Ücretsiz deneme için kredi kartı gerekiyor mu?', q10:'Deneme süresi bitince ne olur?', q11:'Planımı değiştirebilir miyim?', q12:'İstediğim zaman iptal edebilir miyim?', q13:'Hangi ödeme yöntemleri kabul ediliyor?' },
+    ar: { title:'الأسئلة الشائعة', sub:'كل ما تحتاج معرفته عن كاستريو.', cat1:'البدء', cat2:'البث', cat3:'الفواتير والخطط',
+      q1:'ما هو كاستريو?', q2:'هل أحتاج إلى معرفة تقنية?', q3:'كم يستغرق الإعداد?', q4:'ما صيغ الفيديو المدعومة?',
+      q5:'ما المنصات التي يدعمها كاستريو?', q6:'ماذا يحدث إذا انقطع البث?', q7:'هل يمكنني بث عدة مقاطع في قائمة تشغيل?', q8:'ما جودة الفيديو?',
+      q9:'هل أحتاج بطاقة ائتمانية للتجربة؟', q10:'ماذا يحدث بعد انتهاء التجربة؟', q11:'هل يمكنني تغيير خطتي؟', q12:'هل يمكنني الإلغاء في أي وقت؟', q13:'ما طرق الدفع المقبولة؟' },
+    hi: { title:'अक्सर पूछे जाने वाले प्रश्न', sub:'Castreo के बारे में जानने योग्य सब कुछ।', cat1:'शुरुआत', cat2:'स्ट्रीमिंग', cat3:'बिलिंग और प्लान' },
+    id: { title:'Pertanyaan yang Sering Diajukan', sub:'Semua yang perlu Anda ketahui tentang Castreo.', cat1:'Memulai', cat2:'Streaming', cat3:'Tagihan & Paket' },
+    ja: { title:'よくある質問', sub:'Castreoについて知っておくべきことすべて。', cat1:'はじめに', cat2:'ストリーミング', cat3:'料金とプラン' },
+    pt: { title:'Perguntas Frequentes', sub:'Tudo o que você precisa saber sobre Castreo.', cat1:'Primeiros Passos', cat2:'Streaming', cat3:'Cobrança e Planos' },
+    es: { title:'Preguntas Frecuentes', sub:'Todo lo que necesitas saber sobre Castreo.', cat1:'Primeros Pasos', cat2:'Streaming', cat3:'Facturación y Planes' },
+    ru: { title:'Часто задаваемые вопросы', sub:'Всё, что нужно знать о Castreo.', cat1:'Начало работы', cat2:'Стриминг', cat3:'Оплата и тарифы' },
+    ko: { title:'자주 묻는 질문', sub:'Castreo에 대해 알아야 할 모든 것.', cat1:'시작하기', cat2:'스트리밍', cat3:'요금 및 플랜' },
+    fr: { title:'Questions Fréquentes', sub:'Tout ce que vous devez savoir sur Castreo.', cat1:'Démarrage', cat2:'Streaming', cat3:'Facturation et Forfaits' },
+  };
+  for (var lang in faq) {
+    if (!t[lang]) continue;
+    for (var k in faq[lang]) { t[lang]['faq.' + k] = faq[lang][k]; }
+  }
+
+  // About page
+  var about = {
+    en: { title:'About Castreo', sub:'We built the streaming platform we always wanted — simple, reliable, and honest.', story_title:'Our Story', values_title:'Our Values', v1_title:'Simplicity First', v2_title:'Reliability Above All', v3_title:'Honest Pricing', v4_title:'Global by Default', contact_title:'Get in Touch', contact_sub:'Questions, feedback, or partnership inquiries — we would love to hear from you.' },
+    tr: { title:'Castreo Hakkında', sub:'Her zaman istediğimiz yayın platformunu inşa ettik — sade, güvenilir ve dürüst.', story_title:'Hikayemiz', values_title:'Değerlerimiz', v1_title:'Önce Sadelik', v2_title:'Her Şeyden Önce Güvenilirlik', v3_title:'Dürüst Fiyatlandırma', v4_title:'Varsayılan Olarak Global', contact_title:'İletişime Geçin', contact_sub:'Sorularınız, geri bildirimleriniz veya iş ortaklığı için bize ulaşın.' },
+    ar: { title:'عن كاستريو', sub:'بنينا منصة البث التي أردناها دائماً — بسيطة وموثوقة وصادقة.', story_title:'قصتنا', values_title:'قيمنا', v1_title:'البساطة أولاً', v2_title:'الموثوقية فوق كل شيء', v3_title:'تسعير صادق', v4_title:'عالمي افتراضياً', contact_title:'تواصل معنا', contact_sub:'أسئلة أو ملاحظات أو استفسارات شراكة — يسعدنا سماعك.' },
+    hi: { title:'Castreo के बारे में', story_title:'हमारी कहानी', values_title:'हमारे मूल्य', contact_title:'संपर्क करें' },
+    id: { title:'Tentang Castreo', story_title:'Kisah Kami', values_title:'Nilai-Nilai Kami', contact_title:'Hubungi Kami' },
+    ja: { title:'Castreoについて', story_title:'私たちの物語', values_title:'私たちの価値観', contact_title:'お問い合わせ' },
+    pt: { title:'Sobre a Castreo', story_title:'Nossa História', values_title:'Nossos Valores', contact_title:'Entre em Contato' },
+    es: { title:'Sobre Castreo', story_title:'Nuestra Historia', values_title:'Nuestros Valores', contact_title:'Contáctanos' },
+    ru: { title:'О Castreo', story_title:'Наша история', values_title:'Наши ценности', contact_title:'Свяжитесь с нами' },
+    ko: { title:'Castreo 소개', story_title:'우리의 이야기', values_title:'우리의 가치', contact_title:'연락하기' },
+    fr: { title:'À propos de Castreo', story_title:'Notre Histoire', values_title:'Nos Valeurs', contact_title:'Nous Contacter' },
+  };
+  for (var lang in about) {
+    if (!t[lang]) continue;
+    for (var k in about[lang]) { t[lang]['about.' + k] = about[lang][k]; }
+  }
+
+  // Footer
+  var footer_copy = {
+    en:'© 2025 Castreo. All rights reserved.', tr:'© 2025 Castreo. Tüm hakları saklıdır.',
+    ar:'© 2025 كاستريو. جميع الحقوق محفوظة.', hi:'© 2025 Castreo. सर्वाधिकार सुरक्षित।',
+    id:'© 2025 Castreo. Hak cipta dilindungi.', ja:'© 2025 Castreo. 全著作権所有。',
+    pt:'© 2025 Castreo. Todos os direitos reservados.', es:'© 2025 Castreo. Todos los derechos reservados.',
+    ru:'© 2025 Castreo. Все права защищены.', ko:'© 2025 Castreo. 모든 권리 보유.', fr:'© 2025 Castreo. Tous droits réservés.',
+  };
+  for (var lang in footer_copy) { if (t[lang]) t[lang]['footer.copy'] = footer_copy[lang]; }
+})();
+
 const LANG_SELECT_HTML = `<option value="en">🌐 EN</option><option value="tr">🇹🇷 TR</option><option value="ar">🇸🇦 AR</option><option value="hi">🇮🇳 HI</option><option value="id">🇮🇩 ID</option><option value="ja">🇯🇵 JA</option><option value="pt">🇧🇷 PT</option><option value="es">🇪🇸 ES</option><option value="ru">🇷🇺 RU</option><option value="ko">🇰🇷 KO</option><option value="fr">🇫🇷 FR</option>`;
 
 function setLang(lang) {
