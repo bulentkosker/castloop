@@ -83,6 +83,7 @@
     </div>
     <div class="user-info">
       <span class="user-email" id="userEmail"></span>
+      <a href="pricing.html" id="upgradeBtn" style="display:none;background:#6366f1;color:#fff;padding:6px 16px;border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;transition:background 0.2s;" onmouseover="this.style.background='#4f46e5'" onmouseout="this.style.background='#6366f1'">⬆ Upgrade</a>
       <button onclick="logout()">Sign Out</button>
     </div>
   </div>
@@ -233,6 +234,8 @@
 
       // Trial kontrolü
       const isPaidPlan = ['lite','basic','pro','business','enterprise'].includes(userPlan);
+      // Upgrade butonu: trial veya free kullanıcılara göster
+      if (!isPaidPlan) document.getElementById('upgradeBtn').style.display = 'inline-block';
       if (!isPaidPlan && profile?.trial_started_at) {
         const trialStart = new Date(profile.trial_started_at);
         const now = new Date();
