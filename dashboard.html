@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Castreo - Dashboard</title>
+  <title>Castloop - Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -76,7 +76,7 @@
 <body>
 
   <div class="navbar">
-    <h1>Castreo</h1>
+    <h1>Castloop</h1>
     <div class="nav-links">
       <a href="dashboard.html" class="active">Streams</a>
       <a href="videos.html">Videos</a>
@@ -210,8 +210,8 @@
     const SUPABASE_URL = 'https://pdttjblnvxoitskhdtro.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_vxcNOoezd_FKxKWmWj-rZQ_w3IrSMaG';
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const SERVER_URL = 'https://api.castreo.com';
-    const API_KEY = 'castreo-secret-2024';
+    const SERVER_URL = 'https://api.castloop.com';
+    const API_KEY = 'castloop-secret-2024';
 
     let currentUser = null;
     let streams = [];
