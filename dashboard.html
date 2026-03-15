@@ -464,7 +464,9 @@
         return;
       }
       container.innerHTML = `<div class="streams-grid">${streams.map(s => {
-        const paths = s.video_paths || (s.video_path ? [s.video_path] : []);
+        let paths = s.video_paths;
+if (typeof paths === "string") { try { paths = JSON.parse(paths); } catch { paths = []; } }
+if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
         const videoCount = paths.length;
         return `
         <div class="stream-card">
