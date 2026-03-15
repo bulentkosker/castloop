@@ -50,6 +50,14 @@
     .message { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; display: none; }
     .message.success { background: #064e3b; color: #34d399; display: block; }
     .message.error { background: #450a0a; color: #f87171; display: block; }
+    .storage-bar-wrap{background:#1a1a2e;border:1px solid #2a2a3e;border-radius:10px;padding:16px 20px;margin-bottom:24px;display:flex;align-items:center;gap:16px;}
+    .storage-info{flex:1;}
+    .storage-label{font-size:12px;color:#888;margin-bottom:6px;display:flex;justify-content:space-between;}
+    .storage-bar{background:#0f0f1a;border-radius:4px;height:8px;overflow:hidden;}
+    .storage-fill{height:100%;border-radius:4px;background:#6366f1;transition:width 0.5s;}
+    .storage-fill.warning{background:#fbbf24;}
+    .storage-fill.danger{background:#f87171;}
+
     /* Custom Modal */
     .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;}
     .modal-overlay.active{opacity:1;pointer-events:all;}
@@ -86,6 +94,15 @@
 
   <div class="main">
     <div class="section-header"><h2>My Videos</h2></div>
+    <div class="storage-bar-wrap" id="storageWrap" style="display:none">
+      <div class="storage-info">
+        <div class="storage-label">
+          <span>Storage</span>
+          <span id="storageText">Loading...</span>
+        </div>
+        <div class="storage-bar"><div class="storage-fill" id="storageFill" style="width:0%"></div></div>
+      </div>
+    </div>
     <div class="message" id="message"></div>
 
     <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
@@ -153,12 +170,35 @@
     const API_KEY = 'castloop-secret-2024';
     let currentUser = null;
 
+    let userPlan = 'free';
+
     async function init() {
       const { data: { user } } = await client.auth.getUser();
       if (!user) { window.location.href = 'login.html'; return; }
       currentUser = user;
       document.getElementById('userEmail').textContent = user.email;
+      // Plan al
+      const { data: profile } = await client.from('profiles').select('plan').eq('id', user.id).single();
+      userPlan = (profile?.plan || 'free').toLowerCase();
       await loadVideos();
+      await loadStorage();
+    }
+
+    async function loadStorage() {
+      try {
+        const res = await fetch(`${SERVER_URL}/storage`, {
+          headers: { 'x-api-key': API_KEY, 'x-user-id': currentUser.id, 'x-user-plan': userPlan }
+        });
+        const data = await res.json();
+        const usedGB = (data.used / (1024**3)).toFixed(2);
+        const limitGB = (data.limit / (1024**3)).toFixed(0);
+        const pct = Math.min(100, Math.round((data.used / data.limit) * 100));
+        document.getElementById('storageWrap').style.display = '';
+        document.getElementById('storageText').textContent = `${usedGB} GB / ${limitGB} GB (${pct}%)`;
+        const fill = document.getElementById('storageFill');
+        fill.style.width = pct + '%';
+        fill.className = 'storage-fill' + (pct > 90 ? ' danger' : pct > 70 ? ' warning' : '');
+      } catch(e) { console.debug('Storage check failed:', e); }
     }
 
     async function loadVideos() {
@@ -214,6 +254,7 @@
       xhr.open('POST', `${SERVER_URL}/upload`);
       xhr.setRequestHeader('x-api-key', API_KEY);
       xhr.setRequestHeader('x-user-id', currentUser.id);
+      xhr.setRequestHeader('x-user-plan', userPlan);
 
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) {
