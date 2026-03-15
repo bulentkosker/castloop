@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Castloop Admin</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Crect%20width%3D%27100%27%20height%3D%27100%27%20rx%3D%2722%27%20fill%3D%27%236366f1%27%2F%3E%3Cpath%20d%3D%27M20%2050%20Q32%2028%2050%2050%20Q68%2072%2080%2050%27%20stroke%3D%27white%27%20stroke-width%3D%277%27%20fill%3D%27none%27%20stroke-linecap%3D%27round%27%2F%3E%3Ccircle%20cx%3D%2750%27%20cy%3D%2750%27%20r%3D%277%27%20fill%3D%27white%27%2F%3E%3C%2Fsvg%3E">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg:#080810;--bg2:#0f0f1a;--bg3:#1a1a2e;--border:#1e1e35;
+      --accent:#6366f1;--accent2:#818cf8;--text:#f0f0ff;--muted:#6b6b8a;
+      --green:#34d399;--red:#f87171;--yellow:#fbbf24;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Segoe UI',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+    .navbar { background:var(--bg2); padding:16px 32px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); }
+    .navbar h1 { font-size:20px; font-weight:700; color:var(--accent2); }
+    .navbar .badge { background:rgba(99,102,241,0.2); color:var(--accent2); font-size:11px; font-weight:700; padding:3px 10px; border-radius:100px; margin-left:10px; letter-spacing:1px; }
+    .nav-right { display:flex; align-items:center; gap:16px; }
+    .nav-right span { color:var(--muted); font-size:13px; }
+    .btn-sm { background:transparent; border:1px solid var(--border); color:var(--muted); padding:6px 14px; border-radius:6px; cursor:pointer; font-size:12px; transition:all 0.2s; }
+    .btn-sm:hover { border-color:var(--accent); color:var(--text); }
+
+    .main { padding:32px; max-width:1400px; margin:0 auto; }
+
+    /* STATS */
+    .stats { display:grid; grid-template-columns:repeat(5,1fr); gap:16px; margin-bottom:32px; }
+    .stat-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:20px 24px; }
+    .stat-card .label { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; }
+    .stat-card .value { font-size:28px; font-weight:700; }
+    .stat-card .sub { font-size:11px; color:var(--muted); margin-top:4px; }
+
+    /* TABS */
+    .tabs { display:flex; gap:4px; margin-bottom:24px; border-bottom:1px solid var(--border); }
+    .tab { padding:10px 20px; font-size:13px; font-weight:600; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; }
+    .tab.active { color:var(--accent2); border-color:var(--accent); }
+    .tab:hover { color:var(--text); }
+    .tab-content { display:none; }
+    .tab-content.active { display:block; }
+
+    /* TABLE */
+    .table-wrap { background:var(--bg2); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+    table { width:100%; border-collapse:collapse; }
+    th { padding:12px 16px; text-align:left; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid var(--border); background:var(--bg3); }
+    td { padding:12px 16px; font-size:13px; border-bottom:1px solid var(--border); vertical-align:middle; }
+    tr:last-child td { border:none; }
+    tr:hover td { background:rgba(99,102,241,0.03); }
+
+    /* BADGES */
+    .badge { display:inline-block; padding:3px 10px; border-radius:100px; font-size:11px; font-weight:600; }
+    .badge-trial { background:rgba(251,191,36,0.15); color:var(--yellow); }
+    .badge-expired { background:rgba(248,113,113,0.15); color:var(--red); }
+    .badge-lite { background:rgba(99,102,241,0.15); color:var(--accent2); }
+    .badge-basic { background:rgba(52,211,153,0.1); color:var(--green); }
+    .badge-pro { background:rgba(52,211,153,0.2); color:var(--green); }
+    .badge-business { background:rgba(52,211,153,0.3); color:var(--green); }
+    .badge-enterprise { background:rgba(52,211,153,0.4); color:#fff; }
+    .badge-free { background:rgba(107,107,138,0.2); color:var(--muted); }
+    .badge-running { background:rgba(52,211,153,0.15); color:var(--green); }
+    .badge-stopped { background:rgba(107,107,138,0.15); color:var(--muted); }
+
+    /* SERVER */
+    .server-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:24px; margin-bottom:16px; display:flex; align-items:center; gap:24px; }
+    .server-dot { width:10px; height:10px; border-radius:50%; background:var(--green); flex-shrink:0; box-shadow:0 0 8px var(--green); }
+    .server-dot.offline { background:var(--red); box-shadow:0 0 8px var(--red); }
+    .server-info { flex:1; }
+    .server-name { font-weight:700; font-size:15px; }
+    .server-url { font-size:12px; color:var(--muted); margin-top:2px; }
+    .server-stats { display:flex; gap:32px; }
+    .server-stat { text-align:center; }
+    .server-stat .num { font-size:22px; font-weight:700; }
+    .server-stat .lbl { font-size:11px; color:var(--muted); }
+    .progress-bar { width:120px; background:var(--border); border-radius:4px; height:6px; margin-top:4px; }
+    .progress-fill { height:100%; border-radius:4px; background:var(--accent); transition:width 0.3s; }
+    .progress-fill.warning { background:var(--yellow); }
+    .progress-fill.danger { background:var(--red); }
+
+    /* PLAN CHANGE */
+    select.plan-select { background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:4px 8px; border-radius:6px; font-size:12px; cursor:pointer; }
+    .btn-save { background:var(--accent); color:#fff; border:none; padding:5px 12px; border-radius:6px; font-size:12px; cursor:pointer; font-weight:600; }
+    .btn-save:hover { background:#4f46e5; }
+
+    .search-bar { background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:10px 16px; color:var(--text); font-size:14px; width:300px; outline:none; margin-bottom:16px; }
+    .search-bar:focus { border-color:var(--accent); }
+
+    .empty { text-align:center; padding:48px; color:var(--muted); font-size:14px; }
+    .loading { text-align:center; padding:48px; color:var(--muted); }
+  </style>
+</head>
+<body>
+
+<div class="navbar">
+  <div style="display:flex;align-items:center">
+    <h1>Castloop</h1>
+    <span class="badge">ADMIN</span>
+  </div>
+  <div class="nav-right">
+    <span id="adminEmail"></span>
+    <button class="btn-sm" onclick="logout()">Sign Out</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="label">Total Users</div>
+      <div class="value" id="statUsers">—</div>
+      <div class="sub">registered accounts</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Active Trials</div>
+      <div class="value" id="statTrials" style="color:var(--yellow)">—</div>
+      <div class="sub">7-day trial users</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Paid Users</div>
+      <div class="value" id="statPaid" style="color:var(--green)">—</div>
+      <div class="sub">active subscribers</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Active Streams</div>
+      <div class="value" id="statStreams" style="color:var(--accent2)">—</div>
+      <div class="sub">currently live</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Est. MRR</div>
+      <div class="value" id="statMRR" style="color:var(--green)">—</div>
+      <div class="sub">monthly recurring</div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('users')">👥 Users</div>
+    <div class="tab" onclick="switchTab('streams')">📡 Live Streams</div>
+    <div class="tab" onclick="switchTab('servers')">🖥️ Servers</div>
+    <div class="tab" onclick="switchTab('admins')">🔐 Admins</div>
+  </div>
+
+  <!-- USERS TAB -->
+  <div class="tab-content active" id="tab-users">
+    <input class="search-bar" type="text" placeholder="Search by email..." oninput="filterUsers(this.value)" id="userSearch">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Plan</th>
+            <th>Trial Status</th>
+            <th>Streams</th>
+            <th>Registered</th>
+            <th>Change Plan</th>
+          </tr>
+        </thead>
+        <tbody id="usersTable">
+          <tr><td colspan="6" class="loading">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- STREAMS TAB -->
+  <div class="tab-content" id="tab-streams">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Stream Name</th>
+            <th>User</th>
+            <th>Platform</th>
+            <th>Status</th>
+            <th>Server</th>
+            <th>Videos</th>
+          </tr>
+        </thead>
+        <tbody id="streamsTable">
+          <tr><td colspan="6" class="loading">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SERVERS TAB -->
+  <div class="tab-content" id="tab-servers">
+    <div id="serversContainer"><div class="loading">Loading...</div></div>
+  </div>
+
+  <!-- ADMINS TAB -->
+  <div class="tab-content" id="tab-admins">
+    <div style="margin-bottom:16px;display:flex;gap:12px;align-items:center">
+      <input class="search-bar" type="email" placeholder="Add admin by email..." id="newAdminEmail" style="margin:0">
+      <button class="btn-save" style="padding:10px 20px;font-size:13px" onclick="addAdmin()">+ Add Admin</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>User ID</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="adminsTable">
+          <tr><td colspan="3" class="loading">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+  const SUPABASE_URL = 'https://pdttjblnvxoitskhdtro.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_vxcNOoezd_FKxKWmWj-rZQ_w3IrSMaG';
+  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const PLAN_MRR = { lite:29, basic:49, pro:79, business:149, enterprise:199 };
+  let allUsers = [];
+  let allStreams = [];
+
+  async function init() {
+    const { data: { user } } = await client.auth.getUser();
+    if (!user) { window.location.href = 'login.html'; return; }
+
+    // Admin check
+    const { data: admin } = await client.from('admins').select('user_id').eq('user_id', user.id).single();
+    if (!admin) { alert('Access denied.'); window.location.href = 'dashboard.html'; return; }
+
+    document.getElementById('adminEmail').textContent = user.email;
+    await loadAll();
+  }
+
+  async function loadAll() {
+    await Promise.all([loadUsers(), loadStreams(), loadServers()]);
+    updateStats();
+  }
+
+  async function loadUsers() {
+    const { data: profiles } = await client.from('profiles').select('*').order('created_at', { ascending: false });
+    allUsers = profiles || [];
+    renderUsers(allUsers);
+  }
+
+  async function loadStreams() {
+    const { data: streams } = await client.from('streams').select('*, profiles(id)').order('created_at', { ascending: false });
+    allStreams = streams || [];
+    renderStreams(allStreams);
+  }
+
+  async function loadServers() {
+    const { data: servers } = await client.from('servers').select('*').order('name');
+    renderServers(servers || []);
+  }
+
+  function updateStats() {
+    const now = new Date();
+    let trials = 0, expired = 0, paid = 0, mrr = 0;
+
+    allUsers.forEach(u => {
+      const plan = (u.plan || 'free').toLowerCase();
+      const isPaid = ['lite','basic','pro','business','enterprise'].includes(plan);
+      if (isPaid) {
+        paid++;
+        mrr += PLAN_MRR[plan] || 0;
+      } else if (u.trial_started_at) {
+        const days = Math.floor((now - new Date(u.trial_started_at)) / 86400000);
+        if (days < 7) trials++; else expired++;
+      }
+    });
+
+    const activeStreams = allStreams.filter(s => s.status === 'running').length;
+
+    document.getElementById('statUsers').textContent = allUsers.length;
+    document.getElementById('statTrials').textContent = trials;
+    document.getElementById('statPaid').textContent = paid;
+    document.getElementById('statStreams').textContent = activeStreams;
+    document.getElementById('statMRR').textContent = '$' + mrr.toLocaleString();
+  }
+
+  function renderUsers(users) {
+    const tbody = document.getElementById('usersTable');
+    if (!users.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">No users found</td></tr>'; return; }
+
+    const now = new Date();
+    tbody.innerHTML = users.map(u => {
+      const plan = (u.plan || 'free').toLowerCase();
+      const isPaid = ['lite','basic','pro','business','enterprise'].includes(plan);
+      let trialStatus = '—';
+      let trialBadge = '';
+      if (!isPaid && u.trial_started_at) {
+        const days = Math.floor((now - new Date(u.trial_started_at)) / 86400000);
+        const left = 7 - days;
+        if (left > 0) { trialStatus = left + 'd left'; trialBadge = 'badge-trial'; }
+        else { trialStatus = 'Expired'; trialBadge = 'badge-expired'; }
+      }
+
+      const userStreams = allStreams.filter(s => s.user_id === u.id).length;
+      const createdAt = u.created_at ? new Date(u.created_at).toLocaleDateString() : '—';
+
+      return `<tr>
+        <td style="font-weight:500">${u.email || '—'}</td>
+        <td><span class="badge badge-${plan}">${plan.toUpperCase()}</span></td>
+        <td>${trialBadge ? `<span class="badge ${trialBadge}">${trialStatus}</span>` : trialStatus}</td>
+        <td>${userStreams}</td>
+        <td style="color:var(--muted)">${createdAt}</td>
+        <td>
+          <select class="plan-select" id="plan-${u.id}">
+            <option value="free" ${plan==='free'?'selected':''}>Free</option>
+            <option value="lite" ${plan==='lite'?'selected':''}>Lite</option>
+            <option value="basic" ${plan==='basic'?'selected':''}>Basic</option>
+            <option value="pro" ${plan==='pro'?'selected':''}>Pro</option>
+            <option value="business" ${plan==='business'?'selected':''}>Business</option>
+            <option value="enterprise" ${plan==='enterprise'?'selected':''}>Enterprise</option>
+          </select>
+          <button class="btn-save" onclick="changePlan('${u.id}')">Save</button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderStreams(streams) {
+    const tbody = document.getElementById('streamsTable');
+    if (!streams.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">No streams</td></tr>'; return; }
+
+    tbody.innerHTML = streams.map(s => {
+      const user = allUsers.find(u => u.id === s.user_id);
+      const paths = s.video_paths ? JSON.parse(s.video_paths) : (s.video_path ? [s.video_path] : []);
+      return `<tr>
+        <td style="font-weight:500">${s.name}</td>
+        <td style="color:var(--muted);font-size:12px">${user?.email || s.user_id?.slice(0,8)+'...'}</td>
+        <td>${s.platform?.toUpperCase() || '—'}</td>
+        <td><span class="badge badge-${s.status}">${s.status}</span></td>
+        <td style="color:var(--muted);font-size:12px">${s.server_id ? s.server_id.slice(0,8)+'...' : '—'}</td>
+        <td>${paths.length}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderServers(servers) {
+    const container = document.getElementById('serversContainer');
+    if (!servers.length) { container.innerHTML = '<div class="empty">No servers configured</div>'; return; }
+
+    container.innerHTML = servers.map(s => {
+      const pct = Math.round((s.active_streams / s.max_streams) * 100);
+      const fillClass = pct > 80 ? 'danger' : pct > 60 ? 'warning' : '';
+      return `<div class="server-card">
+        <div class="server-dot ${s.status !== 'active' ? 'offline' : ''}"></div>
+        <div class="server-info">
+          <div class="server-name">${s.name}</div>
+          <div class="server-url">${s.api_url} · ${s.ip}</div>
+        </div>
+        <div class="server-stats">
+          <div class="server-stat">
+            <div class="num">${s.active_streams}</div>
+            <div class="lbl">Active Streams</div>
+          </div>
+          <div class="server-stat">
+            <div class="num">${s.max_streams}</div>
+            <div class="lbl">Max Capacity</div>
+          </div>
+          <div class="server-stat">
+            <div class="num">${pct}%</div>
+            <div class="lbl">Load</div>
+            <div class="progress-bar"><div class="progress-fill ${fillClass}" style="width:${pct}%"></div></div>
+          </div>
+          <div class="server-stat">
+            <div class="num" style="color:${s.status==='active'?'var(--green)':'var(--red)'}">${s.status?.toUpperCase()}</div>
+            <div class="lbl">Status</div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  async function changePlan(userId) {
+    const newPlan = document.getElementById(`plan-${userId}`).value;
+    const { error } = await client.from('profiles').update({ plan: newPlan }).eq('id', userId);
+    if (!error) {
+      // Update local data
+      const u = allUsers.find(x => x.id === userId);
+      if (u) u.plan = newPlan;
+      renderUsers(allUsers);
+      updateStats();
+    } else {
+      alert('Error: ' + error.message);
+    }
+  }
+
+  function filterUsers(query) {
+    const q = query.toLowerCase();
+    const filtered = allUsers.filter(u => (u.email || '').toLowerCase().includes(q));
+    renderUsers(filtered);
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['users','streams','servers','admins'][i] === tab));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.getElementById(`tab-${tab}`).classList.add('active');
+    if (tab === 'admins') loadAdmins();
+  }
+
+  async function loadAdmins() {
+    const { data: admins } = await client.from('admins').select('user_id');
+    const tbody = document.getElementById('adminsTable');
+    if (!admins?.length) { tbody.innerHTML = '<tr><td colspan="3" class="empty">No admins</td></tr>'; return; }
+
+    const rows = await Promise.all(admins.map(async a => {
+      const user = allUsers.find(u => u.id === a.user_id);
+      const email = user?.email || a.user_id;
+      return `<tr>
+        <td style="font-weight:500">${email}</td>
+        <td style="color:var(--muted);font-size:12px">${a.user_id}</td>
+        <td>
+          ${email !== document.getElementById('adminEmail').textContent
+            ? `<button class="btn-sm" style="color:var(--red);border-color:var(--red)" onclick="removeAdmin('${a.user_id}')">Remove</button>`
+            : '<span style="color:var(--muted);font-size:12px">You</span>'}
+        </td>
+      </tr>`;
+    }));
+    tbody.innerHTML = rows.join('');
+  }
+
+  async function addAdmin() {
+    const email = document.getElementById('newAdminEmail').value.trim();
+    if (!email) return;
+    const user = allUsers.find(u => u.email === email);
+    if (!user) { alert('User not found: ' + email); return; }
+    const { error } = await client.from('admins').insert({ user_id: user.id });
+    if (!error) {
+      document.getElementById('newAdminEmail').value = '';
+      loadAdmins();
+    } else {
+      alert(error.message);
+    }
+  }
+
+  async function removeAdmin(userId) {
+    if (!confirm('Remove this admin?')) return;
+    const { error } = await client.from('admins').delete().eq('user_id', userId);
+    if (!error) loadAdmins();
+    else alert(error.message);
+  }
+
+  async function logout() { await client.auth.signOut(); window.location.href = 'login.html'; }
+
+  // Auto refresh every 30 seconds
+  setInterval(loadAll, 30000);
+
+  init();
+</script>
+</body>
+</html>
