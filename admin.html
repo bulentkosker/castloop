@@ -86,6 +86,23 @@
     .search-bar:focus { border-color:var(--accent); }
 
     .empty { text-align:center; padding:48px; color:var(--muted); font-size:14px; }
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+    .modal-overlay.active{opacity:1;pointer-events:all;}
+    .modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:32px;max-width:400px;width:90%;transform:scale(0.95);transition:transform 0.2s;}
+    .modal-overlay.active .modal-box{transform:scale(1);}
+    .modal-title{font-size:16px;font-weight:700;margin-bottom:8px;}
+    .modal-msg{font-size:14px;color:var(--muted);margin-bottom:24px;line-height:1.6;}
+    .modal-actions{display:flex;gap:10px;justify-content:flex-end;}
+    .modal-cancel{background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;}
+    .modal-cancel:hover{border-color:var(--accent);color:var(--text);}
+    .modal-confirm{background:var(--red);border:none;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;}
+    .modal-confirm:hover{background:#ef4444;}
+    .modal-confirm.info{background:var(--accent);}
+    .toast{position:fixed;bottom:24px;right:24px;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:12px 20px;border-radius:10px;font-size:13px;z-index:2000;transform:translateY(20px);opacity:0;transition:all 0.3s;pointer-events:none;}
+    .toast.active{transform:translateY(0);opacity:1;}
+    .toast.success{border-color:var(--green);color:var(--green);}
+    .toast.error{border-color:var(--red);color:var(--red);}
+
     .loading { text-align:center; padding:48px; color:var(--muted); }
   </style>
 </head>
@@ -212,7 +229,6 @@
   </div>
 
 </div>
-<script>
   const SUPABASE_URL = 'https://pdttjblnvxoitskhdtro.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_vxcNOoezd_FKxKWmWj-rZQ_w3IrSMaG';
   const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -227,7 +243,7 @@
 
     // Admin check
     const { data: admin } = await client.from('admins').select('user_id').eq('user_id', user.id).single();
-    if (!admin) { alert('Access denied.'); window.location.href = 'dashboard.html'; return; }
+    if (!admin) { window.location.href = 'dashboard.html'; return; }
 
     document.getElementById('adminEmail').textContent = user.email;
     await loadAll();
@@ -385,7 +401,7 @@
       renderUsers(allUsers);
       updateStats();
     } else {
-      alert('Error: ' + error.message);
+      toast('Error: ' + error.message, 'error');
     }
   }
 
@@ -427,7 +443,7 @@
     const email = document.getElementById('newAdminEmail').value.trim();
     if (!email) return;
     const user = allUsers.find(u => u.email === email);
-    if (!user) { alert('User not found: ' + email); return; }
+    if (!user) { toast('User not found: ' + email, 'error'); return; }
     const { error } = await client.from('admins').insert({ user_id: user.id });
     if (!error) {
       document.getElementById('newAdminEmail').value = '';
@@ -438,10 +454,11 @@
   }
 
   async function removeAdmin(userId) {
-    if (!confirm('Remove this admin?')) return;
-    const { error } = await client.from('admins').delete().eq('user_id', userId);
-    if (!error) loadAdmins();
-    else alert(error.message);
+    showModal('Remove Admin', 'Are you sure you want to remove this admin?', 'Remove', '', async () => {
+      const { error } = await client.from('admins').delete().eq('user_id', userId);
+      if (!error) { toast('Admin removed', 'success'); loadAdmins(); }
+      else toast(error.message, 'error');
+    });
   }
 
   async function logout() { await client.auth.signOut(); window.location.href = 'login.html'; }
