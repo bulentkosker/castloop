@@ -58,7 +58,7 @@
     .nav-links a.active { color: var(--accent2); border-color: var(--accent); }
 
     .navbar .user-info { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
-    .navbar .user-email { color: var(--muted); font-size: 12px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .navbar .user-email { color: var(--muted); font-size: 12px; min-width: 140px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; }
     .navbar button {
       background: transparent;
       border: 1px solid var(--border);
@@ -248,7 +248,7 @@
       <a href="videos.html">Videos</a>
     </div>
     <div class="user-info">
-      <span class="user-email" id="userEmail"></span>
+      <span class="user-email" id="userEmail">&nbsp;</span>
       <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Toggle theme">🌙</button>
       <a href="pricing.html" id="upgradeBtn" style="display:none;background:#6366f1;color:#fff;padding:6px 16px;border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;transition:background 0.2s;" onmouseover="this.style.background='#4f46e5'" onmouseout="this.style.background='#6366f1'">⬆ Upgrade</a>
       <button onclick="logout()">Sign Out</button>
