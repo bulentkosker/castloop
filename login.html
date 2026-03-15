@@ -121,7 +121,7 @@
     async function signInWithGoogle() {
       const { error } = await client.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: 'https://castloop.vercel.app/dashboard.html' }
+        options: { redirectTo: 'https://castloop.tv/dashboard.html' }
       });
       if (error) {
         document.getElementById('message').textContent = error.message;
