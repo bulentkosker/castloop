@@ -73,6 +73,49 @@
       font-family: inherit;
     }
     .navbar button:hover { border-color: var(--accent); color: var(--text); }
+    /* User dropdown */
+    .user-menu { position: relative; }
+    .user-menu-btn {
+      display: flex; align-items: center; gap: 8px;
+      cursor: pointer; padding: 6px 12px; border-radius: 8px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--text); font-size: 13px; font-family: inherit;
+      transition: all 0.15s; white-space: nowrap; max-width: 200px;
+    }
+    .user-menu-btn:hover { border-color: var(--accent); background: rgba(99,102,241,0.05); }
+    .user-menu-btn .avatar {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; flex-shrink: 0;
+    }
+    .user-menu-btn .email-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .user-menu-btn .chevron { color: var(--muted); font-size: 10px; flex-shrink: 0; transition: transform 0.2s; }
+    .user-menu.open .chevron { transform: rotate(180deg); }
+    .user-dropdown {
+      position: absolute; top: calc(100% + 8px); right: 0;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 10px; min-width: 200px; z-index: 200;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      opacity: 0; pointer-events: none; transform: translateY(-8px);
+      transition: all 0.15s;
+    }
+    .user-menu.open .user-dropdown { opacity: 1; pointer-events: all; transform: translateY(0); }
+    .dropdown-header { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+    .dropdown-header .d-email { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dropdown-header .d-plan { font-size: 11px; color: var(--accent2); font-weight: 600; margin-top: 2px; }
+    .dropdown-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px; font-size: 13px; color: var(--text);
+      cursor: pointer; transition: background 0.15s; border: none;
+      background: transparent; width: 100%; text-align: left; font-family: inherit;
+    }
+    .dropdown-item:hover { background: rgba(99,102,241,0.08); }
+    .dropdown-item.danger { color: var(--red); }
+    .dropdown-item.danger:hover { background: rgba(248,113,113,0.08); }
+    .dropdown-item .d-icon { font-size: 15px; width: 20px; text-align: center; }
+    .dropdown-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
     .theme-toggle { padding: 6px 10px !important; font-size: 15px !important; }
 
     @media (max-width: 600px) {
@@ -156,6 +199,49 @@
     .navbar .user-email { color: var(--muted); }
     .navbar button { border-color: var(--border); color: var(--muted); background: transparent; }
     .navbar button:hover { border-color: var(--accent); color: var(--text); }
+    /* User dropdown */
+    .user-menu { position: relative; }
+    .user-menu-btn {
+      display: flex; align-items: center; gap: 8px;
+      cursor: pointer; padding: 6px 12px; border-radius: 8px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--text); font-size: 13px; font-family: inherit;
+      transition: all 0.15s; white-space: nowrap; max-width: 200px;
+    }
+    .user-menu-btn:hover { border-color: var(--accent); background: rgba(99,102,241,0.05); }
+    .user-menu-btn .avatar {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; flex-shrink: 0;
+    }
+    .user-menu-btn .email-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .user-menu-btn .chevron { color: var(--muted); font-size: 10px; flex-shrink: 0; transition: transform 0.2s; }
+    .user-menu.open .chevron { transform: rotate(180deg); }
+    .user-dropdown {
+      position: absolute; top: calc(100% + 8px); right: 0;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 10px; min-width: 200px; z-index: 200;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      opacity: 0; pointer-events: none; transform: translateY(-8px);
+      transition: all 0.15s;
+    }
+    .user-menu.open .user-dropdown { opacity: 1; pointer-events: all; transform: translateY(0); }
+    .dropdown-header { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+    .dropdown-header .d-email { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dropdown-header .d-plan { font-size: 11px; color: var(--accent2); font-weight: 600; margin-top: 2px; }
+    .dropdown-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px; font-size: 13px; color: var(--text);
+      cursor: pointer; transition: background 0.15s; border: none;
+      background: transparent; width: 100%; text-align: left; font-family: inherit;
+    }
+    .dropdown-item:hover { background: rgba(99,102,241,0.08); }
+    .dropdown-item.danger { color: var(--red); }
+    .dropdown-item.danger:hover { background: rgba(248,113,113,0.08); }
+    .dropdown-item .d-icon { font-size: 15px; width: 20px; text-align: center; }
+    .dropdown-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
 
     /* Theme toggle */
     .theme-toggle { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 16px; transition: all 0.2s; }
@@ -248,12 +334,31 @@
       <a href="videos.html">Videos</a>
     </div>
     <div class="user-info">
-      <span class="user-email" id="userEmail">&nbsp;</span>
-      <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="Toggle theme">🌙</button>
-      <a href="pricing.html" id="upgradeBtn" style="display:none;background:#6366f1;color:#fff;padding:6px 16px;border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;transition:background 0.2s;" onmouseover="this.style.background='#4f46e5'" onmouseout="this.style.background='#6366f1'">⬆ Upgrade</a>
-      <button onclick="logout()">Sign Out</button>
+      <a href="pricing.html" id="upgradeBtn" style="display:none;background:#6366f1;color:#fff;padding:6px 16px;border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;" >⬆ Upgrade</a>
+      <div class="user-menu" id="userMenu">
+        <button class="user-menu-btn" onclick="toggleUserMenu(event)">
+          <div class="avatar" id="userAvatar">?</div>
+          <span class="email-text" id="userEmail">Loading...</span>
+          <span class="chevron">▼</span>
+        </button>
+        <div class="user-dropdown">
+          <div class="dropdown-header">
+            <div class="d-email" id="dropEmail">—</div>
+            <div class="d-plan" id="dropPlan">—</div>
+          </div>
+          <button class="dropdown-item" onclick="toggleTheme(); closeUserMenu()">
+            <span class="d-icon" id="themeIcon">🌙</span>
+            <span id="themeLabel">Dark Mode</span>
+          </button>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item danger" onclick="logout()">
+            <span class="d-icon">🚪</span>
+            Sign Out
+          </button>
+        </div>
+      </div>
     </div>
-  </div>
+    </div>
 
   <div class="main">
     <div class="stats">
@@ -396,6 +501,8 @@
       if (!user) { window.location.href = 'login.html'; return; }
       currentUser = user;
       document.getElementById('userEmail').textContent = user.email;
+      document.getElementById('dropEmail').textContent = user.email;
+      document.getElementById('userAvatar').textContent = (user.email || '?')[0].toUpperCase();
 
       // Plan + trial bilgisini yükle
       const { data: profile } = await client.from('profiles').select('plan, trial_started_at').eq('id', user.id).single();
@@ -427,6 +534,7 @@
         }
       } else {
         document.getElementById('userPlan').textContent = userPlan.charAt(0).toUpperCase() + userPlan.slice(1);
+      document.getElementById('dropPlan').textContent = userPlan.charAt(0).toUpperCase() + userPlan.slice(1) + ' Plan';
       }
 
       await loadStreams();
@@ -560,6 +668,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       const isPaidPlan = ['lite','basic','pro','business','enterprise'].includes(userPlan);
       if (isPaidPlan) {
         document.getElementById('userPlan').textContent = userPlan.charAt(0).toUpperCase() + userPlan.slice(1);
+      document.getElementById('dropPlan').textContent = userPlan.charAt(0).toUpperCase() + userPlan.slice(1) + ' Plan';
       }
     }
 
@@ -824,18 +933,35 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
     // ── Theme ─────────────────────────────────────────────────────────────────
     function toggleTheme() {
       const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-      document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
-      document.getElementById('themeBtn').textContent = isDark ? '🌙' : '☀️';
-      localStorage.setItem('cl_theme', isDark ? 'light' : 'dark');
+      const newTheme = isDark ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('cl_theme', newTheme);
+      updateThemeUI(newTheme);
+    }
+    function updateThemeUI(theme) {
+      const icon = document.getElementById('themeIcon');
+      const label = document.getElementById('themeLabel');
+      if (icon) icon.textContent = theme === 'light' ? '☀️' : '🌙';
+      if (label) label.textContent = theme === 'light' ? 'Light Mode' : 'Dark Mode';
     }
     (function() {
       const t = localStorage.getItem('cl_theme') || 'dark';
       document.documentElement.setAttribute('data-theme', t);
-      document.addEventListener('DOMContentLoaded', () => {
-        const btn = document.getElementById('themeBtn');
-        if (btn) btn.textContent = t === 'light' ? '☀️' : '🌙';
-      });
+      document.addEventListener('DOMContentLoaded', () => updateThemeUI(t));
     })();
+
+    // ── User dropdown ──────────────────────────────────────────────────────────
+    function toggleUserMenu(e) {
+      e.stopPropagation();
+      document.getElementById('userMenu').classList.toggle('open');
+    }
+    function closeUserMenu() {
+      document.getElementById('userMenu').classList.remove('open');
+    }
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('userMenu');
+      if (menu && !menu.contains(e.target)) closeUserMenu();
+    });
 
     // ── Live Timers ───────────────────────────────────────────────────────────
     const streamStartTimes = {};
