@@ -251,8 +251,10 @@
   }
 
   async function loadAll() {
-    await Promise.all([loadUsers(), loadStreams(), loadServers()]);
-    updateStats();
+    try {
+      await Promise.all([loadUsers(), loadStreams(), loadServers()]);
+      updateStats();
+    } catch(e) { console.debug("Auto-refresh skipped:", e.message); }
   }
 
   async function loadUsers() {
@@ -465,7 +467,7 @@
   async function logout() { await client.auth.signOut(); window.location.href = 'login.html'; }
 
   // Auto refresh every 30 seconds
-  setInterval(loadAll, 30000);
+  setInterval(() => { if (navigator.onLine) loadAll(); }, 30000);
 
   init();
 </script>
