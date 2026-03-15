@@ -6,17 +6,79 @@
   <title>Castloop - Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
+    /* ── Navbar ── */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', sans-serif; background: #0f0f1a; color: #fff; min-height: 100vh; }
-    .navbar { background: #1a1a2e; padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a3e; }
-    .navbar h1 { font-size: 22px; font-weight: 700; color: #6366f1; }
-    .nav-links { display: flex; gap: 24px; }
-    .nav-links a { color: #888; text-decoration: none; font-size: 14px; transition: color 0.2s; }
-    .nav-links a:hover, .nav-links a.active { color: #fff; }
-    .navbar .user-info { display: flex; align-items: center; gap: 16px; }
-    .navbar .user-email { color: #888; font-size: 13px; }
-    .navbar button { background: transparent; border: 1px solid #2a2a3e; color: #aaa; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
-    .navbar button:hover { border-color: #6366f1; color: #fff; }
+    body { font-family: 'Inter', 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; transition: background 0.3s, color 0.3s; }
+    :root { --bg:#0f0f1a; --bg2:#1a1a2e; --bg3:#252540; --border:#2a2a3e; --accent:#6366f1; --accent2:#818cf8; --text:#f0f0ff; --muted:#6b6b8a; --green:#34d399; --red:#f87171; }
+    [data-theme="light"] { --bg:#f4f4ff; --bg2:#ffffff; --bg3:#eeeeff; --border:#ddddf0; --accent:#6366f1; --accent2:#4f46e5; --text:#1a1a2e; --muted:#6b6b8a; --green:#059669; --red:#dc2626; }
+
+    .navbar {
+      background: var(--bg2);
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      height: 60px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(10px);
+    }
+    .navbar h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.5px;
+      flex-shrink: 0;
+    }
+    .nav-links {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      height: 100%;
+      margin: 0 24px;
+    }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    .nav-links a:hover { color: var(--text); border-color: var(--border); }
+    .nav-links a.active { color: var(--accent2); border-color: var(--accent); }
+
+    .navbar .user-info { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+    .navbar .user-email { color: var(--muted); font-size: 12px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .navbar button {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 6px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.15s;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+    .navbar button:hover { border-color: var(--accent); color: var(--text); }
+    .theme-toggle { padding: 6px 10px !important; font-size: 15px !important; }
+
+    @media (max-width: 600px) {
+      .navbar { padding: 0 16px; }
+      .navbar .user-email { display: none; }
+      .nav-links { margin: 0 8px; }
+      .nav-links a { padding: 0 10px; font-size: 12px; }
+    }
     .main { padding: 32px; max-width: 1100px; margin: 0 auto; }
     .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
     .stat-card { background: #1a1a2e; border: 1px solid #2a2a3e; border-radius: 12px; padding: 24px; }
