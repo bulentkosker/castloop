@@ -1,13 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" id="htmlRoot">
 <head>
   <meta charset="UTF-8">
+  <script>document.documentElement.setAttribute("data-theme", localStorage.getItem("cl_theme") || "dark");</script>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Crect%20width%3D%27100%27%20height%3D%27100%27%20rx%3D%2722%27%20fill%3D%27%236366f1%27%2F%3E%3Cpath%20d%3D%27M20%2050%20Q32%2028%2050%2050%20Q68%2072%2080%2050%27%20stroke%3D%27white%27%20stroke-width%3D%277%27%20fill%3D%27none%27%20stroke-linecap%3D%27round%27%2F%3E%3Ccircle%20cx%3D%2750%27%20cy%3D%2750%27%20r%3D%277%27%20fill%3D%27white%27%2F%3E%3C%2Fsvg%3E">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Castloop - Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     /* ── Navbar ── */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    /* Inter loaded in head */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; transition: background 0.3s, color 0.3s; }
     :root { --bg:#0f0f1a; --bg2:#1a1a2e; --bg3:#252540; --border:#2a2a3e; --accent:#6366f1; --accent2:#818cf8; --text:#f0f0ff; --muted:#6b6b8a; --green:#34d399; --red:#f87171; }
