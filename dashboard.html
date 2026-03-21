@@ -721,11 +721,12 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       } catch (e) { console.error('Health check failed:', e); }
     }
 
-    // Video listesine göre hedef sunucu tipini belirle
+    // Playlist'teki videoların en yüksek çözünürlüğüne göre sunucu tipini belirle
     async function getRequiredServerType(videoPaths) {
       const paths = Array.isArray(videoPaths) ? videoPaths : [];
       if (!paths.length) return '1080p';
 
+      // Video meta verisi yükle
       let videos = availableVideos;
       if (!Array.isArray(videos) || videos.length === 0) {
         try {
@@ -739,15 +740,26 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
         }
       }
 
+      // Path'e göre video meta verilerini eşle
       const byPath = new Map((videos || []).map(v => [v.path, v]));
-      for (const p of paths) {
-        const v = byPath.get(p);
-        const width = Number(v?.width) || 0;
-        const height = Number(v?.height) || 0;
-        if (width >= 3840 || height >= 2160) return '4k';
+
+      // Playlist'teki her video için çözünürlük kontrolü
+      let is4K = false;
+      for (const path of paths) {
+        const video = byPath.get(path);
+        if (!video) continue;
+
+        const width = Number(video.width) || 0;
+        const height = Number(video.height) || 0;
+
+        // 3840x2160 (4K) veya üzeri resolution
+        if (width >= 3840 && height >= 2160) {
+          is4K = true;
+          break;
+        }
       }
 
-      return '1080p';
+      return is4K ? '4k' : '1080p';
     }
 
     // Müsait sunucu bul
