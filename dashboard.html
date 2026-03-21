@@ -721,12 +721,42 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       } catch (e) { console.error('Health check failed:', e); }
     }
 
+    // Video listesine göre hedef sunucu tipini belirle
+    async function getRequiredServerType(videoPaths) {
+      const paths = Array.isArray(videoPaths) ? videoPaths : [];
+      if (!paths.length) return '1080p';
+
+      let videos = availableVideos;
+      if (!Array.isArray(videos) || videos.length === 0) {
+        try {
+          const res = await fetch(`${SERVER_URL}/videos`, {
+            headers: { 'x-api-key': API_KEY, 'x-user-id': currentUser.id }
+          });
+          videos = await res.json();
+          if (Array.isArray(videos)) availableVideos = videos;
+        } catch (e) {
+          videos = [];
+        }
+      }
+
+      const byPath = new Map((videos || []).map(v => [v.path, v]));
+      for (const p of paths) {
+        const v = byPath.get(p);
+        const width = Number(v?.width) || 0;
+        const height = Number(v?.height) || 0;
+        if (width >= 3840 || height >= 2160) return '4k';
+      }
+
+      return '1080p';
+    }
+
     // Müsait sunucu bul
-    async function getAvailableServer() {
+    async function getAvailableServer(serverType = '1080p') {
       const { data: servers, error } = await client
         .from('servers')
         .select('*')
         .eq('status', 'active')
+        .eq('server_type', serverType)
         .order('active_streams', { ascending: true });
       if (error || !servers || servers.length === 0) return null;
       // En az yüklü ve kapasitesi olan sunucuyu seç
@@ -760,10 +790,13 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
         return;
       }
 
+      // Video çözünürlüğüne göre sunucu tipini belirle (4K => 4k, diğerleri => 1080p)
+      const requiredServerType = await getRequiredServerType(videoPaths);
+
       // Müsait sunucu bul
-      const server = await getAvailableServer();
+      const server = await getAvailableServer(requiredServerType);
       if (!server) {
-        showStreamError(id, 'No available server. Please try again later.');
+        showStreamError(id, `No available ${requiredServerType} server. Please try again later.`);
         return;
       }
 
