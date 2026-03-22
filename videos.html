@@ -140,6 +140,9 @@
     .progress-label { display: flex; justify-content: space-between; font-size: 13px; color: #aaa; margin-bottom: 8px; }
     .progress-bar { background: #2a2a3e; border-radius: 4px; height: 8px; overflow: hidden; }
     .progress-fill { background: #6366f1; height: 100%; width: 0%; transition: width 0.3s; border-radius: 4px; }
+    .progress-actions { margin-top: 12px; display: flex; justify-content: flex-end; }
+    .btn-cancel-upload { background: transparent; color: #f87171; border: 1px solid #f87171; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+    .btn-cancel-upload:hover { background: rgba(248, 113, 113, 0.12); }
     .videos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
     .video-card { background: #1a1a2e; border: 1px solid #2a2a3e; border-radius: 12px; padding: 20px; }
     .video-card .video-icon { font-size: 32px; margin-bottom: 12px; }
@@ -247,6 +250,9 @@
         <span id="progressPercent">0%</span>
       </div>
       <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-actions">
+        <button class="btn-cancel-upload" id="cancelUploadBtn" onclick="cancelUpload()">Cancel</button>
+      </div>
     </div>
 
     <div id="videosContainer">
@@ -296,6 +302,7 @@
     const SERVER_URL = 'https://api.castloop.tv';
     const API_KEY = 'castloop-secret-2024';
     let currentUser = null;
+    let currentUploadXhr = null;
 
     let userPlan = 'free';
 
@@ -371,15 +378,19 @@
       const progressFill = document.getElementById('progressFill');
       const progressPercent = document.getElementById('progressPercent');
       const progressFilename = document.getElementById('progressFilename');
+      const cancelUploadBtn = document.getElementById('cancelUploadBtn');
       progressContainer.classList.add('active');
       progressFilename.textContent = file.name;
       progressFill.style.width = '0%';
+      progressPercent.textContent = '0%';
+      cancelUploadBtn.disabled = false;
 
       const formData = new FormData();
       formData.append('video', file);
       formData.append('originalName', file.name);
 
       const xhr = new XMLHttpRequest();
+      currentUploadXhr = xhr;
       xhr.open('POST', `${SERVER_URL}/upload`);
       xhr.setRequestHeader('x-api-key', API_KEY);
       xhr.setRequestHeader('x-user-id', currentUser.id);
@@ -394,7 +405,11 @@
       };
 
       xhr.onload = async () => {
+        currentUploadXhr = null;
+        cancelUploadBtn.disabled = true;
         progressContainer.classList.remove('active');
+        progressFill.style.width = '0%';
+        progressPercent.textContent = '0%';
         if (xhr.status === 200) {
           toast('✅ Video uploaded: ' + file.name, 'success');
           await loadVideos();
@@ -404,11 +419,28 @@
       };
 
       xhr.onerror = () => {
+        currentUploadXhr = null;
+        cancelUploadBtn.disabled = true;
         progressContainer.classList.remove('active');
+        progressFill.style.width = '0%';
+        progressPercent.textContent = '0%';
         toast('Upload failed. Check server connection.', 'error');
       };
 
+      xhr.onabort = () => {
+        currentUploadXhr = null;
+        cancelUploadBtn.disabled = true;
+        progressContainer.classList.remove('active');
+        progressFill.style.width = '0%';
+        progressPercent.textContent = '0%';
+        toast('Upload cancelled');
+      };
+
       xhr.send(formData);
+    }
+
+    function cancelUpload() {
+      if (currentUploadXhr) currentUploadXhr.abort();
     }
 
     async function deleteVideo(filename) {
