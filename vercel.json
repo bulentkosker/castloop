@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/autoscale",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}
