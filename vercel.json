@@ -1,9 +1,1 @@
-{
-  "version": 2,
-  "crons": [
-    {
-      "path": "/api/autoscale",
-      "schedule": "*/5 * * * *"
-    }
-  ]
-}
+{}
