@@ -407,6 +407,9 @@
     }
 
     async function saveVideoName(filename, name) {
+      // Hemen localStorage'a kaydet (optimistic update)
+      saveNameOverride(filename, name);
+      
       try {
         const res = await fetch(`${SERVER_URL}/videos/rename`, {
           method: 'POST',
@@ -420,10 +423,9 @@
 
         if (res.ok) return true;
       } catch (e) {
-        console.debug('Rename endpoint unavailable, storing local name override.');
+        console.debug('Rename endpoint unavailable, using local override.');
       }
 
-      saveNameOverride(filename, name);
       return false;
     }
 
