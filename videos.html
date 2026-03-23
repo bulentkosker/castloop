@@ -534,7 +534,8 @@
     }
 
     function getServerFps(video) {
-      if (video.fps) return video.fps;
+      const directFps = toFiniteNumber(video.fps);
+      if (Number.isFinite(directFps) && directFps > 0) return directFps;
       if (video.r_frame_rate && typeof video.r_frame_rate === 'string') {
         const parts = video.r_frame_rate.split('/');
         const num = parseInt(parts[0], 10);
@@ -547,13 +548,17 @@
     function getMetaLine(video, fpsValue, durationValue) {
       const width = toFiniteNumber(video.width) || 0;
       const height = toFiniteNumber(video.height) || 0;
-      const resolution = width > 0 && height > 0 ? `${width}x${height}` : 'Unknown';
-      const fps = Number.isFinite(fpsValue) && fpsValue > 0 ? `${Math.round(fpsValue)}fps` : '--fps';
-      const duration = Number.isFinite(durationValue) && durationValue >= 0
-        ? formatDuration(durationValue)
-        : formatDuration(getServerDuration(video));
+      const resolvedFps = Number.isFinite(fpsValue) && fpsValue > 0 ? fpsValue : getServerFps(video);
+      const resolvedDuration = Number.isFinite(durationValue) && durationValue >= 0
+        ? durationValue
+        : getServerDuration(video);
+      const parts = [];
 
-      return `${resolution} • ${fps} • ${duration}`;
+      if (width > 0 && height > 0) parts.push(`${width}x${height}`);
+      if (Number.isFinite(resolvedFps) && resolvedFps > 0) parts.push(`${Math.round(resolvedFps)}fps`);
+      if (Number.isFinite(resolvedDuration) && resolvedDuration >= 0) parts.push(formatDuration(resolvedDuration));
+
+      return parts.join(' • ');
     }
 
     function makeMetaId(video, index) {
