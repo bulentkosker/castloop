@@ -148,6 +148,7 @@
     .video-card .video-icon { font-size: 32px; margin-bottom: 12px; }
     .video-card .video-original-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; color: #fff; }
     .video-card .video-size { font-size: 11px; color: #6366f1; margin-bottom: 4px; }
+    .video-card .video-meta { font-size: 11px; color: #9ca3af; margin-bottom: 8px; }
     .video-card .video-path { font-size: 10px; color: #444; margin-bottom: 12px; word-break: break-all; }
     .video-actions { display: flex; gap: 8px; }
     .btn-delete { background: transparent; color: #f87171; border: 1px solid #f87171; padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; }
@@ -352,24 +353,121 @@
       return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
     }
 
+    function formatDuration(totalSeconds) {
+      const seconds = Number(totalSeconds);
+      if (!Number.isFinite(seconds) || seconds < 0) return '00:00:00';
+
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = Math.floor(seconds % 60);
+
+      return [h, m, s].map((n) => String(n).padStart(2, '0')).join(':');
+    }
+
+    function toFiniteNumber(...values) {
+      for (const value of values) {
+        const n = Number(value);
+        if (Number.isFinite(n) && n >= 0) return n;
+      }
+      return null;
+    }
+
+    function getServerDuration(video) {
+      return toFiniteNumber(video.duration, video.durationSeconds, video.duration_sec, video.length);
+    }
+
+    function getMetaLine(video, fpsValue, durationValue) {
+      const width = toFiniteNumber(video.width) || 0;
+      const height = toFiniteNumber(video.height) || 0;
+      const resolution = width > 0 && height > 0 ? `${width}x${height}` : 'Unknown';
+      const fps = Number.isFinite(fpsValue) && fpsValue > 0 ? `${Math.round(fpsValue)}fps` : '--fps';
+      const duration = Number.isFinite(durationValue) && durationValue >= 0
+        ? formatDuration(durationValue)
+        : formatDuration(getServerDuration(video));
+
+      return `${resolution} • ${fps} • ${duration}`;
+    }
+
+    function makeMetaId(video, index) {
+      const base = String(video.filename || video.originalName || video.path || `video-${index}`)
+        .replace(/[^a-zA-Z0-9_-]/g, '_');
+      return `video-meta-${base}-${index}`;
+    }
+
+    function getVideoSourceUrl(video) {
+      if (video.url) return video.url;
+      if (video.publicUrl) return video.publicUrl;
+      if (video.webUrl) return video.webUrl;
+      if (video.streamUrl) return video.streamUrl;
+      if (video.filename) return `${SERVER_URL}/videos/${encodeURIComponent(video.filename)}`;
+      return null;
+    }
+
+    function readApproxFps(videoEl) {
+      const quality = videoEl.getVideoPlaybackQuality ? videoEl.getVideoPlaybackQuality() : null;
+      if (quality && Number.isFinite(quality.totalVideoFrames) && quality.totalVideoFrames > 0 && videoEl.duration > 0) {
+        return quality.totalVideoFrames / videoEl.duration;
+      }
+
+      if (Number.isFinite(videoEl.webkitDecodedFrameCount) && videoEl.webkitDecodedFrameCount > 0 && videoEl.duration > 0) {
+        return videoEl.webkitDecodedFrameCount / videoEl.duration;
+      }
+
+      return null;
+    }
+
+    function hydrateVideoMeta(videos) {
+      videos.forEach((video, index) => {
+        const sourceUrl = getVideoSourceUrl(video);
+        if (!sourceUrl) return;
+
+        const metaId = makeMetaId(video, index);
+        const target = document.getElementById(metaId);
+        if (!target) return;
+
+        const el = document.createElement('video');
+        el.preload = 'metadata';
+        el.muted = true;
+        el.src = sourceUrl;
+
+        el.onloadedmetadata = () => {
+          const duration = Number.isFinite(el.duration) ? el.duration : getServerDuration(video);
+          const fps = readApproxFps(el);
+          target.textContent = getMetaLine(video, fps, duration);
+          el.removeAttribute('src');
+          el.load();
+        };
+
+        el.onerror = () => {
+          target.textContent = getMetaLine(video, null, getServerDuration(video));
+        };
+      });
+    }
+
     function renderVideos(videos) {
       const container = document.getElementById('videosContainer');
       if (!videos.length) {
         container.innerHTML = `<div class="empty-state"><div class="icon">🎬</div><p>No videos yet. Upload your first video!</p></div>`;
         return;
       }
-      container.innerHTML = `<div class="videos-grid">${videos.map(v => `
+      container.innerHTML = `<div class="videos-grid">${videos.map((v, i) => {
+        const metaId = makeMetaId(v, i);
+        return `
         <div class="video-card">
           <div class="video-icon">🎬</div>
           <div class="video-original-name">${v.originalName || v.filename}</div>
           ${v.size ? `<div class="video-size">${formatSize(v.size)}</div>` : ''}
+          <div class="video-meta" id="${metaId}">${getMetaLine(v, null, getServerDuration(v))}</div>
           <div class="video-path">${v.path}</div>
           <div class="video-actions">
             <button class="btn-copy" onclick="copyPath('${v.path}', this)">📋 Copy Path</button>
             <button class="btn-delete" onclick="deleteVideo('${v.filename}')">Delete</button>
           </div>
-        </div>`).join('')}
+        </div>`;
+      }).join('')}
       </div>`;
+
+      hydrateVideoMeta(videos);
     }
 
     async function uploadVideo(file) {
