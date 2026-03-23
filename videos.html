@@ -143,14 +143,73 @@
     .progress-actions { margin-top: 12px; display: flex; justify-content: flex-end; }
     .btn-cancel-upload { background: transparent; color: #f87171; border: 1px solid #f87171; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
     .btn-cancel-upload:hover { background: rgba(248, 113, 113, 0.12); }
-    .videos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-    .video-card { background: #1a1a2e; border: 1px solid #2a2a3e; border-radius: 12px; padding: 20px; }
-    .video-card .video-icon { font-size: 32px; margin-bottom: 12px; }
-    .video-card .video-original-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; color: #fff; }
-    .video-card .video-size { font-size: 11px; color: #6366f1; margin-bottom: 4px; }
-    .video-card .video-meta { font-size: 11px; color: #9ca3af; margin-bottom: 8px; }
-    .video-card .video-path { font-size: 10px; color: #444; margin-bottom: 12px; word-break: break-all; }
-    .video-actions { display: flex; gap: 8px; }
+    .videos-list { display: flex; flex-direction: column; gap: 10px; }
+    .video-row {
+      display: grid;
+      grid-template-columns: 84px minmax(180px, 2fr) minmax(180px, 1.4fr) 86px auto auto;
+      align-items: center;
+      gap: 12px;
+      background: #1a1a2e;
+      border: 1px solid #2a2a3e;
+      border-radius: 12px;
+      padding: 10px 12px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .video-row:hover { border-color: #6366f1; }
+    .video-row.dragging { opacity: 0.55; }
+    .video-row.drag-over { border-color: #818cf8; background: #20203a; }
+    .video-thumb {
+      width: 72px;
+      height: 42px;
+      border-radius: 7px;
+      object-fit: cover;
+      background: #0f0f1a;
+      border: 1px solid #2a2a3e;
+    }
+    .video-thumb-fallback {
+      width: 72px;
+      height: 42px;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      background: #0f0f1a;
+      border: 1px solid #2a2a3e;
+    }
+    .video-name-wrap { min-width: 0; }
+    .video-name-line { display: flex; align-items: center; gap: 8px; }
+    .video-original-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .video-edit-btn {
+      border: 1px solid #2a2a3e;
+      background: transparent;
+      color: #9ca3af;
+      border-radius: 6px;
+      padding: 2px 6px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .video-edit-btn:hover { border-color: #6366f1; color: #fff; }
+    .video-name-input {
+      width: 100%;
+      background: #0f0f1a;
+      color: #fff;
+      border: 1px solid #6366f1;
+      border-radius: 7px;
+      padding: 6px 8px;
+      font-size: 13px;
+      outline: none;
+    }
+    .video-meta { font-size: 12px; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .video-size { font-size: 12px; color: #818cf8; font-weight: 600; text-align: right; }
+    .video-actions { display: flex; gap: 8px; justify-content: flex-end; }
     .btn-delete { background: transparent; color: #f87171; border: 1px solid #f87171; padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; }
     .btn-copy { background: #6366f1; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600; }
     .btn-copy:hover { background: #4f46e5; }
@@ -186,6 +245,24 @@
     .toast.active{transform:translateY(0);opacity:1;}
     .toast.success{border-color:#34d399;color:#34d399;}
     .toast.error{border-color:#f87171;color:#f87171;}
+
+    @media (max-width: 900px) {
+      .video-row {
+        grid-template-columns: 72px 1fr auto;
+        grid-template-areas:
+          'thumb name actions'
+          'thumb meta meta'
+          'thumb size size';
+        row-gap: 6px;
+      }
+      .video-thumb, .video-thumb-fallback { width: 64px; height: 40px; }
+      .video-row .thumb-col { grid-area: thumb; }
+      .video-row .video-name-wrap { grid-area: name; }
+      .video-row .video-meta { grid-area: meta; }
+      .video-row .video-size { grid-area: size; text-align: left; }
+      .video-row .video-actions { grid-area: actions; }
+      .video-row .btn-copy, .video-row .btn-delete { padding: 6px 8px; font-size: 11px; }
+    }
 
   </style>
 </head>
@@ -304,8 +381,76 @@
     const API_KEY = 'castloop-secret-2024';
     let currentUser = null;
     let currentUploadXhr = null;
+    let currentVideos = [];
+    let editingVideoFilename = null;
+    let dragSourceFilename = null;
 
     let userPlan = 'free';
+
+    function getNameOverridesKey() {
+      return `cl_video_name_overrides_${currentUser?.id || 'guest'}`;
+    }
+
+    function getOrderKey() {
+      return `cl_video_order_${currentUser?.id || 'guest'}`;
+    }
+
+    function loadNameOverrides() {
+      try { return JSON.parse(localStorage.getItem(getNameOverridesKey()) || '{}'); }
+      catch { return {}; }
+    }
+
+    function saveNameOverride(filename, name) {
+      const all = loadNameOverrides();
+      all[filename] = name;
+      localStorage.setItem(getNameOverridesKey(), JSON.stringify(all));
+    }
+
+    async function saveVideoName(filename, name) {
+      try {
+        const res = await fetch(`${SERVER_URL}/videos/rename`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': API_KEY,
+            'x-user-id': currentUser.id
+          },
+          body: JSON.stringify({ filename, originalName: name })
+        });
+
+        if (res.ok) return true;
+      } catch (e) {
+        console.debug('Rename endpoint unavailable, storing local name override.');
+      }
+
+      saveNameOverride(filename, name);
+      return false;
+    }
+
+    function loadVideoOrder() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(getOrderKey()) || '[]');
+        return Array.isArray(raw) ? raw : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveVideoOrder(order) {
+      localStorage.setItem(getOrderKey(), JSON.stringify(order));
+    }
+
+    function applyStoredOrder(videos) {
+      const order = loadVideoOrder();
+      if (!order.length) return videos;
+
+      const rank = new Map(order.map((name, idx) => [name, idx]));
+      return [...videos].sort((a, b) => {
+        const ai = rank.has(a.filename) ? rank.get(a.filename) : Number.MAX_SAFE_INTEGER;
+        const bi = rank.has(b.filename) ? rank.get(b.filename) : Number.MAX_SAFE_INTEGER;
+        return ai - bi;
+      });
+    }
 
     async function init() {
       const { data: { user } } = await client.auth.getUser();
@@ -343,7 +488,8 @@
         headers: { 'x-api-key': API_KEY, 'x-user-id': currentUser.id }
       });
       const videos = await res.json();
-      renderVideos(videos);
+      currentVideos = applyStoredOrder(videos || []);
+      renderVideos(currentVideos);
     }
 
     function formatSize(bytes) {
@@ -370,6 +516,15 @@
         if (Number.isFinite(n) && n >= 0) return n;
       }
       return null;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
     }
 
     function getServerDuration(video) {
@@ -450,15 +605,26 @@
         container.innerHTML = `<div class="empty-state"><div class="icon">🎬</div><p>No videos yet. Upload your first video!</p></div>`;
         return;
       }
-      container.innerHTML = `<div class="videos-grid">${videos.map((v, i) => {
+      const nameOverrides = loadNameOverrides();
+      container.innerHTML = `<div class="videos-list">${videos.map((v, i) => {
         const metaId = makeMetaId(v, i);
+        const displayName = nameOverrides[v.filename] || v.originalName || v.filename;
+        const isEditing = editingVideoFilename === v.filename;
+        const sourceUrl = getVideoSourceUrl(v);
         return `
-        <div class="video-card">
-          <div class="video-icon">🎬</div>
-          <div class="video-original-name">${v.originalName || v.filename}</div>
-          ${v.size ? `<div class="video-size">${formatSize(v.size)}</div>` : ''}
+        <div class="video-row" draggable="true" data-filename="${v.filename}">
+          <div class="thumb-col">
+            ${sourceUrl
+              ? `<video class="video-thumb" preload="metadata" muted playsinline src="${sourceUrl}"></video>`
+              : `<div class="video-thumb-fallback">🎬</div>`}
+          </div>
+          <div class="video-name-wrap">
+            ${isEditing
+              ? `<input class="video-name-input" data-filename="${v.filename}" value="${escapeHtml(displayName)}" />`
+              : `<div class="video-name-line"><div class="video-original-name">${escapeHtml(displayName)}</div><button class="video-edit-btn" data-edit="${v.filename}" title="Rename">✏️</button></div>`}
+          </div>
           <div class="video-meta" id="${metaId}">${getMetaLine(v, null, getServerDuration(v))}</div>
-          <div class="video-path">${v.path}</div>
+          <div class="video-size">${v.size ? formatSize(v.size) : ''}</div>
           <div class="video-actions">
             <button class="btn-copy" onclick="copyPath('${v.path}', this)">📋 Copy Path</button>
             <button class="btn-delete" onclick="deleteVideo('${v.filename}')">Delete</button>
@@ -467,7 +633,91 @@
       }).join('')}
       </div>`;
 
+      bindVideoRowInteractions();
       hydrateVideoMeta(videos);
+    }
+
+    function bindVideoRowInteractions() {
+      document.querySelectorAll('[data-edit]').forEach((btn) => {
+        btn.onclick = () => {
+          editingVideoFilename = btn.getAttribute('data-edit');
+          renderVideos(currentVideos);
+          const input = document.querySelector(`.video-name-input[data-filename=\"${editingVideoFilename}\"]`);
+          if (input) {
+            input.focus();
+            input.select();
+          }
+        };
+      });
+
+      document.querySelectorAll('.video-name-input').forEach((input) => {
+        input.onkeydown = (e) => {
+          if (e.key === 'Enter') {
+            const filename = input.getAttribute('data-filename');
+            const nextName = input.value.trim();
+            if (filename && nextName) {
+              saveVideoName(filename, nextName).then((savedOnServer) => {
+                toast(savedOnServer ? 'Video name updated.' : 'Video name saved locally.', 'success');
+              });
+            }
+            editingVideoFilename = null;
+            renderVideos(currentVideos);
+          }
+          if (e.key === 'Escape') {
+            editingVideoFilename = null;
+            renderVideos(currentVideos);
+          }
+        };
+        input.onblur = () => {
+          const filename = input.getAttribute('data-filename');
+          const nextName = input.value.trim();
+          if (filename && nextName) {
+            saveVideoName(filename, nextName).then((savedOnServer) => {
+              toast(savedOnServer ? 'Video name updated.' : 'Video name saved locally.', 'success');
+            });
+          }
+          editingVideoFilename = null;
+          renderVideos(currentVideos);
+        };
+      });
+
+      document.querySelectorAll('.video-row').forEach((row) => {
+        row.ondragstart = () => {
+          dragSourceFilename = row.getAttribute('data-filename');
+          row.classList.add('dragging');
+        };
+        row.ondragend = () => {
+          row.classList.remove('dragging');
+          document.querySelectorAll('.video-row.drag-over').forEach((el) => el.classList.remove('drag-over'));
+        };
+        row.ondragover = (e) => {
+          e.preventDefault();
+          row.classList.add('drag-over');
+        };
+        row.ondragleave = () => row.classList.remove('drag-over');
+        row.ondrop = (e) => {
+          e.preventDefault();
+          row.classList.remove('drag-over');
+          const targetFilename = row.getAttribute('data-filename');
+          reorderVideos(dragSourceFilename, targetFilename);
+        };
+      });
+    }
+
+    function reorderVideos(sourceFilename, targetFilename) {
+      if (!sourceFilename || !targetFilename || sourceFilename === targetFilename) return;
+
+      const sourceIndex = currentVideos.findIndex((v) => v.filename === sourceFilename);
+      const targetIndex = currentVideos.findIndex((v) => v.filename === targetFilename);
+      if (sourceIndex < 0 || targetIndex < 0) return;
+
+      const next = [...currentVideos];
+      const [item] = next.splice(sourceIndex, 1);
+      next.splice(targetIndex, 0, item);
+      currentVideos = next;
+      saveVideoOrder(currentVideos.map((v) => v.filename));
+      renderVideos(currentVideos);
+      toast('Order updated for playlist.', 'success');
     }
 
     async function uploadVideo(file) {
