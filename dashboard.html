@@ -710,11 +710,8 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
         const data = await res.json();
         if (!data.running) {
           await client.from('streams').update({ status: 'stopped' }).eq('id', id);
-          // Sunucu sayacını azalt
-          if (server) {
-            const newCount = Math.max(0, (server.active_streams || 1) - 1);
-            await client.from('servers').update({ active_streams: newCount }).eq('id', server.id);
-          }
+          // Sunucu sayacını server_id bazında azalt
+          await adjustServerActiveStreams(server?.id, -1);
           await loadStreams();
           showStreamError(id, 'Stream failed to start. Check your RTMP URL and stream key.');
         }
@@ -788,6 +785,33 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       return server;
     }
 
+    async function adjustServerActiveStreams(serverId, delta) {
+      if (!serverId || !delta) return;
+
+      const { data: server, error: fetchError } = await client
+        .from('servers')
+        .select('id, active_streams')
+        .eq('id', serverId)
+        .single();
+
+      if (fetchError || !server) {
+        console.error('Failed to fetch server for counter update:', fetchError);
+        return;
+      }
+
+      const current = Number(server.active_streams) || 0;
+      const next = Math.max(0, current + delta);
+
+      const { error: updateError } = await client
+        .from('servers')
+        .update({ active_streams: next })
+        .eq('id', serverId);
+
+      if (updateError) {
+        console.error('Failed to update active_streams:', updateError);
+      }
+    }
+
     async function startStream(id, rtmpUrl, streamKey, videoPaths) {
       // Trial süresi kontrolü
       if (trialExpired) {
@@ -824,8 +848,8 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
         if (data.success) {
           // Stream'i güncelle: status + server_id
           await client.from('streams').update({ status: 'running', server_id: server.id }).eq('id', id);
-          // Sunucu active_streams sayacını artır
-          await client.from('servers').update({ active_streams: server.active_streams + 1 }).eq('id', server.id);
+          // Sunucu active_streams sayacını ilgili server_id için artır
+          await adjustServerActiveStreams(server.id, 1);
           await loadStreams();
           setTimeout(() => checkStreamHealth(id, server), 15000);
         } else {
@@ -849,12 +873,10 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
         });
         const data = await res.json();
         if (data.success) {
+          const stream = streams.find(s => s.id === id);
           await client.from('streams').update({ status: 'stopped' }).eq('id', id);
-          // Sunucu active_streams sayacını azalt
-          if (server) {
-            const newCount = Math.max(0, (server.active_streams || 1) - 1);
-            await client.from('servers').update({ active_streams: newCount }).eq('id', server.id);
-          }
+          // Sunucu active_streams sayacını ilgili server_id için azalt
+          await adjustServerActiveStreams(stream?.server_id || server?.id, -1);
           await loadStreams();
         } else {
           showStreamError(id, data.error || 'Failed to stop stream.');
