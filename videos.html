@@ -533,6 +533,17 @@
       return toFiniteNumber(video.duration, video.durationSeconds, video.duration_sec, video.length);
     }
 
+    function getServerFps(video) {
+      if (video.fps) return video.fps;
+      if (video.r_frame_rate && typeof video.r_frame_rate === 'string') {
+        const parts = video.r_frame_rate.split('/');
+        const num = parseInt(parts[0], 10);
+        const den = parts.length > 1 ? parseInt(parts[1], 10) : 1;
+        return den ? Math.round(num / den) : num;
+      }
+      return null;
+    }
+
     function getMetaLine(video, fpsValue, durationValue) {
       const width = toFiniteNumber(video.width) || 0;
       const height = toFiniteNumber(video.height) || 0;
@@ -625,7 +636,7 @@
               ? `<input class="video-name-input" data-filename="${v.filename}" value="${escapeHtml(displayName)}" />`
               : `<div class="video-name-line"><div class="video-original-name">${escapeHtml(displayName)}</div><button class="video-edit-btn" data-edit="${v.filename}" title="Rename">✏️</button></div>`}
           </div>
-          <div class="video-meta" id="${metaId}">${getMetaLine(v, null, getServerDuration(v))}</div>
+          <div class="video-meta" id="${metaId}">${getMetaLine(v, getServerFps(v), getServerDuration(v))}</div>
           <div class="video-size">${v.size ? formatSize(v.size) : ''}</div>
           <div class="video-actions">
             <button class="btn-copy" onclick="copyPath('${v.path}', this)">📋 Copy Path</button>
