@@ -120,6 +120,13 @@
     .yearly-save-badge{display:none;position:absolute;top:10px;right:10px;background:rgba(52,211,153,0.15);border:1px solid rgba(52,211,153,0.3);color:var(--green);font-size:10px;font-weight:700;padding:3px 8px;border-radius:100px;letter-spacing:0.5px;white-space:nowrap;}
     .price-original-strike{display:none;font-size:15px;color:var(--muted);text-decoration:line-through;margin-right:2px;font-family:'Figtree',sans-serif;font-weight:700;}
     .price-annual-note{display:none;font-size:11px;color:var(--muted);margin-top:4px;}
+    .resolution-toggle{display:flex;justify-content:center;margin-bottom:32px;}
+    .res-tabs{display:flex;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:4px;gap:4px;}
+    .res-tab{padding:8px 28px;border-radius:7px;font-size:14px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--muted);transition:all 0.2s;font-family:'DM Sans',sans-serif;}
+    .res-tab.active{background:var(--accent);color:#fff;}
+    .res-tab:hover:not(.active){color:var(--text);}
+    .pricing-grid-4k{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;max-width:900px;margin:0 auto;padding:0 48px 100px;background:var(--border);border-radius:20px;overflow:hidden;}
+    @media(max-width:700px){.pricing-grid-4k{grid-template-columns:1fr;padding:0 24px 60px;}}
     @media(max-width:1100px){.pricing-grid{grid-template-columns:repeat(2,1fr);}}
     @media(max-width:600px){.pricing-grid{grid-template-columns:1fr;padding:0 24px 60px;}.page-header{padding:100px 24px 40px;}.faq-section{padding:0 24px 60px;}nav{padding:16px 24px;}.nav-links{display:none;}}
   </style>
@@ -151,6 +158,13 @@
 <div class="page-header">
   <h1 data-i18n="pricing.title">Simple, Honest Pricing</h1>
   <p data-i18n="pricing.sub">Start free for 7 days. No credit card required. Cancel anytime.</p>
+</div>
+
+<div class="resolution-toggle">
+  <div class="res-tabs">
+    <button class="res-tab active" id="tabHD" onclick="switchResolution('hd')">HD 1080p</button>
+    <button class="res-tab" id="tab4K" onclick="switchResolution('4k')">4K Ultra</button>
+  </div>
 </div>
 
 <div class="toggle-wrap">
@@ -287,6 +301,83 @@
 
 </div>
 
+<div class="pricing-grid-4k" id="pricingGrid4K" style="display:none">
+
+  <div class="plan-card">
+    <div class="yearly-save-badge">SAVE 17% (YEARLY)</div>
+    <div class="plan-name">4K Starter</div>
+    <div class="plan-price">
+      <div style="display:flex;align-items:baseline;gap:4px;">
+        <span class="price-original-strike">$69</span>
+        <span class="amount" data-monthly="$69" data-yearly-monthly="$57.50">$69</span>
+        <span class="period">/mo</span>
+      </div>
+      <div class="price-annual-note">Billed annually at $690</div>
+    </div>
+    <div class="plan-trial" style="color:var(--muted)">Billed monthly</div>
+    <div class="plan-streams">1</div>
+    <div class="plan-streams-label">4K Stream</div>
+    <ul class="plan-features">
+      <li><span class="check">✓</span> 24/7 streaming</li>
+      <li><span class="check">✓</span> All platforms</li>
+      <li><span class="check">✓</span> Smart playlists</li>
+      <li><span class="check">✓</span> Auto-restart</li>
+      <li><span class="check">✓</span> 4K Ultra HD</li>
+    </ul>
+    <button class="btn-plan btn-plan-outline" onclick="openCheckout('4k_starter')">Get Started</button>
+  </div>
+
+  <div class="plan-card popular">
+    <div class="popular-badge">MOST POPULAR</div>
+    <div class="plan-name">4K Plus</div>
+    <div class="yearly-save-badge">SAVE 17% (YEARLY)</div>
+    <div class="plan-price">
+      <div style="display:flex;align-items:baseline;gap:4px;">
+        <span class="price-original-strike">$169</span>
+        <span class="amount" data-monthly="$169" data-yearly-monthly="$140.83">$169</span>
+        <span class="period">/mo</span>
+      </div>
+      <div class="price-annual-note">Billed annually at $1,690</div>
+    </div>
+    <div class="plan-trial" style="color:var(--muted)">Billed monthly</div>
+    <div class="plan-streams">2+2</div>
+    <div class="plan-streams-label">4K + 1080p Streams</div>
+    <ul class="plan-features">
+      <li><span class="check">✓</span> 2x 4K streams</li>
+      <li><span class="check">✓</span> 2x 1080p streams</li>
+      <li><span class="check">✓</span> All platforms</li>
+      <li><span class="check">✓</span> Smart playlists</li>
+      <li><span class="check">✓</span> Auto-restart</li>
+    </ul>
+    <button class="btn-plan btn-plan-primary" onclick="openCheckout('4k_plus')">Get Started</button>
+  </div>
+
+  <div class="plan-card">
+    <div class="yearly-save-badge">SAVE 17% (YEARLY)</div>
+    <div class="plan-name">4K Pro</div>
+    <div class="plan-price">
+      <div style="display:flex;align-items:baseline;gap:4px;">
+        <span class="price-original-strike">$269</span>
+        <span class="amount" data-monthly="$269" data-yearly-monthly="$224.17">$269</span>
+        <span class="period">/mo</span>
+      </div>
+      <div class="price-annual-note">Billed annually at $2,690</div>
+    </div>
+    <div class="plan-trial" style="color:var(--muted)">Billed monthly</div>
+    <div class="plan-streams">4+4</div>
+    <div class="plan-streams-label">4K + 1080p Streams</div>
+    <ul class="plan-features">
+      <li><span class="check">✓</span> 4x 4K streams</li>
+      <li><span class="check">✓</span> 4x 1080p streams</li>
+      <li><span class="check">✓</span> All platforms</li>
+      <li><span class="check">✓</span> Smart playlists</li>
+      <li><span class="check">✓</span> Priority support</li>
+    </ul>
+    <button class="btn-plan btn-plan-outline" onclick="openCheckout('4k_pro')">Get Started</button>
+  </div>
+
+</div>
+
 <div class="faq-section">
   <h2>Common Questions</h2>
 
@@ -328,32 +419,33 @@
   </div>
 </footer>
 <script>
+  // ── Resolution toggle ───────────────────────────────────────────────────────
+  let currentRes = 'hd';
+  function switchResolution(res) {
+    currentRes = res;
+    document.getElementById('pricingGrid').style.display = res === 'hd' ? '' : 'none';
+    document.getElementById('pricingGrid4K').style.display = res === '4k' ? '' : 'none';
+    document.getElementById('tabHD').classList.toggle('active', res === 'hd');
+    document.getElementById('tab4K').classList.toggle('active', res === '4k');
+  }
+
   // ── Toggle billing ──────────────────────────────────────────────────────────
   let isYearly = false;
   function toggleBilling() {
     isYearly = document.getElementById('billingToggle').checked;
 
-    // Fiyat güncelle
     document.querySelectorAll('.amount').forEach(el => {
       el.textContent = isYearly ? el.dataset.yearlyMonthly : el.dataset.monthly;
     });
-
-    // Üstü çizili orijinal fiyat
     document.querySelectorAll('.price-original-strike').forEach(el => {
       el.style.display = isYearly ? 'inline' : 'none';
     });
-
-    // "Billed annually at $X" notu
     document.querySelectorAll('.price-annual-note').forEach(el => {
       el.style.display = isYearly ? 'block' : 'none';
     });
-
-    // Yeşil SAVE badge
     document.querySelectorAll('.yearly-save-badge').forEach(el => {
       el.style.display = isYearly ? 'block' : 'none';
     });
-
-    // Aylık/yıllık billing notu (Lite hariç)
     document.querySelectorAll('.plan-trial').forEach((el, i) => {
       if (i === 0) return;
       const lang = localStorage.getItem('castloop_lang') || 'en';
@@ -377,7 +469,10 @@
     basic:      { monthly: 'pri_01kkq6k6kr5xmza70p6n574378', yearly: 'pri_01kkq6n0p98rx63q3dj6qd4c83' },
     pro:        { monthly: 'pri_01kkq6tjh7rmq5s19ns35n52d7', yearly: 'pri_01kkq6vvphytz0xjk2y2vqswv2' },
     business:   { monthly: 'pri_01kkq6y9a729e82r153t4ckakr', yearly: 'pri_01kkq70cs983hs30fqxq5s2sga' },
-    enterprise: { monthly: 'pri_01kkq72xsn1hvest90mdw6ag4e', yearly: 'pri_01kkq748ydd7tcdbky4zfsdkda' },
+    enterprise:   { monthly: 'pri_01kkq72xsn1hvest90mdw6ag4e', yearly: 'pri_01kkq748ydd7tcdbky4zfsdkda' },
+    '4k_starter': { monthly: 'pri_01kmcxn7vvjz06vhpbjg6zyxyq', yearly: 'pri_01kmcxqe1n6sk6st551z4gjpbw' },
+    '4k_plus':    { monthly: 'pri_01kmcxszdwcdk30bpwga1qnyq7', yearly: 'pri_01kmcxvg3t6krm3twh9tp35pjj' },
+    '4k_pro':     { monthly: 'pri_01kmcxx4491c5m32tr70ah258x', yearly: 'pri_01kmcxy7vwxqez6jzyqjdfy438' },
   };
 
   function openCheckout(plan) {
