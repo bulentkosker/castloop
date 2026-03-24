@@ -601,6 +601,72 @@
       return parts.join(' • ');
     }
 
+    function getFileExtension(name) {
+      const m = String(name).match(/(\.[^./\\]+)$/);
+      return m ? m[1] : '';
+    }
+
+    function stripFileExtension(name) {
+      return String(name).replace(/(\.[^./\\]+)$/, '');
+    }
+
+    function getDisplayName(filename) {
+      const nameOverrides = loadNameOverrides();
+      const video = currentVideos.find((v) => v.filename === filename);
+      return nameOverrides[filename] || video?.originalName || filename;
+    }
+
+    function switchToEditMode(filename) {
+      const row = document.querySelector(`.video-row[data-filename="${CSS.escape(filename)}"]`);
+      if (!row) return;
+      const nameWrap = row.querySelector('.video-name-wrap');
+      if (!nameWrap) return;
+      const displayName = getDisplayName(filename);
+      const ext = getFileExtension(displayName) || getFileExtension(filename);
+      const baseOnly = ext ? stripFileExtension(displayName) : displayName;
+      editingVideoFilename = filename;
+      nameWrap.innerHTML = `<input class="video-name-input" data-filename="${escapeHtml(filename)}" data-ext="${escapeHtml(ext)}" value="${escapeHtml(baseOnly)}" />`;
+      const input = nameWrap.querySelector('.video-name-input');
+      if (input) { bindNameInput(input); input.focus(); input.select(); }
+    }
+
+    function switchToDisplayMode(filename, save) {
+      const row = document.querySelector(`.video-row[data-filename="${CSS.escape(filename)}"]`);
+      if (!row) return;
+      const nameWrap = row.querySelector('.video-name-wrap');
+      if (!nameWrap) return;
+      const input = nameWrap.querySelector('.video-name-input');
+      if (save && input) {
+        const baseName = input.value.trim();
+        const ext = input.getAttribute('data-ext') || '';
+        const nextName = baseName ? (baseName + ext) : null;
+        if (nextName) {
+          saveVideoName(filename, nextName).then((savedOnServer) => {
+            toast(savedOnServer ? 'Video name updated.' : 'Video name saved locally.', 'success');
+          });
+        }
+      }
+      editingVideoFilename = null;
+      const displayName = getDisplayName(filename);
+      nameWrap.innerHTML = `<div class="video-name-line"><button class="video-name-btn video-original-name" data-preview="${escapeHtml(filename)}" title="Play video">${escapeHtml(displayName)}</button><button class="video-edit-btn" data-edit="${escapeHtml(filename)}" title="Rename">✏️</button></div>`;
+      nameWrap.querySelector('[data-preview]').onclick = () => {
+        const video = currentVideos.find((v) => v.filename === filename);
+        if (video) openVideoPlayerModal(video);
+      };
+      nameWrap.querySelector('[data-edit]').onclick = () => switchToEditMode(filename);
+    }
+
+    function bindNameInput(input) {
+      let committed = false;
+      input.onkeydown = (e) => {
+        if (e.key === 'Enter') { committed = true; switchToDisplayMode(input.getAttribute('data-filename'), true); }
+        if (e.key === 'Escape') { committed = true; switchToDisplayMode(input.getAttribute('data-filename'), false); }
+      };
+      input.onblur = () => {
+        if (!committed) switchToDisplayMode(input.getAttribute('data-filename'), true);
+      };
+    }
+
     function makeMetaId(video, index) {
       const base = String(video.filename || video.originalName || video.path || `video-${index}`)
         .replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -738,15 +804,7 @@
 
     function bindVideoRowInteractions() {
       document.querySelectorAll('[data-edit]').forEach((btn) => {
-        btn.onclick = () => {
-          editingVideoFilename = btn.getAttribute('data-edit');
-          renderVideos(currentVideos);
-          const input = document.querySelector(`.video-name-input[data-filename=\"${editingVideoFilename}\"]`);
-          if (input) {
-            input.focus();
-            input.select();
-          }
-        };
+        btn.onclick = () => switchToEditMode(btn.getAttribute('data-edit'));
       });
 
       document.querySelectorAll('[data-preview]').forEach((btn) => {
@@ -761,58 +819,21 @@
         const source = thumb.getAttribute('data-source');
         if (!source) return;
 
-        thumb.onmouseenter = () => {
-          if (!thumb.src) thumb.src = source;
-          const showFirstFrame = () => {
-            try {
-              thumb.pause();
-              thumb.currentTime = 0.05;
-            } catch (e) {}
-          };
+        // Auto-load on page open — no hover required
+        thumb.src = source;
+        thumb.onloadedmetadata = () => { try { thumb.pause(); thumb.currentTime = 0.05; } catch(e) {} };
+        thumb.load();
 
-          if (thumb.readyState >= 1) {
-            showFirstFrame();
-          } else {
-            thumb.onloadedmetadata = showFirstFrame;
-          }
+        thumb.onmouseenter = () => {
+          try { thumb.pause(); if (thumb.readyState >= 1) thumb.currentTime = 0.05; } catch (e) {}
         };
         thumb.onmouseleave = () => {
-          try {
-            thumb.pause();
-            if (thumb.readyState >= 1) thumb.currentTime = 0.05;
-          } catch (e) {}
+          try { thumb.pause(); if (thumb.readyState >= 1) thumb.currentTime = 0.05; } catch (e) {}
         };
       });
 
       document.querySelectorAll('.video-name-input').forEach((input) => {
-        input.onkeydown = (e) => {
-          if (e.key === 'Enter') {
-            const filename = input.getAttribute('data-filename');
-            const nextName = input.value.trim();
-            if (filename && nextName) {
-              saveVideoName(filename, nextName).then((savedOnServer) => {
-                toast(savedOnServer ? 'Video name updated.' : 'Video name saved locally.', 'success');
-              });
-            }
-            editingVideoFilename = null;
-            renderVideos(currentVideos);
-          }
-          if (e.key === 'Escape') {
-            editingVideoFilename = null;
-            renderVideos(currentVideos);
-          }
-        };
-        input.onblur = () => {
-          const filename = input.getAttribute('data-filename');
-          const nextName = input.value.trim();
-          if (filename && nextName) {
-            saveVideoName(filename, nextName).then((savedOnServer) => {
-              toast(savedOnServer ? 'Video name updated.' : 'Video name saved locally.', 'success');
-            });
-          }
-          editingVideoFilename = null;
-          renderVideos(currentVideos);
-        };
+        bindNameInput(input);
       });
 
       document.querySelectorAll('.video-row').forEach((row) => {
