@@ -447,9 +447,12 @@ app.get('/videos', async (req, res) => {
   res.json(files);
 });
 
-app.post('/videos/rename', async (req, res) => {
+async function renameVideoDisplayName(req, res) {
   const userId = req.headers['x-user-id'];
-  const { filename, originalName } = req.body;
+  const paramFilename = req.params.filename;
+  const bodyFilename = req.body?.filename;
+  const filename = paramFilename || bodyFilename;
+  const { originalName } = req.body;
   if (!userId || !filename || !originalName)
     return res.status(400).json({ error: 'Missing parameters' });
 
@@ -506,7 +509,10 @@ app.post('/videos/rename', async (req, res) => {
   }
 
   res.json({ success: true });
-});
+}
+
+app.patch('/videos/:filename/rename', renameVideoDisplayName);
+app.post('/videos/rename', renameVideoDisplayName);
 
 app.get('/stream/:userId/:filename', (req, res) => {
   const userId = req.params.userId;

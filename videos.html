@@ -451,14 +451,14 @@
       saveNameOverride(filename, name);
       
       try {
-        const res = await fetch(`${SERVER_URL}/videos/rename`, {
-          method: 'POST',
+        const res = await fetch(`${SERVER_URL}/videos/${encodeURIComponent(filename)}/rename`, {
+          method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
             'x-api-key': API_KEY,
             'x-user-id': currentUser.id
           },
-          body: JSON.stringify({ filename, originalName: name })
+          body: JSON.stringify({ originalName: name })
         });
 
         if (res.ok) return true;
