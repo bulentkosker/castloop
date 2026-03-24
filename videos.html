@@ -179,6 +179,18 @@
     }
     .video-name-wrap { min-width: 0; }
     .video-name-line { display: flex; align-items: center; gap: 8px; }
+    .video-name-btn {
+      border: none;
+      background: transparent;
+      color: #fff;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      text-align: left;
+      padding: 0;
+      min-width: 0;
+    }
+    .video-name-btn:hover { color: #a5b4fc; }
     .video-original-name {
       font-size: 14px;
       font-weight: 600;
@@ -245,6 +257,18 @@
     .toast.active{transform:translateY(0);opacity:1;}
     .toast.success{border-color:#34d399;color:#34d399;}
     .toast.error{border-color:#f87171;color:#f87171;}
+
+    /* Player modal */
+    .player-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:1200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+    .player-modal-overlay.active{opacity:1;pointer-events:all;}
+    .player-modal-box{background:#121223;border:1px solid #2a2a3e;border-radius:14px;max-width:960px;width:min(96vw,960px);padding:18px;}
+    .player-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;}
+    .player-modal-title{font-size:16px;font-weight:700;line-height:1.3;word-break:break-word;}
+    .player-modal-meta{font-size:12px;color:#9ca3af;margin-top:4px;}
+    .player-modal-close{background:transparent;border:1px solid #2a2a3e;color:#aaa;padding:7px 12px;border-radius:8px;cursor:pointer;font-size:12px;}
+    .player-modal-close:hover{border-color:#6366f1;color:#fff;}
+    .player-video-wrap{background:#05050d;border:1px solid #2a2a3e;border-radius:10px;overflow:hidden;}
+    .player-video{width:100%;max-height:70vh;display:block;background:#000;}
 
     @media (max-width: 900px) {
       .video-row {
@@ -353,6 +377,21 @@
   <!-- Toast -->
   <div class="toast" id="toast"></div>
 
+  <div class="player-modal-overlay" id="playerModalOverlay">
+    <div class="player-modal-box">
+      <div class="player-modal-head">
+        <div>
+          <div class="player-modal-title" id="playerModalTitle">Video</div>
+          <div class="player-modal-meta" id="playerModalMeta">--</div>
+        </div>
+        <button class="player-modal-close" id="playerModalClose" type="button">Close</button>
+      </div>
+      <div class="player-video-wrap">
+        <video id="playerModalVideo" class="player-video" controls playsinline preload="metadata"></video>
+      </div>
+    </div>
+  </div>
+
   <script>
 
     // ── Modal & Toast ──────────────────────────────────────────────────────────
@@ -384,6 +423,7 @@
     let currentVideos = [];
     let editingVideoFilename = null;
     let dragSourceFilename = null;
+    let playerModalObjectUrl = null;
 
     let userPlan = 'free';
 
@@ -576,6 +616,45 @@
       return null;
     }
 
+    function openVideoPlayerModal(video) {
+      const sourceUrl = getVideoSourceUrl(video);
+      if (!sourceUrl) {
+        toast('Video source not found.', 'error');
+        return;
+      }
+
+      const nameOverrides = loadNameOverrides();
+      const displayName = nameOverrides[video.filename] || video.originalName || video.filename;
+      document.getElementById('playerModalTitle').textContent = displayName;
+      document.getElementById('playerModalMeta').textContent = getMetaLine(video, getServerFps(video), getServerDuration(video));
+
+      const overlay = document.getElementById('playerModalOverlay');
+      const player = document.getElementById('playerModalVideo');
+
+      if (playerModalObjectUrl) {
+        URL.revokeObjectURL(playerModalObjectUrl);
+        playerModalObjectUrl = null;
+      }
+
+      player.pause();
+      player.src = sourceUrl;
+      player.load();
+      overlay.classList.add('active');
+    }
+
+    function closeVideoPlayerModal() {
+      const overlay = document.getElementById('playerModalOverlay');
+      const player = document.getElementById('playerModalVideo');
+      player.pause();
+      player.removeAttribute('src');
+      player.load();
+      if (playerModalObjectUrl) {
+        URL.revokeObjectURL(playerModalObjectUrl);
+        playerModalObjectUrl = null;
+      }
+      overlay.classList.remove('active');
+    }
+
     function readApproxFps(videoEl) {
       const quality = videoEl.getVideoPlaybackQuality ? videoEl.getVideoPlaybackQuality() : null;
       if (quality && Number.isFinite(quality.totalVideoFrames) && quality.totalVideoFrames > 0 && videoEl.duration > 0) {
@@ -633,13 +712,13 @@
         <div class="video-row" draggable="true" data-filename="${v.filename}">
           <div class="thumb-col">
             ${sourceUrl
-              ? `<video class="video-thumb" preload="metadata" muted playsinline src="${sourceUrl}"></video>`
+              ? `<video class="video-thumb video-thumb-preview" preload="metadata" muted playsinline data-source="${escapeHtml(sourceUrl)}"></video>`
               : `<div class="video-thumb-fallback">🎬</div>`}
           </div>
           <div class="video-name-wrap">
             ${isEditing
               ? `<input class="video-name-input" data-filename="${v.filename}" value="${escapeHtml(displayName)}" />`
-              : `<div class="video-name-line"><div class="video-original-name">${escapeHtml(displayName)}</div><button class="video-edit-btn" data-edit="${v.filename}" title="Rename">✏️</button></div>`}
+              : `<div class="video-name-line"><button class="video-name-btn video-original-name" data-preview="${v.filename}" title="Play video">${escapeHtml(displayName)}</button><button class="video-edit-btn" data-edit="${v.filename}" title="Rename">✏️</button></div>`}
           </div>
           <div class="video-meta" id="${metaId}">${getMetaLine(v, getServerFps(v), getServerDuration(v))}</div>
           <div class="video-size">${v.size ? formatSize(v.size) : ''}</div>
@@ -665,6 +744,41 @@
             input.focus();
             input.select();
           }
+        };
+      });
+
+      document.querySelectorAll('[data-preview]').forEach((btn) => {
+        btn.onclick = () => {
+          const filename = btn.getAttribute('data-preview');
+          const video = currentVideos.find((v) => v.filename === filename);
+          if (video) openVideoPlayerModal(video);
+        };
+      });
+
+      document.querySelectorAll('.video-thumb-preview').forEach((thumb) => {
+        const source = thumb.getAttribute('data-source');
+        if (!source) return;
+
+        thumb.onmouseenter = () => {
+          if (!thumb.src) thumb.src = source;
+          const showFirstFrame = () => {
+            try {
+              thumb.pause();
+              thumb.currentTime = 0.05;
+            } catch (e) {}
+          };
+
+          if (thumb.readyState >= 1) {
+            showFirstFrame();
+          } else {
+            thumb.onloadedmetadata = showFirstFrame;
+          }
+        };
+        thumb.onmouseleave = () => {
+          try {
+            thumb.pause();
+            if (thumb.readyState >= 1) thumb.currentTime = 0.05;
+          } catch (e) {}
         };
       });
 
@@ -878,6 +992,11 @@
       const menu = document.getElementById('userMenu');
       if (menu && !menu.contains(e.target)) closeUserMenu();
     });
+
+    document.getElementById('playerModalClose').onclick = closeVideoPlayerModal;
+    document.getElementById('playerModalOverlay').onclick = (e) => {
+      if (e.target.id === 'playerModalOverlay') closeVideoPlayerModal();
+    };
     init();
   </script>
 </body>
