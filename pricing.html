@@ -77,8 +77,8 @@
     .toggle input:checked + .toggle-slider::before{transform:translateX(22px);background:#fff;}
     .badge-save{background:rgba(52,211,153,0.15);border:1px solid rgba(52,211,153,0.3);color:var(--green);font-size:11px;font-weight:600;padding:3px 8px;border-radius:100px;letter-spacing:0.5px;}
 
-    .pricing-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;max-width:1300px;margin:0 auto;padding:0 48px 100px;background:var(--border);border-radius:20px;overflow:hidden;}
-    .plan-card{background:var(--bg2);padding:36px 28px;display:flex;flex-direction:column;transition:background 0.2s;position:relative;}
+    .pricing-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;max-width:1500px;margin:0 auto;padding:0 32px 100px;background:var(--border);border-radius:20px;overflow:hidden;}
+    .plan-card{background:var(--bg2);padding:28px 20px;display:flex;flex-direction:column;transition:background 0.2s;position:relative;}
     .plan-card:hover{background:var(--bg3);}
     .plan-card.popular{background:var(--bg3);border:2px solid var(--accent);}
     .popular-badge{position:absolute;top:-1px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:11px;font-weight:700;padding:4px 14px;border-radius:0 0 8px 8px;letter-spacing:0.5px;white-space:nowrap;}
@@ -127,7 +127,8 @@
     .res-tab:hover:not(.active){color:var(--text);}
     .pricing-grid-4k{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;max-width:900px;margin:0 auto;padding:0 48px 100px;background:var(--border);border-radius:20px;overflow:hidden;}
     @media(max-width:700px){.pricing-grid-4k{grid-template-columns:1fr;padding:0 24px 60px;}}
-    @media(max-width:1100px){.pricing-grid{grid-template-columns:repeat(2,1fr);}}
+    @media(max-width:1300px){.pricing-grid{grid-template-columns:repeat(3,1fr);}}
+    @media(max-width:850px){.pricing-grid{grid-template-columns:repeat(2,1fr);}}
     @media(max-width:600px){.pricing-grid{grid-template-columns:1fr;padding:0 24px 60px;}.page-header{padding:100px 24px 40px;}.faq-section{padding:0 24px 60px;}nav{padding:16px 24px;}.nav-links{display:none;}}
   </style>
 </head>
@@ -179,8 +180,8 @@
 <div class="pricing-grid" id="pricingGrid">
 
   <div class="plan-card">
-    <div class="yearly-save-badge">SAVE 17% (YEARLY)</div>
-    <div class="plan-name">Lite</div>
+    <div class="yearly-save-badge" data-i18n="plan.save_yearly">SAVE 17% (YEARLY)</div>
+    <div class="plan-name" data-i18n="plan.lite">Lite</div>
     <div class="plan-price">
       <div style="display:flex;align-items:baseline;gap:4px;">
         <span class="price-original-strike">$29</span>
@@ -191,20 +192,20 @@
     </div>
     <div class="plan-trial">✓ 7-day free trial</div>
     <div class="plan-streams">1</div>
-    <div class="plan-streams-label">Simultaneous Stream</div>
+    <div class="plan-streams-label" data-i18n="plan.simultaneous_stream">Simultaneous Stream</div>
     <ul class="plan-features">
-      <li><span class="check">✓</span> 24/7 streaming</li>
-      <li><span class="check">✓</span> All platforms</li>
-      <li><span class="check">✓</span> Smart playlists</li>
-      <li><span class="check">✓</span> Auto-restart</li>
-      <li><span class="check">✓</span> HD 1080p</li>
+      <li><span class="check">✓</span> <span data-i18n="plan.streaming">24/7 streaming</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.platforms">All platforms</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.playlists">Smart playlists</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.autorestart">Auto-restart</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.hd">HD 1080p</span></li>
     </ul>
-    <button class="btn-plan btn-plan-outline" onclick="openCheckout('lite')">Start Free Trial</button>
+    <button class="btn-plan btn-plan-outline" onclick="openCheckout('lite')" data-i18n="plan.free_trial">Start Free Trial</button>
   </div>
 
   <div class="plan-card">
-    <div class="yearly-save-badge">SAVE 17% (YEARLY)</div>
-    <div class="plan-name">Basic</div>
+    <div class="yearly-save-badge" data-i18n="plan.save_yearly">SAVE 17% (YEARLY)</div>
+    <div class="plan-name" data-i18n="plan.basic">Basic</div>
     <div class="plan-price">
       <div style="display:flex;align-items:baseline;gap:4px;">
         <span class="price-original-strike">$49</span>
@@ -215,21 +216,21 @@
     </div>
     <div class="plan-trial" style="color:var(--muted)">Billed monthly</div>
     <div class="plan-streams">2</div>
-    <div class="plan-streams-label">Simultaneous Streams</div>
+    <div class="plan-streams-label" data-i18n="plan.simultaneous_streams">Simultaneous Streams</div>
     <ul class="plan-features">
-      <li><span class="check">✓</span> 24/7 streaming</li>
-      <li><span class="check">✓</span> All platforms</li>
-      <li><span class="check">✓</span> Smart playlists</li>
-      <li><span class="check">✓</span> Auto-restart</li>
-      <li><span class="check">✓</span> HD 1080p</li>
+      <li><span class="check">✓</span> <span data-i18n="plan.streaming">24/7 streaming</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.platforms">All platforms</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.playlists">Smart playlists</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.autorestart">Auto-restart</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.hd">HD 1080p</span></li>
     </ul>
-    <button class="btn-plan btn-plan-outline" onclick="openCheckout('basic')">Get Started</button>
+    <button class="btn-plan btn-plan-outline" onclick="openCheckout('basic')" data-i18n="plan.get_started">Get Started</button>
   </div>
 
   <div class="plan-card popular">
-    <div class="popular-badge">MOST POPULAR</div>
-    <div class="plan-name">Pro</div>
-    <div class="yearly-save-badge">SAVE 17% (YEARLY)</div>
+    <div class="popular-badge" data-i18n="plan.most_popular">MOST POPULAR</div>
+    <div class="plan-name" data-i18n="plan.pro">Pro</div>
+    <div class="yearly-save-badge" data-i18n="plan.save_yearly">SAVE 17% (YEARLY)</div>
     <div class="plan-price">
       <div style="display:flex;align-items:baseline;gap:4px;">
         <span class="price-original-strike">$79</span>
@@ -240,20 +241,20 @@
     </div>
     <div class="plan-trial" style="color:var(--muted)">Billed monthly</div>
     <div class="plan-streams">4</div>
-    <div class="plan-streams-label">Simultaneous Streams</div>
+    <div class="plan-streams-label" data-i18n="plan.simultaneous_streams">Simultaneous Streams</div>
     <ul class="plan-features">
-      <li><span class="check">✓</span> 24/7 streaming</li>
-      <li><span class="check">✓</span> All platforms</li>
-      <li><span class="check">✓</span> Smart playlists</li>
-      <li><span class="check">✓</span> Auto-restart</li>
-      <li><span class="check">✓</span> HD 1080p</li>
+      <li><span class="check">✓</span> <span data-i18n="plan.streaming">24/7 streaming</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.platforms">All platforms</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.playlists">Smart playlists</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.autorestart">Auto-restart</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.hd">HD 1080p</span></li>
     </ul>
-    <button class="btn-plan btn-plan-primary" onclick="openCheckout('pro')">Get Started</button>
+    <button class="btn-plan btn-plan-primary" onclick="openCheckout('pro')" data-i18n="plan.get_started">Get Started</button>
   </div>
 
   <div class="plan-card">
-    <div class="yearly-save-badge">SAVE 17% (YEARLY)</div>
-    <div class="plan-name">Business</div>
+    <div class="yearly-save-badge" data-i18n="plan.save_yearly">SAVE 17% (YEARLY)</div>
+    <div class="plan-name" data-i18n="plan.business">Business</div>
     <div class="plan-price">
       <div style="display:flex;align-items:baseline;gap:4px;">
         <span class="price-original-strike">$149</span>
@@ -264,20 +265,20 @@
     </div>
     <div class="plan-trial" style="color:var(--muted)">Billed monthly</div>
     <div class="plan-streams">8</div>
-    <div class="plan-streams-label">Simultaneous Streams</div>
+    <div class="plan-streams-label" data-i18n="plan.simultaneous_streams">Simultaneous Streams</div>
     <ul class="plan-features">
-      <li><span class="check">✓</span> 24/7 streaming</li>
-      <li><span class="check">✓</span> All platforms</li>
-      <li><span class="check">✓</span> Smart playlists</li>
-      <li><span class="check">✓</span> Auto-restart</li>
-      <li><span class="check">✓</span> HD 1080p</li>
+      <li><span class="check">✓</span> <span data-i18n="plan.streaming">24/7 streaming</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.platforms">All platforms</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.playlists">Smart playlists</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.autorestart">Auto-restart</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.hd">HD 1080p</span></li>
     </ul>
-    <button class="btn-plan btn-plan-outline" onclick="openCheckout('business')">Get Started</button>
+    <button class="btn-plan btn-plan-outline" onclick="openCheckout('business')" data-i18n="plan.get_started">Get Started</button>
   </div>
 
   <div class="plan-card">
-    <div class="yearly-save-badge">SAVE 17% (YEARLY)</div>
-    <div class="plan-name">Enterprise</div>
+    <div class="yearly-save-badge" data-i18n="plan.save_yearly">SAVE 17% (YEARLY)</div>
+    <div class="plan-name" data-i18n="plan.enterprise">Enterprise</div>
     <div class="plan-price">
       <div style="display:flex;align-items:baseline;gap:4px;">
         <span class="price-original-strike">$199</span>
@@ -288,15 +289,15 @@
     </div>
     <div class="plan-trial" style="color:var(--muted)">Billed monthly</div>
     <div class="plan-streams">12</div>
-    <div class="plan-streams-label">Simultaneous Streams</div>
+    <div class="plan-streams-label" data-i18n="plan.simultaneous_streams">Simultaneous Streams</div>
     <ul class="plan-features">
-      <li><span class="check">✓</span> 24/7 streaming</li>
-      <li><span class="check">✓</span> All platforms</li>
-      <li><span class="check">✓</span> Smart playlists</li>
-      <li><span class="check">✓</span> Auto-restart</li>
-      <li><span class="check">✓</span> Priority support</li>
+      <li><span class="check">✓</span> <span data-i18n="plan.streaming">24/7 streaming</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.platforms">All platforms</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.playlists">Smart playlists</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.autorestart">Auto-restart</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.priority_support">Priority support</span></li>
     </ul>
-    <button class="btn-plan btn-plan-outline" onclick="openCheckout('enterprise')">Get Started</button>
+    <button class="btn-plan btn-plan-outline" onclick="openCheckout('enterprise')" data-i18n="plan.get_started">Get Started</button>
   </div>
 
 </div>
@@ -304,8 +305,8 @@
 <div class="pricing-grid-4k" id="pricingGrid4K" style="display:none">
 
   <div class="plan-card">
-    <div class="yearly-save-badge">SAVE 17% (YEARLY)</div>
-    <div class="plan-name">4K Starter</div>
+    <div class="yearly-save-badge" data-i18n="plan.save_yearly">SAVE 17% (YEARLY)</div>
+    <div class="plan-name" data-i18n="plan.4k_starter">4K Starter</div>
     <div class="plan-price">
       <div style="display:flex;align-items:baseline;gap:4px;">
         <span class="price-original-strike">$69</span>
@@ -316,21 +317,21 @@
     </div>
     <div class="plan-trial" style="color:var(--muted)">Billed monthly</div>
     <div class="plan-streams">1</div>
-    <div class="plan-streams-label">4K Stream</div>
+    <div class="plan-streams-label" data-i18n="plan.4k_stream">4K Stream</div>
     <ul class="plan-features">
-      <li><span class="check">✓</span> 24/7 streaming</li>
-      <li><span class="check">✓</span> All platforms</li>
-      <li><span class="check">✓</span> Smart playlists</li>
-      <li><span class="check">✓</span> Auto-restart</li>
-      <li><span class="check">✓</span> 4K Ultra HD</li>
+      <li><span class="check">✓</span> <span data-i18n="plan.streaming">24/7 streaming</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.platforms">All platforms</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.playlists">Smart playlists</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.autorestart">Auto-restart</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.4k_ultra">4K Ultra HD</span></li>
     </ul>
-    <button class="btn-plan btn-plan-outline" onclick="openCheckout('4k_starter')">Get Started</button>
+    <button class="btn-plan btn-plan-outline" onclick="openCheckout('4k_starter')" data-i18n="plan.get_started">Get Started</button>
   </div>
 
   <div class="plan-card popular">
-    <div class="popular-badge">MOST POPULAR</div>
-    <div class="plan-name">4K Plus</div>
-    <div class="yearly-save-badge">SAVE 17% (YEARLY)</div>
+    <div class="popular-badge" data-i18n="plan.most_popular">MOST POPULAR</div>
+    <div class="plan-name" data-i18n="plan.4k_plus">4K Plus</div>
+    <div class="yearly-save-badge" data-i18n="plan.save_yearly">SAVE 17% (YEARLY)</div>
     <div class="plan-price">
       <div style="display:flex;align-items:baseline;gap:4px;">
         <span class="price-original-strike">$169</span>
@@ -341,20 +342,20 @@
     </div>
     <div class="plan-trial" style="color:var(--muted)">Billed monthly</div>
     <div class="plan-streams">2+2</div>
-    <div class="plan-streams-label">4K + 1080p Streams</div>
+    <div class="plan-streams-label" data-i18n="plan.4k_plus_streams">4K + 1080p Streams</div>
     <ul class="plan-features">
-      <li><span class="check">✓</span> 2x 4K streams</li>
-      <li><span class="check">✓</span> 2x 1080p streams</li>
-      <li><span class="check">✓</span> All platforms</li>
-      <li><span class="check">✓</span> Smart playlists</li>
-      <li><span class="check">✓</span> Auto-restart</li>
+      <li><span class="check">✓</span> <span data-i18n="plan.4k_2x">2x 4K streams</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.hd_2x">2x 1080p streams</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.platforms">All platforms</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.playlists">Smart playlists</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.autorestart">Auto-restart</span></li>
     </ul>
-    <button class="btn-plan btn-plan-primary" onclick="openCheckout('4k_plus')">Get Started</button>
+    <button class="btn-plan btn-plan-primary" onclick="openCheckout('4k_plus')" data-i18n="plan.get_started">Get Started</button>
   </div>
 
   <div class="plan-card">
-    <div class="yearly-save-badge">SAVE 17% (YEARLY)</div>
-    <div class="plan-name">4K Pro</div>
+    <div class="yearly-save-badge" data-i18n="plan.save_yearly">SAVE 17% (YEARLY)</div>
+    <div class="plan-name" data-i18n="plan.4k_pro">4K Pro</div>
     <div class="plan-price">
       <div style="display:flex;align-items:baseline;gap:4px;">
         <span class="price-original-strike">$269</span>
@@ -365,15 +366,15 @@
     </div>
     <div class="plan-trial" style="color:var(--muted)">Billed monthly</div>
     <div class="plan-streams">4+4</div>
-    <div class="plan-streams-label">4K + 1080p Streams</div>
+    <div class="plan-streams-label" data-i18n="plan.4k_plus_streams">4K + 1080p Streams</div>
     <ul class="plan-features">
-      <li><span class="check">✓</span> 4x 4K streams</li>
-      <li><span class="check">✓</span> 4x 1080p streams</li>
-      <li><span class="check">✓</span> All platforms</li>
-      <li><span class="check">✓</span> Smart playlists</li>
-      <li><span class="check">✓</span> Priority support</li>
+      <li><span class="check">✓</span> <span data-i18n="plan.4k_4x">4x 4K streams</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.hd_4x">4x 1080p streams</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.platforms">All platforms</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.playlists">Smart playlists</span></li>
+      <li><span class="check">✓</span> <span data-i18n="plan.priority_support">Priority support</span></li>
     </ul>
-    <button class="btn-plan btn-plan-outline" onclick="openCheckout('4k_pro')">Get Started</button>
+    <button class="btn-plan btn-plan-outline" onclick="openCheckout('4k_pro')" data-i18n="plan.get_started">Get Started</button>
   </div>
 
 </div>

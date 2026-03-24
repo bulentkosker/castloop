@@ -262,7 +262,7 @@ const translations = {
   // Pricing page
   var pricing = {
     en: { title:'Simple, Honest Pricing', sub:'Start free for 7 days. No credit card required. Cancel anytime.', monthly:'Monthly', yearly:'Yearly', monthly_billing:'Billed monthly', yearly_billing:'Billed yearly' },
-    tr: { title:'Sade ve Dürüst Fiyatlar', sub:'7 gün ücretsiz başla. Kredi kartı gerekmez. İstediğin zaman iptal et.', monthly:'Aylık', yearly:'Yıllık', monthly_billing:'Aylık faturalandırma', yearly_billing:'Yıllık faturalandırma' },
+    tr: { title:'Sade ve Dürüst Fiyatlar', sub:'7 gün ücretsiz başla. Kredi kartı gerekmez. İstediğin zaman iptal et.', monthly:'Aylık', yearly:'Yıllık', monthly_billing:'Aylık faturalandırma', yearly_billing:'Yıllık faturalandırma — 2 ay bedava' },
     ar: { title:'أسعار بسيطة وصادقة', sub:'ابدأ مجاناً لمدة 7 أيام. لا بطاقة ائتمانية.', monthly:'شهري', yearly:'سنوي', monthly_billing:'فاتورة شهرية', yearly_billing:'فاتورة سنوية' },
     hi: { title:'सरल, ईमानदार मूल्य', sub:'7 दिन मुफ्त शुरू करें।', monthly:'मासिक', yearly:'वार्षिक', monthly_billing:'मासिक बिलिंग', yearly_billing:'वार्षिक बिलिंग' },
     id: { title:'Harga Sederhana & Jujur', sub:'Mulai gratis 7 hari. Tidak perlu kartu kredit.', monthly:'Bulanan', yearly:'Tahunan', monthly_billing:'Tagihan bulanan', yearly_billing:'Tagihan tahunan' },
@@ -276,6 +276,56 @@ const translations = {
   for (var lang in pricing) {
     if (!t[lang]) continue;
     for (var k in pricing[lang]) { t[lang]['pricing.' + k] = pricing[lang][k]; }
+  }
+
+  // Plan card keys
+  var plan = {
+    en: {
+      lite:'Lite', basic:'Basic', pro:'Pro', business:'Business', enterprise:'Enterprise',
+      '4k_starter':'4K Starter', '4k_plus':'4K Plus', '4k_pro':'4K Pro',
+      most_popular:'MOST POPULAR',
+      save_yearly:'SAVE 17% (YEARLY)',
+      get_started:'Get Started',
+      free_trial:'Start Free Trial',
+      simultaneous_stream:'Simultaneous Stream',
+      simultaneous_streams:'Simultaneous Streams',
+      '4k_stream':'4K Stream',
+      '4k_plus_streams':'4K + 1080p Streams',
+      streaming:'24/7 streaming',
+      platforms:'All platforms',
+      playlists:'Smart playlists',
+      autorestart:'Auto-restart',
+      hd:'HD 1080p',
+      '4k_ultra':'4K Ultra HD',
+      priority_support:'Priority support',
+      '4k_2x':'2x 4K streams', hd_2x:'2x 1080p streams',
+      '4k_4x':'4x 4K streams', hd_4x:'4x 1080p streams',
+    },
+    tr: {
+      lite:'Lite', basic:'Basic', pro:'Pro', business:'Business', enterprise:'Enterprise',
+      '4k_starter':'4K Başlangıç', '4k_plus':'4K Plus', '4k_pro':'4K Pro',
+      most_popular:'EN POPÜLER',
+      save_yearly:'%17 TASARRUF (YILLIK)',
+      get_started:'Başla',
+      free_trial:'Ücretsiz Dene',
+      simultaneous_stream:'Eş Zamanlı Yayın',
+      simultaneous_streams:'Eş Zamanlı Yayın',
+      '4k_stream':'4K Yayın',
+      '4k_plus_streams':'4K + 1080p Yayın',
+      streaming:'7/24 yayın',
+      platforms:'Tüm platformlar',
+      playlists:'Akıllı listeler',
+      autorestart:'Otomatik yeniden başlatma',
+      hd:'HD 1080p',
+      '4k_ultra':'4K Ultra HD',
+      priority_support:'Öncelikli destek',
+      '4k_2x':'2x 4K yayın', hd_2x:'2x 1080p yayın',
+      '4k_4x':'4x 4K yayın', hd_4x:'4x 1080p yayın',
+    },
+  };
+  for (var lang in plan) {
+    if (!t[lang]) continue;
+    for (var k in plan[lang]) { t[lang]['plan.' + k] = plan[lang][k]; }
   }
 
   // FAQ page
