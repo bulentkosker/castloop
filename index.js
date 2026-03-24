@@ -1,5 +1,7 @@
+require('dotenv').config({ path: '/root/.env' });
 const express = require('express');
 const cors = require('cors');
+const crypto = require('crypto');
 const { spawn } = require('child_process');
 const multer = require('multer');
 const path = require('path');
@@ -10,6 +12,7 @@ const { createClient } = require('@supabase/supabase-js');
 const app = express();
 const API_KEY = 'castloop-secret-2024';
 app.use(cors());
+app.use('/paddle-webhook', express.raw({ type: '*/*' }));
 app.use(express.json());
 
 const SUPABASE_URL = 'https://pdttjblnvxoitskhdtro.supabase.co';
@@ -18,6 +21,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 app.use((req, res, next) => {
   if (req.path === '/health') return next();
+  if (req.path === '/paddle-webhook') return next();
   const streamQueryKey = req.path.startsWith('/stream/') ? req.query.apiKey : null;
   const key = req.headers['x-api-key'] || streamQueryKey;
   if (key !== API_KEY) return res.status(401).json({ error: 'Unauthorized' });
@@ -39,6 +43,25 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 * 1024 } });
 
+
+const PRICE_PLAN_MAP = {
+  'pri_01kkq2qhxdmqreg93wfa90cqqr': 'lite',
+  'pri_01kkq68n48m06g366npzg7fk01': 'lite',
+  'pri_01kkq6k6kr5xmza70p6n574378': 'basic',
+  'pri_01kkq6n0p98rx63q3dj6qd4c83': 'basic',
+  'pri_01kkq6tjh7rmq5s19ns35n52d7': 'pro',
+  'pri_01kkq6vvphytz0xjk2y2vqswv2': 'pro',
+  'pri_01kkq6y9a729e82r153t4ckakr': 'business',
+  'pri_01kkq70cs983hs30fqxq5s2sga': 'business',
+  'pri_01kkq72xsn1hvest90mdw6ag4e': 'enterprise',
+  'pri_01kkq748ydd7tcdbky4zfsdkda': 'enterprise',
+  'pri_01kmcxn7vvjz06vhpbjg6zyxyq': '4k_starter',
+  'pri_01kmcxqe1n6sk6st551z4gjpbw': '4k_starter',
+  'pri_01kmcxszdwcdk30bpwga1qnyq7': '4k_plus',
+  'pri_01kmcxvg3t6krm3twh9tp35pjj': '4k_plus',
+  'pri_01kmcxx4491c5m32tr70ah258x': '4k_pro',
+  'pri_01kmcxy7vwxqez6jzyqjdfy438': '4k_pro',
+};
 
 // Plan bazlı depolama limitleri (bytes)
 const STORAGE_LIMITS = {
@@ -611,6 +634,87 @@ app.get('/metrics', (req, res) => {
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', activeStreams: Object.keys(activeStreams).length });
+});
+
+app.post('/paddle-webhook', async (req, res) => {
+  const secret = process.env.PADDLE_WEBHOOK_SECRET;
+  if (!secret) {
+    console.error('[paddle-webhook] PADDLE_WEBHOOK_SECRET not set');
+    return res.status(500).json({ error: 'Webhook secret not configured' });
+  }
+
+  const signatureHeader = req.headers['paddle-signature'];
+  if (!signatureHeader) {
+    return res.status(400).json({ error: 'Missing Paddle-Signature header' });
+  }
+
+  const parts = {};
+  signatureHeader.split(';').forEach(part => {
+    const [key, val] = part.split('=');
+    if (key && val) parts[key.trim()] = val.trim();
+  });
+
+  const ts = parts['ts'];
+  const h1 = parts['h1'];
+  if (!ts || !h1) {
+    return res.status(400).json({ error: 'Invalid Paddle-Signature header' });
+  }
+
+  const rawBody = req.body instanceof Buffer ? req.body.toString('utf8') : JSON.stringify(req.body);
+  const signedPayload = `${ts}:${rawBody}`;
+  const expectedHash = crypto.createHmac('sha256', secret).update(signedPayload).digest('hex');
+
+  if (expectedHash !== h1) {
+    console.error('[paddle-webhook] Signature mismatch');
+    return res.status(401).json({ error: 'Invalid signature' });
+  }
+
+  let event;
+  try {
+    event = JSON.parse(rawBody);
+  } catch (e) {
+    return res.status(400).json({ error: 'Invalid JSON body' });
+  }
+
+  if (event.event_type === 'transaction.completed') {
+    const data = event.data || {};
+    const customData = data.custom_data || {};
+    const userId = customData.user_id || customData.userId;
+
+    const items = data.items || [];
+    let priceId = null;
+    for (const item of items) {
+      const pid = item?.price?.id;
+      if (pid && PRICE_PLAN_MAP[pid]) {
+        priceId = pid;
+        break;
+      }
+    }
+
+    if (!priceId) {
+      console.log('[paddle-webhook] No matching price_id found in transaction items');
+      return res.json({ received: true });
+    }
+
+    const plan = PRICE_PLAN_MAP[priceId];
+
+    if (userId) {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ plan })
+        .eq('id', userId);
+
+      if (error) {
+        console.error('[paddle-webhook] Supabase update error:', error.message);
+        return res.status(500).json({ error: 'Failed to update profile' });
+      }
+      console.log(`[paddle-webhook] Updated user ${userId} to plan "${plan}" (price: ${priceId})`);
+    } else {
+      console.log('[paddle-webhook] No user_id in custom_data, skipping profile update');
+    }
+  }
+
+  res.json({ received: true });
 });
 
 app.listen(3000, () => {
