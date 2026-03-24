@@ -117,6 +117,9 @@
     .footer-links a:hover{color:var(--text);}
     .footer-copy{font-size:12px;color:var(--muted);}
 
+    .yearly-save-badge{display:none;position:absolute;top:10px;right:10px;background:rgba(52,211,153,0.15);border:1px solid rgba(52,211,153,0.3);color:var(--green);font-size:10px;font-weight:700;padding:3px 8px;border-radius:100px;letter-spacing:0.5px;white-space:nowrap;}
+    .price-original-strike{display:none;font-size:15px;color:var(--muted);text-decoration:line-through;margin-right:2px;font-family:'Figtree',sans-serif;font-weight:700;}
+    .price-annual-note{display:none;font-size:11px;color:var(--muted);margin-top:4px;}
     @media(max-width:1100px){.pricing-grid{grid-template-columns:repeat(2,1fr);}}
     @media(max-width:600px){.pricing-grid{grid-template-columns:1fr;padding:0 24px 60px;}.page-header{padding:100px 24px 40px;}.faq-section{padding:0 24px 60px;}nav{padding:16px 24px;}.nav-links{display:none;}}
   </style>
@@ -162,10 +165,15 @@
 <div class="pricing-grid" id="pricingGrid">
 
   <div class="plan-card">
+    <div class="yearly-save-badge">SAVE 17% (YEARLY)</div>
     <div class="plan-name">Lite</div>
     <div class="plan-price">
-      <span class="amount" data-monthly="$29" data-yearly="$24">$29</span>
-      <span class="period">/mo</span>
+      <div style="display:flex;align-items:baseline;gap:4px;">
+        <span class="price-original-strike">$29</span>
+        <span class="amount" data-monthly="$29" data-yearly-monthly="$24.17">$29</span>
+        <span class="period">/mo</span>
+      </div>
+      <div class="price-annual-note">Billed annually at $290</div>
     </div>
     <div class="plan-trial">✓ 7-day free trial</div>
     <div class="plan-streams">1</div>
@@ -181,10 +189,15 @@
   </div>
 
   <div class="plan-card">
+    <div class="yearly-save-badge">SAVE 17% (YEARLY)</div>
     <div class="plan-name">Basic</div>
     <div class="plan-price">
-      <span class="amount" data-monthly="$49" data-yearly="$41">$49</span>
-      <span class="period">/mo</span>
+      <div style="display:flex;align-items:baseline;gap:4px;">
+        <span class="price-original-strike">$49</span>
+        <span class="amount" data-monthly="$49" data-yearly-monthly="$40.83">$49</span>
+        <span class="period">/mo</span>
+      </div>
+      <div class="price-annual-note">Billed annually at $490</div>
     </div>
     <div class="plan-trial" style="color:var(--muted)">Billed monthly</div>
     <div class="plan-streams">2</div>
@@ -202,9 +215,14 @@
   <div class="plan-card popular">
     <div class="popular-badge">MOST POPULAR</div>
     <div class="plan-name">Pro</div>
+    <div class="yearly-save-badge">SAVE 17% (YEARLY)</div>
     <div class="plan-price">
-      <span class="amount" data-monthly="$79" data-yearly="$66">$79</span>
-      <span class="period">/mo</span>
+      <div style="display:flex;align-items:baseline;gap:4px;">
+        <span class="price-original-strike">$79</span>
+        <span class="amount" data-monthly="$79" data-yearly-monthly="$65.83">$79</span>
+        <span class="period">/mo</span>
+      </div>
+      <div class="price-annual-note">Billed annually at $790</div>
     </div>
     <div class="plan-trial" style="color:var(--muted)">Billed monthly</div>
     <div class="plan-streams">4</div>
@@ -220,10 +238,15 @@
   </div>
 
   <div class="plan-card">
+    <div class="yearly-save-badge">SAVE 17% (YEARLY)</div>
     <div class="plan-name">Business</div>
     <div class="plan-price">
-      <span class="amount" data-monthly="$149" data-yearly="$124">$149</span>
-      <span class="period">/mo</span>
+      <div style="display:flex;align-items:baseline;gap:4px;">
+        <span class="price-original-strike">$149</span>
+        <span class="amount" data-monthly="$149" data-yearly-monthly="$124.17">$149</span>
+        <span class="period">/mo</span>
+      </div>
+      <div class="price-annual-note">Billed annually at $1,490</div>
     </div>
     <div class="plan-trial" style="color:var(--muted)">Billed monthly</div>
     <div class="plan-streams">8</div>
@@ -239,10 +262,15 @@
   </div>
 
   <div class="plan-card">
+    <div class="yearly-save-badge">SAVE 17% (YEARLY)</div>
     <div class="plan-name">Enterprise</div>
     <div class="plan-price">
-      <span class="amount" data-monthly="$199" data-yearly="$166">$199</span>
-      <span class="period">/mo</span>
+      <div style="display:flex;align-items:baseline;gap:4px;">
+        <span class="price-original-strike">$199</span>
+        <span class="amount" data-monthly="$199" data-yearly-monthly="$165.83">$199</span>
+        <span class="period">/mo</span>
+      </div>
+      <div class="price-annual-note">Billed annually at $1,990</div>
     </div>
     <div class="plan-trial" style="color:var(--muted)">Billed monthly</div>
     <div class="plan-streams">12</div>
@@ -304,12 +332,30 @@
   let isYearly = false;
   function toggleBilling() {
     isYearly = document.getElementById('billingToggle').checked;
+
+    // Fiyat güncelle
     document.querySelectorAll('.amount').forEach(el => {
-      el.textContent = isYearly ? el.dataset.yearly : el.dataset.monthly;
+      el.textContent = isYearly ? el.dataset.yearlyMonthly : el.dataset.monthly;
     });
-    // Period label güncelle
+
+    // Üstü çizili orijinal fiyat
+    document.querySelectorAll('.price-original-strike').forEach(el => {
+      el.style.display = isYearly ? 'inline' : 'none';
+    });
+
+    // "Billed annually at $X" notu
+    document.querySelectorAll('.price-annual-note').forEach(el => {
+      el.style.display = isYearly ? 'block' : 'none';
+    });
+
+    // Yeşil SAVE badge
+    document.querySelectorAll('.yearly-save-badge').forEach(el => {
+      el.style.display = isYearly ? 'block' : 'none';
+    });
+
+    // Aylık/yıllık billing notu (Lite hariç)
     document.querySelectorAll('.plan-trial').forEach((el, i) => {
-      if (i === 0) return; // Lite trial label'ı değiştirme
+      if (i === 0) return;
       const lang = localStorage.getItem('castloop_lang') || 'en';
       const t = (typeof translations !== 'undefined' && translations[lang]) ? translations[lang] : {};
       el.textContent = isYearly
