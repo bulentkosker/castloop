@@ -639,7 +639,8 @@
         let paths = s.video_paths;
 if (typeof paths === "string") { try { paths = JSON.parse(paths); } catch { paths = []; } }
 if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
-        const videoCount = paths.length;
+        const pathStrings = paths.map(item => typeof item === 'object' && item !== null ? item.path : item).filter(Boolean);
+        const videoCount = pathStrings.length;
         return `
         <div class="stream-card">
           <div class="stream-name">${s.name}</div>
@@ -647,7 +648,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
           <span class="status-badge status-${s.status}">${s.status}</span>
           <div class="stream-actions">
             ${s.status !== 'running'
-              ? `<button class="btn-start" id="btn-start-${s.id}" onclick="startStream('${s.id}', '${s.rtmp_url}', '${s.stream_key}', ${JSON.stringify(paths).replace(/"/g, '&quot;')})">▶ Start</button>`
+              ? `<button class="btn-start" id="btn-start-${s.id}" onclick="startStream('${s.id}', '${s.rtmp_url}', '${s.stream_key}', ${JSON.stringify(pathStrings).replace(/"/g, '&quot;')})">▶ Start</button>`
               : `<button class="btn-stop" onclick="stopStream('${s.id}')">■ Stop</button>`
             }
             <button class="btn-edit" onclick="openEditModal('${s.id}')" ${s.status === 'running' ? 'disabled' : ''}>✎ Edit</button>
@@ -682,14 +683,14 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       if (!name || !rtmp_url || !stream_key) { msg.textContent = 'Please fill in all fields.'; return; }
       if (!playlist.length) { msg.textContent = 'Please add at least one video.'; return; }
 
-      const video_paths = playlist.map(v => v.path);
-      const video_path = video_paths[0];
+      const video_paths_objs = playlist.map(v => ({ path: v.path, name: v.name }));
+      const video_path = video_paths_objs[0].path;
 
       const { error } = await client.from('streams').insert({
         user_id: currentUser.id,
         name, platform, rtmp_url, stream_key,
         video_path,
-        video_paths: JSON.stringify(video_paths),
+        video_paths: JSON.stringify(video_paths_objs),
         status: 'stopped'
       });
 
@@ -949,7 +950,12 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
           availableVideos.map(v => `<option value="${v.path}">${v.originalName}</option>`).join('');
       } catch (e) { select.innerHTML = '<option value="">Could not load videos</option>'; }
       const paths = s.video_paths ? JSON.parse(s.video_paths) : (s.video_path ? [s.video_path] : []);
-      editPlaylist = paths.map(p => { const v = availableVideos.find(v => v.path === p); return { path: p, name: v ? v.originalName : p.split('/').pop() }; });
+      editPlaylist = paths.map(p => {
+        const pathStr = typeof p === 'object' && p !== null ? p.path : p;
+        const storedName = typeof p === 'object' && p !== null ? p.name : null;
+        const v = availableVideos.find(v => v.path === pathStr);
+        return { path: pathStr, name: v ? v.originalName : (storedName || pathStr.split('/').pop()) };
+      });
       renderEditPlaylist();
       document.getElementById('editModalOverlay').classList.add('active');
     }
@@ -981,10 +987,10 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       const msg = document.getElementById('editModalMessage');
       if (!name || !rtmp_url || !stream_key) { msg.textContent = 'Please fill in all fields.'; return; }
       if (!editPlaylist.length) { msg.textContent = 'Please add at least one video.'; return; }
-      const video_paths = editPlaylist.map(v => v.path);
+      const video_paths_objs = editPlaylist.map(v => ({ path: v.path, name: v.name }));
       const { error } = await client.from('streams').update({
         name, platform, rtmp_url, stream_key,
-        video_path: video_paths[0], video_paths: JSON.stringify(video_paths)
+        video_path: video_paths_objs[0].path, video_paths: JSON.stringify(video_paths_objs)
       }).eq('id', id);
       if (error) { msg.textContent = error.message; return; }
       closeEditModal();

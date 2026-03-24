@@ -159,12 +159,13 @@ function scheduleMaxDurationRestart(streamId) {
 
 
 function parseVideoPaths(raw) {
-  if (Array.isArray(raw)) return raw.filter(Boolean);
+  const extractPath = (item) => (typeof item === 'object' && item !== null ? item.path : item);
+  if (Array.isArray(raw)) return raw.map(extractPath).filter(Boolean);
   if (!raw) return [];
   if (typeof raw === 'string') {
     try {
       const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed.filter(Boolean) : [raw];
+      return Array.isArray(parsed) ? parsed.map(extractPath).filter(Boolean) : [raw];
     } catch {
       return [raw];
     }
@@ -444,6 +445,67 @@ app.get('/videos', async (req, res) => {
   }));
   try { fs.writeFileSync(metaFile, JSON.stringify(meta, null, 2)); } catch (e) {}
   res.json(files);
+});
+
+app.post('/videos/rename', async (req, res) => {
+  const userId = req.headers['x-user-id'];
+  const { filename, originalName } = req.body;
+  if (!userId || !filename || !originalName)
+    return res.status(400).json({ error: 'Missing parameters' });
+
+  const safeFilename = path.basename(filename);
+  if (safeFilename !== filename)
+    return res.status(400).json({ error: 'Invalid filename' });
+
+  const metaFile = `/var/castloop/videos/${userId}/_meta.json`;
+  let meta = {};
+  if (fs.existsSync(metaFile)) {
+    try { meta = JSON.parse(fs.readFileSync(metaFile, 'utf8')); } catch(e) {}
+  }
+  if (typeof meta[filename] !== 'object') meta[filename] = {};
+  meta[filename].originalName = originalName;
+  try {
+    fs.writeFileSync(metaFile, JSON.stringify(meta, null, 2));
+  } catch(e) {
+    return res.status(500).json({ error: 'Failed to update metadata' });
+  }
+
+  const videoPath = `/var/castloop/videos/${userId}/${filename}`;
+  try {
+    const { data: userStreams, error: fetchError } = await supabase
+      .from('streams')
+      .select('id, video_paths')
+      .eq('user_id', userId);
+    if (!fetchError && userStreams && userStreams.length) {
+      for (const stream of userStreams) {
+        let paths;
+        try {
+          paths = typeof stream.video_paths === 'string'
+            ? JSON.parse(stream.video_paths)
+            : (stream.video_paths || []);
+        } catch { paths = []; }
+        if (!Array.isArray(paths)) continue;
+        let changed = false;
+        const updated = paths.map(item => {
+          const p = typeof item === 'object' && item !== null ? item.path : item;
+          if (p === videoPath) {
+            changed = true;
+            return { path: p, name: originalName };
+          }
+          return typeof item === 'object' ? item : { path: item, name: item.split('/').pop() };
+        });
+        if (changed) {
+          await supabase.from('streams')
+            .update({ video_paths: JSON.stringify(updated) })
+            .eq('id', stream.id);
+        }
+      }
+    }
+  } catch(e) {
+    console.error('[rename] Supabase update error:', e.message || e);
+  }
+
+  res.json({ success: true });
 });
 
 app.get('/stream/:userId/:filename', (req, res) => {
