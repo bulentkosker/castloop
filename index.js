@@ -18,7 +18,8 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 app.use((req, res, next) => {
   if (req.path === '/health') return next();
-  const key = req.headers['x-api-key'];
+  const streamQueryKey = req.path.startsWith('/stream/') ? req.query.apiKey : null;
+  const key = req.headers['x-api-key'] || streamQueryKey;
   if (key !== API_KEY) return res.status(401).json({ error: 'Unauthorized' });
   next();
 });
@@ -443,6 +444,56 @@ app.get('/videos', async (req, res) => {
   }));
   try { fs.writeFileSync(metaFile, JSON.stringify(meta, null, 2)); } catch (e) {}
   res.json(files);
+});
+
+app.get('/stream/:userId/:filename', (req, res) => {
+  const userId = req.params.userId;
+  const rawFilename = req.params.filename;
+  if (!userId || !rawFilename) return res.status(400).json({ error: 'Missing parameters' });
+
+  const filename = path.basename(rawFilename);
+  if (filename !== rawFilename) return res.status(400).json({ error: 'Invalid filename' });
+
+  const filePath = `/var/castloop/videos/${userId}/${filename}`;
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'File not found' });
+
+  const stat = fs.statSync(filePath);
+  const fileSize = stat.size;
+  const ext = path.extname(filename).toLowerCase();
+  const contentType = ext === '.mov' ? 'video/quicktime' : 'video/mp4';
+  const range = req.headers.range;
+
+  if (range) {
+    const match = /bytes=(\d*)-(\d*)/.exec(range);
+    if (!match) {
+      res.setHeader('Content-Range', `bytes */${fileSize}`);
+      return res.status(416).end();
+    }
+
+    const start = match[1] ? parseInt(match[1], 10) : 0;
+    const end = match[2] ? parseInt(match[2], 10) : fileSize - 1;
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end >= fileSize || start > end) {
+      res.setHeader('Content-Range', `bytes */${fileSize}`);
+      return res.status(416).end();
+    }
+
+    const chunkSize = end - start + 1;
+    res.writeHead(206, {
+      'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+      'Accept-Ranges': 'bytes',
+      'Content-Length': chunkSize,
+      'Content-Type': contentType
+    });
+
+    return fs.createReadStream(filePath, { start, end }).pipe(res);
+  }
+
+  res.writeHead(200, {
+    'Content-Length': fileSize,
+    'Content-Type': contentType,
+    'Accept-Ranges': 'bytes'
+  });
+  fs.createReadStream(filePath).pipe(res);
 });
 
 app.delete('/videos/:filename', (req, res) => {

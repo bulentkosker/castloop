@@ -612,7 +612,9 @@
       if (video.publicUrl) return video.publicUrl;
       if (video.webUrl) return video.webUrl;
       if (video.streamUrl) return video.streamUrl;
-      if (video.filename) return `${SERVER_URL}/videos/${encodeURIComponent(video.filename)}`;
+      if (video.filename && currentUser?.id) {
+        return `${SERVER_URL}/stream/${encodeURIComponent(currentUser.id)}/${encodeURIComponent(video.filename)}?apiKey=${encodeURIComponent(API_KEY)}`;
+      }
       return null;
     }
 
