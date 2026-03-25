@@ -1,7 +1,7 @@
 const translations = {
   en: {
     'nav.features':'Features','nav.pricing':'Pricing','nav.faq':'FAQ','nav.about':'About','nav.login':'Sign In','nav.trial':'Start Free Trial',
-    'hero.badge':'Trusted by 10,000+ streamers worldwide',
+    'hero.badge':'Stream any content, 24/7',
     'hero.title':'Stream <span>24/7</span><br>Without Lifting a Finger',
     'hero.sub':'Upload your videos once. Castloop streams them live — forever. No software, no server, no technical skills needed.',
     'hero.cta1':'▶ Start Free Trial','hero.cta2':'View Pricing','hero.note':'7-day free trial · No credit card required',
@@ -24,7 +24,7 @@ const translations = {
   },
   tr: {
     'nav.features':'Özellikler','nav.pricing':'Fiyatlar','nav.faq':'SSS','nav.about':'Hakkında','nav.login':'Giriş Yap','nav.trial':'Ücretsiz Dene',
-    'hero.badge':'10.000+ yayıncının tercihi',
+    'hero.badge':'Her içeriği 7/24 yayınla',
     'hero.title':'<span>7/24</span> Canlı Yayın<br>Hiç Uğraşmadan',
     'hero.sub':'Videolarını bir kez yükle. Castloop onları sonsuza kadar canlı yayınlar. Yazılım, sunucu veya teknik bilgi gerekmez.',
     'hero.cta1':'▶ Ücretsiz Başla','hero.cta2':'Fiyatları Gör','hero.note':'7 günlük ücretsiz deneme · Kredi kartı gerekmez',
@@ -47,7 +47,7 @@ const translations = {
   },
   ar: {
     'nav.features':'المميزات','nav.pricing':'الأسعار','nav.faq':'الأسئلة','nav.about':'عن كاستريو','nav.login':'تسجيل الدخول','nav.trial':'ابدأ مجاناً',
-    'hero.badge':'يثق به أكثر من 10,000 مبث حول العالم',
+    'hero.badge':'بث أي محتوى، 24/7',
     'hero.title':'بث <span>24/7</span><br>دون أي جهد',
     'hero.sub':'ارفع مقاطع الفيديو مرة واحدة. كاستريو يبثها مباشرة للأبد. لا برامج، لا خادم، لا خبرة تقنية.',
     'hero.cta1':'▶ ابدأ التجربة المجانية','hero.cta2':'عرض الأسعار','hero.note':'تجربة مجانية 7 أيام · لا يلزم بطاقة ائتمانية',
@@ -70,7 +70,7 @@ const translations = {
   },
   hi: {
     'nav.features':'विशेषताएं','nav.pricing':'मूल्य','nav.faq':'FAQ','nav.about':'हमारे बारे में','nav.login':'साइन इन','nav.trial':'मुफ्त शुरू करें',
-    'hero.badge':'10,000+ स्ट्रीमर्स का भरोसा',
+    'hero.badge':'कोई भी सामग्री स्ट्रीम करें, 24/7',
     'hero.title':'<span>24/7</span> लाइव स्ट्रीम<br>बिना किसी मेहनत के',
     'hero.sub':'एक बार वीडियो अपलोड करें। Castloop उन्हें हमेशा के लिए लाइव स्ट्रीम करता है।',
     'hero.cta1':'▶ मुफ्त शुरू करें','hero.cta2':'मूल्य देखें','hero.note':'7 दिन मुफ्त · क्रेडिट कार्ड की जरूरत नहीं',
@@ -93,7 +93,7 @@ const translations = {
   },
   id: {
     'nav.features':'Fitur','nav.pricing':'Harga','nav.faq':'FAQ','nav.about':'Tentang','nav.login':'Masuk','nav.trial':'Coba Gratis',
-    'hero.badge':'Dipercaya oleh 10.000+ streamer di seluruh dunia',
+    'hero.badge':'Stream konten apapun, 24/7',
     'hero.title':'Stream <span>24/7</span><br>Tanpa Usaha',
     'hero.sub':'Upload video sekali. Castloop streaming mereka selamanya. Tidak perlu software, server, atau keahlian teknis.',
     'hero.cta1':'▶ Mulai Gratis','hero.cta2':'Lihat Harga','hero.note':'Uji coba gratis 7 hari · Tidak perlu kartu kredit',
@@ -116,7 +116,7 @@ const translations = {
   },
   ja: {
     'nav.features':'機能','nav.pricing':'料金','nav.faq':'よくある質問','nav.about':'会社概要','nav.login':'ログイン','nav.trial':'無料で始める',
-    'hero.badge':'世界10,000人以上のストリーマーに信頼されています',
+    'hero.badge':'あらゆるコンテンツを24/7配信',
     'hero.title':'<span>24/7</span>ライブ配信<br>手間いらずで',
     'hero.sub':'動画を一度アップロードするだけ。Castloopが永遠にライブ配信します。ソフトウェア不要、サーバー不要。',
     'hero.cta1':'▶ 無料で始める','hero.cta2':'料金を見る','hero.note':'7日間無料トライアル · クレジットカード不要',
@@ -139,7 +139,7 @@ const translations = {
   },
   pt: {
     'nav.features':'Recursos','nav.pricing':'Preços','nav.faq':'FAQ','nav.about':'Sobre','nav.login':'Entrar','nav.trial':'Teste Grátis',
-    'hero.badge':'Confiado por mais de 10.000 streamers no mundo',
+    'hero.badge':'Transmita qualquer conteúdo, 24/7',
     'hero.title':'Transmita <span>24/7</span><br>Sem Esforço',
     'hero.sub':'Envie seus vídeos uma vez. O Castloop os transmite ao vivo para sempre. Sem software, sem servidor.',
     'hero.cta1':'▶ Teste Grátis','hero.cta2':'Ver Preços','hero.note':'7 dias grátis · Sem cartão de crédito',
@@ -162,7 +162,7 @@ const translations = {
   },
   es: {
     'nav.features':'Características','nav.pricing':'Precios','nav.faq':'FAQ','nav.about':'Acerca de','nav.login':'Iniciar Sesión','nav.trial':'Prueba Gratis',
-    'hero.badge':'Más de 10.000 streamers confían en nosotros',
+    'hero.badge':'Transmite cualquier contenido, 24/7',
     'hero.title':'Transmite <span>24/7</span><br>Sin Esfuerzo',
     'hero.sub':'Sube tus videos una vez. Castloop los transmite en vivo para siempre. Sin software, sin servidor.',
     'hero.cta1':'▶ Prueba Gratis','hero.cta2':'Ver Precios','hero.note':'7 días gratis · Sin tarjeta de crédito',
@@ -185,7 +185,7 @@ const translations = {
   },
   ru: {
     'nav.features':'Функции','nav.pricing':'Цены','nav.faq':'FAQ','nav.about':'О нас','nav.login':'Войти','nav.trial':'Попробовать бесплатно',
-    'hero.badge':'Доверяют более 10 000 стримеров по всему миру',
+    'hero.badge':'Стримьте любой контент, 24/7',
     'hero.title':'Стримьте <span>24/7</span><br>Без Усилий',
     'hero.sub':'Загрузите видео один раз. Castloop транслирует их в прямом эфире вечно. Без ПО, без сервера.',
     'hero.cta1':'▶ Попробовать бесплатно','hero.cta2':'Смотреть цены','hero.note':'7 дней бесплатно · Без кредитной карты',
@@ -208,7 +208,7 @@ const translations = {
   },
   ko: {
     'nav.features':'기능','nav.pricing':'요금','nav.faq':'자주 묻는 질문','nav.about':'소개','nav.login':'로그인','nav.trial':'무료 체험',
-    'hero.badge':'전 세계 10,000명 이상의 스트리머가 신뢰합니다',
+    'hero.badge':'모든 콘텐츠를 24/7 스트리밍',
     'hero.title':'<span>24/7</span> 라이브 스트리밍<br>아무 노력 없이',
     'hero.sub':'동영상을 한 번 업로드하세요. Castloop가 영원히 라이브 스트리밍합니다.',
     'hero.cta1':'▶ 무료 체험 시작','hero.cta2':'요금 보기','hero.note':'7일 무료 체험 · 신용카드 불필요',
@@ -231,7 +231,7 @@ const translations = {
   },
   fr: {
     'nav.features':'Fonctionnalités','nav.pricing':'Tarifs','nav.faq':'FAQ','nav.about':'À propos','nav.login':'Se connecter','nav.trial':'Essai gratuit',
-    'hero.badge':'Plus de 10 000 streamers nous font confiance',
+    'hero.badge':'Streamez n\'importe quel contenu, 24/7',
     'hero.title':'Streamez <span>24/7</span><br>Sans Effort',
     'hero.sub':'Uploadez vos vidéos une fois. Castloop les diffuse en direct pour toujours. Sans logiciel, sans serveur.',
     'hero.cta1':'▶ Essai gratuit','hero.cta2':'Voir les tarifs','hero.note':'7 jours gratuits · Sans carte de crédit',
