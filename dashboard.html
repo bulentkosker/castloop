@@ -13,8 +13,8 @@
     /* Inter loaded in head */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'DM Sans', 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; transition: background 0.3s, color 0.3s; }
-    :root { --bg:#080810; --bg2:#0f0f1a; --bg3:#1a1a2e; --border:#1e1e35; --accent:#6366f1; --accent2:#818cf8; --text:#f0f0ff; --muted:#6b6b8a; --green:#34d399; --red:#f87171; --sidebar-w:240px; }
-    [data-theme="light"] { --bg:#f5f5ff; --bg2:#ffffff; --bg3:#eeeeff; --border:#ddddf0; --accent:#6366f1; --accent2:#4f46e5; --text:#1a1a2e; --muted:#6b6b8a; --green:#059669; --red:#dc2626; }
+    :root { --bg:#10121a; --bg2:#171923; --bg3:#1e2130; --border:#262a3a; --accent:#6366f1; --accent2:#818cf8; --text:#e8e8f0; --muted:#7a7d8e; --green:#34d399; --red:#f87171; --sidebar-w:240px; }
+    [data-theme="light"] { --bg:#f4f5f9; --bg2:#ffffff; --bg3:#eef0f6; --border:#d8dae5; --accent:#6366f1; --accent2:#4f46e5; --text:#111827; --muted:#4b5563; --green:#059669; --red:#dc2626; }
 
     /* ── Sidebar Layout ── */
     .app-layout { display: flex; min-height: 100vh; }
@@ -24,7 +24,7 @@
     .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 2px; padding: 0 12px; }
     .sidebar-link { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; font-size: 14px; font-weight: 500; color: var(--muted); text-decoration: none; transition: all 0.15s; }
     .sidebar-link:hover { background: rgba(99,102,241,0.06); color: var(--text); }
-    .sidebar-link.active { background: rgba(99,102,241,0.1); color: var(--accent2); font-weight: 600; }
+    .sidebar-link.active { background: rgba(99,102,241,0.12); color: var(--accent2); font-weight: 600; border-left: 3px solid var(--accent); padding-left: 11px; }
     .sl-icon { font-size: 16px; width: 22px; text-align: center; }
     .sidebar-bottom { padding: 16px 12px; border-top: 1px solid var(--border); }
     .sidebar-upgrade { display: block; text-align: center; background: linear-gradient(135deg, #6366f1, #818cf8); color: #fff; font-size: 13px; font-weight: 600; padding: 10px; border-radius: 10px; text-decoration: none; margin-bottom: 12px; transition: all 0.2s; }
