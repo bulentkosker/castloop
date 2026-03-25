@@ -18,10 +18,13 @@ app.use(express.json());
 const SUPABASE_URL = 'https://pdttjblnvxoitskhdtro.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_vxcNOoezd_FKxKWmWj-rZQ_w3IrSMaG';
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabaseAdmin = createClient(SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 
 app.use((req, res, next) => {
   if (req.path === '/health') return next();
   if (req.path === '/paddle-webhook') return next();
+  if (req.path === '/upload-token/validate') return next();
+  if (req.path === '/upload-by-token') return next();
   const streamQueryKey = req.path.startsWith('/stream/') ? req.query.apiKey : null;
   const key = req.headers['x-api-key'] || streamQueryKey;
   if (key !== API_KEY) return res.status(401).json({ error: 'Unauthorized' });
@@ -636,6 +639,105 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', activeStreams: Object.keys(activeStreams).length });
 });
 
+// ── Upload Token ──────────────────────────────────────────────────────────────
+
+const tokenUpload = multer({
+  dest: '/tmp/castloop-uploads/',
+  limits: { fileSize: 10 * 1024 * 1024 * 1024 }
+});
+
+app.post('/upload-token/validate', async (req, res) => {
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ valid: false, error: 'Missing token' });
+
+  const { data, error } = await supabaseAdmin
+    .from('upload_tokens')
+    .select('user_id, expires_at')
+    .eq('token', token)
+    .single();
+
+  if (error || !data) return res.json({ valid: false, error: 'Invalid token' });
+  if (new Date(data.expires_at) < new Date()) return res.json({ valid: false, error: 'Token expired' });
+
+  const { data: profile } = await supabaseAdmin
+    .from('profiles')
+    .select('plan')
+    .eq('id', data.user_id)
+    .single();
+
+  const plan = profile?.plan || 'free';
+  const limit = STORAGE_LIMITS[plan] || STORAGE_LIMITS.free;
+  const used = getUserDiskUsage(data.user_id);
+
+  res.json({ valid: true, expiresAt: data.expires_at, plan, usedBytes: used, limitBytes: limit });
+});
+
+app.post('/upload-by-token', tokenUpload.single('video'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  const token = req.body.token;
+  if (!token) {
+    fs.unlinkSync(req.file.path);
+    return res.status(400).json({ error: 'Missing token' });
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('upload_tokens')
+    .select('user_id, expires_at')
+    .eq('token', token)
+    .single();
+
+  if (error || !data || new Date(data.expires_at) < new Date()) {
+    fs.unlinkSync(req.file.path);
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+
+  const userId = data.user_id;
+  const { data: profile } = await supabaseAdmin
+    .from('profiles')
+    .select('plan')
+    .eq('id', userId)
+    .single();
+
+  const plan = (profile?.plan || 'free').toLowerCase();
+  const limit = STORAGE_LIMITS[plan] || STORAGE_LIMITS.free;
+  const used = getUserDiskUsage(userId);
+
+  if (used + req.file.size > limit) {
+    fs.unlinkSync(req.file.path);
+    const limitGB = (limit / (1024 ** 3)).toFixed(0);
+    return res.status(400).json({ error: `Storage limit reached. Plan allows ${limitGB}GB.` });
+  }
+
+  const dir = `/var/castloop/videos/${userId}`;
+  fs.mkdirSync(dir, { recursive: true });
+  const unique = Date.now() + '-' + Math.round(Math.random() * 1E9);
+  const ext = path.extname(req.file.originalname);
+  const filename = unique + ext;
+  const destPath = path.join(dir, filename);
+
+  try {
+    fs.renameSync(req.file.path, destPath);
+  } catch {
+    fs.copyFileSync(req.file.path, destPath);
+    fs.unlinkSync(req.file.path);
+  }
+
+  const resolution = await getVideoResolution(destPath);
+  const metaFile = path.join(dir, '_meta.json');
+  let meta = {};
+  if (fs.existsSync(metaFile)) {
+    try { meta = JSON.parse(fs.readFileSync(metaFile, 'utf8')); } catch {}
+  }
+  meta[filename] = {
+    originalName: req.body.originalName || req.file.originalname,
+    width: resolution.width,
+    height: resolution.height
+  };
+  fs.writeFileSync(metaFile, JSON.stringify(meta));
+
+  res.json({ success: true, filename, width: resolution.width, height: resolution.height });
+});
+
 app.post('/paddle-webhook', async (req, res) => {
   const secret = process.env.PADDLE_WEBHOOK_SECRET;
   if (!secret) {
@@ -643,30 +745,36 @@ app.post('/paddle-webhook', async (req, res) => {
     return res.status(500).json({ error: 'Webhook secret not configured' });
   }
 
-  const signatureHeader = req.headers['paddle-signature'];
-  if (!signatureHeader) {
-    return res.status(400).json({ error: 'Missing Paddle-Signature header' });
-  }
-
-  const parts = {};
-  signatureHeader.split(';').forEach(part => {
-    const [key, val] = part.split('=');
-    if (key && val) parts[key.trim()] = val.trim();
-  });
-
-  const ts = parts['ts'];
-  const h1 = parts['h1'];
-  if (!ts || !h1) {
-    return res.status(400).json({ error: 'Invalid Paddle-Signature header' });
-  }
-
+  const isTestMode = req.headers['x-test-mode'] === 'true' && req.headers['x-api-key'] === API_KEY;
   const rawBody = req.body instanceof Buffer ? req.body.toString('utf8') : JSON.stringify(req.body);
-  const signedPayload = `${ts}:${rawBody}`;
-  const expectedHash = crypto.createHmac('sha256', secret).update(signedPayload).digest('hex');
 
-  if (expectedHash !== h1) {
-    console.error('[paddle-webhook] Signature mismatch');
-    return res.status(401).json({ error: 'Invalid signature' });
+  if (!isTestMode) {
+    const signatureHeader = req.headers['paddle-signature'];
+    if (!signatureHeader) {
+      return res.status(400).json({ error: 'Missing Paddle-Signature header' });
+    }
+
+    const parts = {};
+    signatureHeader.split(';').forEach(part => {
+      const [key, val] = part.split('=');
+      if (key && val) parts[key.trim()] = val.trim();
+    });
+
+    const ts = parts['ts'];
+    const h1 = parts['h1'];
+    if (!ts || !h1) {
+      return res.status(400).json({ error: 'Invalid Paddle-Signature header' });
+    }
+
+    const signedPayload = `${ts}:${rawBody}`;
+    const expectedHash = crypto.createHmac('sha256', secret).update(signedPayload).digest('hex');
+
+    if (expectedHash !== h1) {
+      console.error('[paddle-webhook] Signature mismatch');
+      return res.status(401).json({ error: 'Invalid signature' });
+    }
+  } else {
+    console.log('[paddle-webhook] Test mode: signature verification skipped');
   }
 
   let event;
@@ -678,8 +786,7 @@ app.post('/paddle-webhook', async (req, res) => {
 
   if (event.event_type === 'transaction.completed') {
     const data = event.data || {};
-    const customData = data.custom_data || {};
-    const userId = customData.user_id || customData.userId;
+    const email = data.customer?.email;
 
     const items = data.items || [];
     let priceId = null;
@@ -698,19 +805,19 @@ app.post('/paddle-webhook', async (req, res) => {
 
     const plan = PRICE_PLAN_MAP[priceId];
 
-    if (userId) {
-      const { error } = await supabase
+    if (email) {
+      const { error } = await supabaseAdmin
         .from('profiles')
         .update({ plan })
-        .eq('id', userId);
+        .eq('email', email);
 
       if (error) {
         console.error('[paddle-webhook] Supabase update error:', error.message);
         return res.status(500).json({ error: 'Failed to update profile' });
       }
-      console.log(`[paddle-webhook] Updated user ${userId} to plan "${plan}" (price: ${priceId})`);
+      console.log(`[paddle-webhook] Updated user ${email} to plan "${plan}" (price: ${priceId})`);
     } else {
-      console.log('[paddle-webhook] No user_id in custom_data, skipping profile update');
+      console.log('[paddle-webhook] No email in data.customer, skipping profile update');
     }
   }
 

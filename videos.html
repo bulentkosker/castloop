@@ -325,7 +325,10 @@
     </div>
 
   <div class="main">
-    <div class="section-header"><h2>My Videos</h2></div>
+    <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;">
+      <h2>My Videos</h2>
+      <button class="btn-primary" style="font-size:13px;padding:8px 16px;" onclick="openUploadLinkModal()">🔗 Create Upload Link</button>
+    </div>
     <div class="storage-bar-wrap" id="storageWrap" style="display:none">
       <div class="storage-info">
         <div class="storage-label">
@@ -374,6 +377,37 @@
       </div>
     </div>
   </div>
+  <!-- Upload Link Modal -->
+  <div class="modal-overlay" id="uploadLinkModal">
+    <div class="modal-box" style="max-width:440px;">
+      <div class="modal-title">🔗 Create Upload Link</div>
+      <div id="uploadLinkStep1">
+        <p style="color:#888;font-size:13px;margin-bottom:16px;">Anyone with this link can upload videos to your account without signing in.</p>
+        <label style="color:#aaa;font-size:13px;display:block;margin-bottom:8px;">Expires in:</label>
+        <select id="uploadLinkDuration" style="width:100%;padding:10px;background:#0f0f1a;border:1px solid #2a2a3e;color:#f0f0ff;border-radius:8px;font-size:14px;margin-bottom:20px;">
+          <option value="1">1 day</option>
+          <option value="7" selected>7 days</option>
+          <option value="30">30 days</option>
+        </select>
+        <div class="modal-actions">
+          <button class="modal-cancel" onclick="closeUploadLinkModal()">Cancel</button>
+          <button class="modal-confirm" onclick="generateUploadLink()">Generate Link</button>
+        </div>
+      </div>
+      <div id="uploadLinkStep2" style="display:none;">
+        <p style="color:#888;font-size:13px;margin-bottom:12px;">Share this link with anyone to receive video uploads:</p>
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <input id="uploadLinkUrl" type="text" readonly style="flex:1;padding:10px;background:#0f0f1a;border:1px solid #2a2a3e;color:#f0f0ff;border-radius:8px;font-size:12px;">
+          <button class="btn-primary" style="padding:10px 16px;font-size:12px;white-space:nowrap;" onclick="copyUploadLink()">Copy</button>
+        </div>
+        <p id="uploadLinkExpiry" style="color:#34d399;font-size:12px;margin-bottom:16px;"></p>
+        <div class="modal-actions">
+          <button class="modal-cancel" onclick="closeUploadLinkModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast -->
   <div class="toast" id="toast"></div>
 
@@ -411,6 +445,35 @@
       const t = document.getElementById('toast');
       t.textContent = msg; t.className = 'toast active ' + (type||'');
       setTimeout(() => t.className = 'toast', 3000);
+    }
+
+    function openUploadLinkModal() {
+      document.getElementById('uploadLinkStep1').style.display = '';
+      document.getElementById('uploadLinkStep2').style.display = 'none';
+      document.getElementById('uploadLinkModal').classList.add('active');
+    }
+    function closeUploadLinkModal() {
+      document.getElementById('uploadLinkModal').classList.remove('active');
+    }
+    async function generateUploadLink() {
+      const days = parseInt(document.getElementById('uploadLinkDuration').value);
+      const token = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+      const { error } = await client.from('upload_tokens').insert({
+        user_id: currentUser.id,
+        token: token,
+        expires_at: expiresAt
+      });
+      if (error) { toast('Failed to create link: ' + error.message, 'error'); return; }
+      const link = window.location.origin + '/upload.html?token=' + token;
+      document.getElementById('uploadLinkUrl').value = link;
+      document.getElementById('uploadLinkExpiry').textContent = 'Expires in ' + days + ' day' + (days > 1 ? 's' : '');
+      document.getElementById('uploadLinkStep1').style.display = 'none';
+      document.getElementById('uploadLinkStep2').style.display = '';
+    }
+    function copyUploadLink() {
+      const url = document.getElementById('uploadLinkUrl').value;
+      navigator.clipboard.writeText(url).then(() => toast('Link copied!', 'success'));
     }
 
     const SUPABASE_URL = 'https://pdttjblnvxoitskhdtro.supabase.co';
