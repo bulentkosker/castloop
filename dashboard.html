@@ -206,10 +206,15 @@
     .sched-row-header span { font-size: 12px; color: var(--accent2); font-weight: 600; }
     .sched-row-remove { background: none; border: none; color: #f87171; cursor: pointer; font-size: 16px; padding: 2px 6px; border-radius: 4px; }
     .sched-row-remove:hover { background: rgba(248,113,113,0.1); }
-    .sched-row .time-row { display: flex; gap: 10px; margin-bottom: 8px; }
+    .sched-row .time-row { display: flex; gap: 10px; margin-bottom: 8px; align-items: flex-end; }
     .sched-row .time-row > div { flex: 1; }
-    .sched-row .time-row label { color: #aaa; font-size: 11px; }
-    .sched-row .time-row input { width: 100%; padding: 8px; background: #0f0f1a; border: 1px solid #2a2a3e; color: #f0f0ff; border-radius: 6px; font-size: 13px; margin-top: 3px; }
+    .sched-row .time-row label { color: #aaa; font-size: 11px; display: block; }
+    .sched-row .time-row input, .sched-row .time-row select { width: 100%; padding: 8px; background: #0f0f1a; border: 1px solid #2a2a3e; color: #f0f0ff; border-radius: 6px; font-size: 13px; margin-top: 3px; }
+    .sched-row .dur-group { display: flex; gap: 6px; }
+    .sched-row .dur-group > div { flex: 1; }
+    .sched-row .dur-group select { width: 100%; padding: 8px; background: #0f0f1a; border: 1px solid #2a2a3e; color: #f0f0ff; border-radius: 6px; font-size: 13px; margin-top: 3px; }
+    .sched-row .end-preview { font-size: 11px; color: var(--accent2); margin-top: 4px; margin-bottom: 4px; }
+    .sched-overlap-warn { font-size: 11px; color: #f87171; margin-top: 4px; margin-bottom: 4px; padding: 4px 8px; background: rgba(248,113,113,0.08); border-radius: 4px; display: none; }
 
     /* Toast */
     .toast { position: fixed; bottom: 24px; right: 24px; background: var(--bg2); border: 1px solid var(--border); color: var(--text); padding: 12px 20px; border-radius: 10px; font-size: 13px; z-index: 2000; transform: translateY(20px); opacity: 0; transition: all 0.3s; pointer-events: none; }
@@ -1056,6 +1061,8 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
     function formatScheduleSummary(sched) {
       const start = (sched.start_time || '00:00').slice(0, 5);
       const end = (sched.end_time || '23:59').slice(0, 5);
+      const dur = calcDuration(start, end);
+      const durStr = dur.h > 0 && dur.m > 0 ? `${dur.h}h ${dur.m}m` : dur.h > 0 ? `${dur.h}h` : `${dur.m}m`;
       const dayOrder = ['mon','tue','wed','thu','fri','sat','sun'];
       const dayLabels = { mon:'Mon', tue:'Tue', wed:'Wed', thu:'Thu', fri:'Fri', sat:'Sat', sun:'Sun' };
       const days = (sched.days || []).slice().sort((a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b));
@@ -1064,7 +1071,6 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       else if (days.length === 5 && !days.includes('sat') && !days.includes('sun')) { dayStr = 'Mon–Fri'; }
       else if (days.length === 2 && days.includes('sat') && days.includes('sun')) { dayStr = 'Sat–Sun'; }
       else {
-        // Check for consecutive ranges
         const indices = days.map(d => dayOrder.indexOf(d));
         const isConsecutive = indices.every((v, i) => i === 0 || v === indices[i - 1] + 1);
         if (isConsecutive && days.length > 2) {
@@ -1073,7 +1079,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
           dayStr = days.map(d => dayLabels[d]).join(', ');
         }
       }
-      return `${start} – ${end} · ${dayStr}`;
+      return `${start} + ${durStr} · ${dayStr}`;
     }
     const COMMON_TZ = [
       'UTC',
@@ -1098,28 +1104,134 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
 
     let scheduleRowCounter = 0;
 
+    function calcDuration(startStr, endStr) {
+      const [sh, sm] = startStr.split(':').map(Number);
+      const [eh, em] = endStr.split(':').map(Number);
+      let totalMin = (eh * 60 + em) - (sh * 60 + sm);
+      if (totalMin <= 0) totalMin += 24 * 60;
+      return { h: Math.floor(totalMin / 60), m: totalMin % 60 };
+    }
+
+    function calcEndTime(startStr, durH, durM) {
+      const [sh, sm] = startStr.split(':').map(Number);
+      let totalMin = sh * 60 + sm + durH * 60 + durM;
+      totalMin = totalMin % (24 * 60);
+      const eh = Math.floor(totalMin / 60);
+      const em = totalMin % 60;
+      return String(eh).padStart(2, '0') + ':' + String(em).padStart(2, '0');
+    }
+
+    function updateEndPreview(idx) {
+      const id = 'sr_' + idx;
+      const startEl = document.querySelector(`[name="${id}_start"]`);
+      const durHEl = document.querySelector(`[name="${id}_dur_h"]`);
+      const durMEl = document.querySelector(`[name="${id}_dur_m"]`);
+      const previewEl = document.getElementById(`${id}_end_preview`);
+      if (!startEl || !durHEl || !durMEl || !previewEl) return;
+      const endTime = calcEndTime(startEl.value, parseInt(durHEl.value)||0, parseInt(durMEl.value)||0);
+      previewEl.textContent = 'Ends at ' + endTime;
+      checkOverlaps();
+    }
+
+    function getSchedRowData(row) {
+      const idx = row.dataset.idx;
+      const id = 'sr_' + idx;
+      const startVal = row.querySelector(`[name="${id}_start"]`)?.value || '08:00';
+      const durH = parseInt(row.querySelector(`[name="${id}_dur_h"]`)?.value) || 0;
+      const durM = parseInt(row.querySelector(`[name="${id}_dur_m"]`)?.value) || 0;
+      const endVal = calcEndTime(startVal, durH, durM);
+      const enabled = row.querySelector(`[name="${id}_enabled"]`)?.checked;
+      const days = [...row.querySelectorAll(`[name="${id}_day"]:checked`)].map(cb => cb.value);
+      return { idx, startVal, endVal, durH, durM, enabled, days, startMin: timeToMin(startVal), endMin: timeToMin(endVal), totalDurMin: durH * 60 + durM };
+    }
+
+    function timeToMin(t) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
+
+    function checkOverlaps() {
+      const rows = [...document.querySelectorAll('#scheduleRows .sched-row')];
+      const allData = rows.map(r => ({ row: r, ...getSchedRowData(r) }));
+
+      // Clear all warnings first
+      rows.forEach(r => { const w = r.querySelector('.sched-overlap-warn'); if (w) { w.style.display = 'none'; w.textContent = ''; } });
+
+      for (let i = 0; i < allData.length; i++) {
+        const a = allData[i];
+        if (!a.enabled || a.days.length === 0 || a.totalDurMin === 0) continue;
+        for (let j = i + 1; j < allData.length; j++) {
+          const b = allData[j];
+          if (!b.enabled || b.days.length === 0 || b.totalDurMin === 0) continue;
+          // Check day overlap
+          const commonDays = a.days.filter(d => b.days.includes(d));
+          if (!commonDays.length) continue;
+          // Check time overlap
+          if (hasTimeOverlap(a.startMin, a.totalDurMin, b.startMin, b.totalDurMin)) {
+            const dayLabels = { mon:'Mon',tue:'Tue',wed:'Wed',thu:'Thu',fri:'Fri',sat:'Sat',sun:'Sun' };
+            const warn = `⚠ Overlaps with [${a.startVal}–${a.endVal} ${commonDays.map(d=>dayLabels[d]).join(',')}]`;
+            const warnEl = b.row.querySelector('.sched-overlap-warn');
+            if (warnEl) { warnEl.textContent = warn; warnEl.style.display = 'block'; }
+            const warn2 = `⚠ Overlaps with [${b.startVal}–${b.endVal} ${commonDays.map(d=>dayLabels[d]).join(',')}]`;
+            const warnEl2 = a.row.querySelector('.sched-overlap-warn');
+            if (warnEl2) { warnEl2.textContent = warn2; warnEl2.style.display = 'block'; }
+          }
+        }
+      }
+    }
+
+    function hasTimeOverlap(startA, durA, startB, durB) {
+      // Handle wrapping over midnight
+      const endA = startA + durA;
+      const endB = startB + durB;
+      // Normalize to check overlap in 24h*2 space
+      const ranges = [];
+      if (endA > 1440) { ranges.push([startA, 1440], [0, endA - 1440]); } else { ranges.push([startA, endA]); }
+      const rangesB = [];
+      if (endB > 1440) { rangesB.push([startB, 1440], [0, endB - 1440]); } else { rangesB.push([startB, endB]); }
+      for (const ra of ranges) {
+        for (const rb of rangesB) {
+          if (ra[0] < rb[1] && rb[0] < ra[1]) return true;
+        }
+      }
+      return false;
+    }
+
     function buildScheduleRowHTML(idx, data) {
       const id = 'sr_' + idx;
       const start = data ? (data.start_time || '08:00').slice(0, 5) : '08:00';
-      const end = data ? (data.end_time || '23:00').slice(0, 5) : '23:00';
+      let durH = 9, durM = 55;
+      if (data && data.start_time && data.end_time) {
+        const d = calcDuration(data.start_time.slice(0, 5), data.end_time.slice(0, 5));
+        durH = d.h; durM = d.m;
+      }
+      const endPreview = calcEndTime(start, durH, durM);
       const days = data ? (data.days || []) : [];
       const enabled = data ? !!data.enabled : true;
       const dbId = data?.id || '';
+
+      const hourOpts = Array.from({length:24}, (_,i) => `<option value="${i}" ${i===durH?'selected':''}>${i}h</option>`).join('');
+      const minOpts = [0,5,10,15,20,25,30,35,40,45,50,55].map(m => `<option value="${m}" ${m===durM?'selected':''}>${m}m</option>`).join('');
+
       const dayBoxes = ['mon','tue','wed','thu','fri','sat','sun'].map(d =>
-        `<label><input type="checkbox" name="${id}_day" value="${d}" ${days.includes(d) ? 'checked' : ''}>${d.charAt(0).toUpperCase()+d.slice(1)}</label>`
+        `<label><input type="checkbox" name="${id}_day" value="${d}" ${days.includes(d) ? 'checked' : ''} onchange="checkOverlaps()">${d.charAt(0).toUpperCase()+d.slice(1)}</label>`
       ).join('');
       return `<div class="sched-row" data-idx="${idx}" data-db-id="${dbId}">
         <div class="sched-row-header">
           <label style="color:#aaa;font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;">
-            <input type="checkbox" name="${id}_enabled" ${enabled ? 'checked' : ''} style="width:16px;height:16px;accent-color:#6366f1;">
+            <input type="checkbox" name="${id}_enabled" ${enabled ? 'checked' : ''} style="width:16px;height:16px;accent-color:#6366f1;" onchange="checkOverlaps()">
             <span>Enabled</span>
           </label>
           <button type="button" class="sched-row-remove" onclick="removeScheduleRow(this)" title="Remove">✕</button>
         </div>
         <div class="time-row">
-          <div><label>Start</label><input type="time" name="${id}_start" value="${start}"></div>
-          <div><label>End</label><input type="time" name="${id}_end" value="${end}"></div>
+          <div><label>Start Time</label><input type="time" name="${id}_start" value="${start}" onchange="updateEndPreview(${idx})"></div>
+          <div><label>Duration</label>
+            <div class="dur-group">
+              <div><select name="${id}_dur_h" onchange="updateEndPreview(${idx})">${hourOpts}</select></div>
+              <div><select name="${id}_dur_m" onchange="updateEndPreview(${idx})">${minOpts}</select></div>
+            </div>
+          </div>
         </div>
+        <div class="end-preview" id="${id}_end_preview">Ends at ${endPreview}</div>
+        <div class="sched-overlap-warn"></div>
         <div class="day-checkbox-group">${dayBoxes}</div>
       </div>`;
     }
@@ -1172,12 +1284,19 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
         const idx = row.dataset.idx;
         const dbId = row.dataset.dbId || null;
         const enabled = row.querySelector(`[name="sr_${idx}_enabled"]`).checked;
-        const start_time = row.querySelector(`[name="sr_${idx}_start"]`).value + ':00';
-        const end_time = row.querySelector(`[name="sr_${idx}_end"]`).value + ':00';
+        const startVal = row.querySelector(`[name="sr_${idx}_start"]`).value;
+        const durH = parseInt(row.querySelector(`[name="sr_${idx}_dur_h"]`).value) || 0;
+        const durM = parseInt(row.querySelector(`[name="sr_${idx}_dur_m"]`).value) || 0;
+        const start_time = startVal + ':00';
+        const end_time = calcEndTime(startVal, durH, durM) + ':00';
         const days = [...row.querySelectorAll(`[name="sr_${idx}_day"]:checked`)].map(cb => cb.value);
 
         if (enabled && days.length === 0) {
           toast('Each enabled schedule must have at least one day selected.', 'error');
+          return;
+        }
+        if (enabled && durH === 0 && durM === 0) {
+          toast('Duration must be greater than 0.', 'error');
           return;
         }
 

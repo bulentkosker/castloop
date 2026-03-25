@@ -98,7 +98,16 @@ async function tick() {
       const startTime = sched.start_time || '00:00:00';
       const endTime = sched.end_time || '23:59:59';
 
-      if (currentTime >= startTime && currentTime < endTime) {
+      let inWindow;
+      if (endTime > startTime) {
+        // Normal: e.g. 08:00 - 17:00
+        inWindow = currentTime >= startTime && currentTime < endTime;
+      } else {
+        // Wraps midnight: e.g. 22:00 - 04:00
+        inWindow = currentTime >= startTime || currentTime < endTime;
+      }
+
+      if (inWindow) {
         anyActive = true;
         break;
       }
