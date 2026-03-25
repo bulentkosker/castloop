@@ -158,7 +158,14 @@ function buildCloudInit(config) {
     'fi',
     'pm2 delete castloop-api || true',
     'pm2 start index.js --name castloop-api',
-    'pm2 save'
+    'pm2 save',
+    '',
+    '# Firewall rules',
+    'ufw deny proto tcp from any to any port 111',
+    'ufw deny proto udp from any to any port 111',
+    'ufw allow 22',
+    'ufw allow 3000',
+    'ufw --force enable'
   ].join('\n');
 
   return [
