@@ -67,7 +67,9 @@
     .page-header h1{font-family:'Figtree',sans-serif;font-size:clamp(36px,5vw,64px);font-weight:800;letter-spacing:-2px;margin-bottom:16px;}
     .page-header p{color:var(--muted);font-size:18px;max-width:480px;margin:0 auto;}
 
-    .toggle-wrap{display:flex;justify-content:center;align-items:center;gap:16px;margin-bottom:60px;}
+    .toggle-row{display:flex;justify-content:center;align-items:center;gap:24px;margin-bottom:60px;flex-wrap:wrap;}
+    .toggle-divider{width:1px;height:28px;background:var(--border);}
+    .toggle-wrap{display:flex;align-items:center;gap:16px;}
     .toggle-label{font-size:14px;color:var(--muted);font-weight:500;}
     .toggle{position:relative;width:48px;height:26px;cursor:pointer;}
     .toggle input{opacity:0;width:0;height:0;}
@@ -120,7 +122,7 @@
     .yearly-save-badge{display:none;position:absolute;top:10px;right:10px;background:rgba(52,211,153,0.15);border:1px solid rgba(52,211,153,0.3);color:var(--green);font-size:10px;font-weight:700;padding:3px 8px;border-radius:100px;letter-spacing:0.5px;white-space:nowrap;}
     .price-original-strike{display:none;font-size:15px;color:var(--muted);text-decoration:line-through;margin-right:2px;font-family:'Figtree',sans-serif;font-weight:700;}
     .price-annual-note{display:none;font-size:14px;color:var(--text);font-weight:600;margin-top:6px;}
-    .resolution-toggle{display:flex;justify-content:center;margin-bottom:32px;}
+    .resolution-toggle{display:flex;justify-content:center;}
     .res-tabs{display:flex;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:4px;gap:4px;}
     .res-tab{padding:8px 28px;border-radius:7px;font-size:14px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--muted);transition:all 0.2s;font-family:'DM Sans',sans-serif;}
     .res-tab.active{background:var(--accent);color:#fff;}
@@ -154,20 +156,20 @@
   <p data-i18n="pricing.sub">Start free for 7 days. No credit card required. Cancel anytime.</p>
 </div>
 
-<div class="resolution-toggle">
+<div class="toggle-row">
   <div class="res-tabs">
     <button class="res-tab active" id="tabHD" onclick="switchResolution('hd')" data-i18n="plan.tab_hd">HD 1080p</button>
     <button class="res-tab" id="tab4K" onclick="switchResolution('4k')" data-i18n="plan.tab_4k">4K Ultra</button>
   </div>
-</div>
-
-<div class="toggle-wrap">
-  <span class="toggle-label" data-i18n="pricing.monthly">Monthly</span>
-  <label class="toggle">
-    <input type="checkbox" id="billingToggle" onchange="toggleBilling()">
-    <span class="toggle-slider"></span>
-  </label>
-  <span class="toggle-label" data-i18n="pricing.yearly">Yearly <span class="badge-save">2 MONTHS FREE</span></span>
+  <div class="toggle-divider"></div>
+  <div class="toggle-wrap">
+    <span class="toggle-label" data-i18n="pricing.monthly">Monthly</span>
+    <label class="toggle">
+      <input type="checkbox" id="billingToggle" onchange="toggleBilling()">
+      <span class="toggle-slider"></span>
+    </label>
+    <span class="toggle-label" data-i18n="pricing.yearly">Yearly <span class="badge-save">2 MONTHS FREE</span></span>
+  </div>
 </div>
 
 <div class="pricing-grid" id="pricingGrid">
