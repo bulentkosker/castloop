@@ -162,31 +162,6 @@
       font-size: 14px;
     }
 
-    /* Stats bar */
-    .stats-bar {
-      display: flex;
-      gap: 32px;
-      margin-top: 48px;
-      padding-top: 32px;
-      border-top: 1px solid rgba(99,102,241,0.12);
-    }
-    .stat-item {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .stat-value {
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--accent2);
-    }
-    .stat-label {
-      font-size: 12px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
     /* ── Right Panel ────────────────────────────── */
     .right-panel {
       width: 480px;
@@ -339,6 +314,24 @@
     }
     .message.success { color: var(--green); }
 
+    /* Language selector */
+    .lang-select {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .lang-select option { background: var(--bg2); }
+    .form-lang {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 24px;
+    }
+
     /* ── Mobile ─────────────────────────────────── */
     @media (max-width: 900px) {
       .login-wrapper { flex-direction: column; }
@@ -352,8 +345,6 @@
       .feature-list { flex-direction: row; flex-wrap: wrap; gap: 12px; }
       .feature-item { font-size: 13px; gap: 8px; }
       .feature-check { width: 22px; height: 22px; font-size: 12px; border-radius: 6px; }
-      .stats-bar { margin-top: 24px; padding-top: 20px; gap: 24px; }
-      .stat-value { font-size: 18px; }
       .right-panel {
         width: 100%;
         flex: 1;
@@ -363,7 +354,6 @@
       }
     }
     @media (max-width: 480px) {
-      .stats-bar { display: none; }
       .left-logo { margin-bottom: 24px; }
     }
   </style>
@@ -406,26 +396,15 @@
           </div>
         </div>
 
-        <div class="stats-bar">
-          <div class="stat-item">
-            <span class="stat-value">10K+</span>
-            <span class="stat-label">Active Streams</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value">99.9%</span>
-            <span class="stat-label">Uptime</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value">150+</span>
-            <span class="stat-label">Countries</span>
-          </div>
-        </div>
       </div>
     </div>
 
     <!-- Right Panel -->
     <div class="right-panel">
       <div class="form-container">
+        <div class="form-lang">
+          <select class="lang-select" onchange="setLang(this.value)"></select>
+        </div>
         <div class="form-header">
           <h2>Welcome back</h2>
           <p>Sign in to your Castloop account</p>
@@ -527,5 +506,6 @@
       }
     }
   </script>
+  <script src="i18n.js"></script>
 </body>
 </html>
