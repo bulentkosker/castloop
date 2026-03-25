@@ -152,11 +152,11 @@
     .user-menu-btn .chevron { color: var(--muted); font-size: 10px; flex-shrink: 0; transition: transform 0.2s; }
     .user-menu.open .chevron { transform: rotate(180deg); }
     .user-dropdown {
-      position: absolute; top: calc(100% + 8px); right: 0;
+      position: absolute; bottom: calc(100% + 8px); left: 0; right: 0;
       background: var(--bg2); border: 1px solid var(--border);
       border-radius: 10px; min-width: 200px; z-index: 200;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-      opacity: 0; pointer-events: none; transform: translateY(-8px);
+      box-shadow: 0 -8px 24px rgba(0,0,0,0.4);
+      opacity: 0; pointer-events: none; transform: translateY(8px);
       transition: all 0.15s;
     }
     .user-menu.open .user-dropdown { opacity: 1; pointer-events: all; transform: translateY(0); }
