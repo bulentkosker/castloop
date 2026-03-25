@@ -44,8 +44,7 @@
       position: relative;
       display: flex;
       flex-direction: column;
-      justify-content: flex-start;
-      padding: 60px 48px 40px;
+      padding: 40px 48px 40px;
       overflow: hidden;
       background: linear-gradient(135deg, #080810 0%, #0f0f1a 40%, #1a1035 100%);
     }
@@ -95,8 +94,14 @@
       position: relative;
       z-index: 2;
       max-width: 480px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
     .left-logo {
+      position: relative;
+      z-index: 2;
       display: inline-flex;
       align-items: center;
       gap: 10px;
@@ -364,17 +369,16 @@
     <!-- Left Panel -->
     <div class="left-panel">
       <div class="particles" id="particles"></div>
+      <a href="index.html" class="left-logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 50 Q32 28 50 50 Q68 72 80 50" stroke="white" stroke-width="8" fill="none" stroke-linecap="round"/>
+            <circle cx="50" cy="50" r="7" fill="white"/>
+          </svg>
+        </div>
+        <span>Castloop</span>
+      </a>
       <div class="left-content">
-        <a href="index.html" class="left-logo">
-          <div class="logo-icon">
-            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M20 50 Q32 28 50 50 Q68 72 80 50" stroke="white" stroke-width="8" fill="none" stroke-linecap="round"/>
-              <circle cx="50" cy="50" r="7" fill="white"/>
-            </svg>
-          </div>
-          <span>Castloop</span>
-        </a>
-
         <h1 class="left-headline">Stream 24/7<br>Without Lifting<br>a Finger</h1>
         <p class="left-sub">Upload your videos once and go live on every platform — forever. No hardware, no babysitting, no downtime.</p>
 
