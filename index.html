@@ -186,6 +186,13 @@
     }
     .btn-secondary:hover { border-color: var(--accent); color: var(--accent2); }
     .hero-note { font-size: 12px; color: var(--muted); margin-top: 14px; position: relative; z-index: 1; }
+    .live-marquee { position: relative; z-index: 1; width: 100vw; overflow: hidden; margin-top: 48px; padding: 14px 0; border-top: 1px solid rgba(99,102,241,0.1); border-bottom: 1px solid rgba(99,102,241,0.1); background: rgba(8,8,16,0.6); backdrop-filter: blur(8px);
+      mask-image: linear-gradient(90deg, transparent 0%, black 8%, black 92%, transparent 100%); -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 8%, black 92%, transparent 100%); }
+    .live-marquee-track { display: flex; gap: 32px; width: max-content; animation: marquee-scroll 90s linear infinite; }
+    .marquee-item { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text); white-space: nowrap; font-weight: 500; }
+    .live-badge { background: #ef4444; color: #fff; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.5px; animation: live-pulse 2s ease-in-out infinite; }
+    @keyframes live-pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+    @keyframes marquee-scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
 
     /* STATS */
     .stats-bar {
@@ -360,6 +367,66 @@
     <a href="pricing.html" class="btn-secondary" data-i18n="hero.cta2">View Pricing</a>
   </div>
   <p class="hero-note" data-i18n="hero.note">7-day free trial · No credit card required</p>
+
+  <div class="live-marquee">
+    <div class="live-marquee-track">
+      <span class="marquee-item">🔥 Fireplace &amp; Ambiance <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🎵 Lofi Music <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🌿 Nature Sounds <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">😴 Meditation &amp; Sleep <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🏔️ Scenic Views <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">📚 Study Music <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">☕ Coffee Shop <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🌊 Ocean Waves <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🌧️ Rain Sounds <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🕯️ Candlelight <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🎸 Rock Concerts <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🎹 Jazz Sessions <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🎤 Hip-Hop Beats <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🎻 Classical Music <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🥁 Drum Covers <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🎺 Blues &amp; Soul <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🎧 EDM Mixes <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🎵 Indie Artists <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🎙️ Podcast Streams <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🎼 Orchestra Live <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🕌 Islamic Content <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">✝️ Christian Worship <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🕉️ Meditation &amp; Mantras <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">📰 News Channels <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🏋️ Fitness &amp; Yoga <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">👶 Kids Content <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🎮 Gaming Highlights <span class="live-badge">LIVE</span></span>
+      <!-- duplicate for seamless loop -->
+      <span class="marquee-item">🔥 Fireplace &amp; Ambiance <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🎵 Lofi Music <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🌿 Nature Sounds <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">😴 Meditation &amp; Sleep <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🏔️ Scenic Views <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">📚 Study Music <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">☕ Coffee Shop <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🌊 Ocean Waves <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🌧️ Rain Sounds <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🕯️ Candlelight <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🎸 Rock Concerts <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🎹 Jazz Sessions <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🎤 Hip-Hop Beats <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🎻 Classical Music <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🥁 Drum Covers <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🎺 Blues &amp; Soul <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🎧 EDM Mixes <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🎵 Indie Artists <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🎙️ Podcast Streams <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🎼 Orchestra Live <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🕌 Islamic Content <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">✝️ Christian Worship <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🕉️ Meditation &amp; Mantras <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">📰 News Channels <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🏋️ Fitness &amp; Yoga <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">👶 Kids Content <span class="live-badge">LIVE</span></span>
+      <span class="marquee-item">🎮 Gaming Highlights <span class="live-badge">LIVE</span></span>
+    </div>
+  </div>
 </section>
 
 <!-- STATS -->
