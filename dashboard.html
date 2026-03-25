@@ -936,7 +936,9 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
         select.innerHTML = '<option value="">Select a video...</option>' +
           availableVideos.map(v => `<option value="${v.path}">${v.originalName}</option>`).join('');
       } catch (e) { select.innerHTML = '<option value="">Could not load videos</option>'; }
-      const paths = s.video_paths ? JSON.parse(s.video_paths) : (s.video_path ? [s.video_path] : []);
+      let paths = s.video_paths || (s.video_path ? [s.video_path] : []);
+      if (typeof paths === 'string') { try { paths = JSON.parse(paths); } catch { paths = []; } }
+      if (!Array.isArray(paths)) paths = [];
       editPlaylist = paths.map(p => {
         const pathStr = typeof p === 'object' && p !== null ? p.path : p;
         const storedName = typeof p === 'object' && p !== null ? p.name : null;
