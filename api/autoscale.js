@@ -288,6 +288,7 @@ module.exports = async (req, res) => {
       image: config.hetznerImage,
       location: config.hetznerLocation,
       start_after_create: true,
+      ssh_keys: ['castloop'],
       public_net: {
         enable_ipv4: true,
         enable_ipv6: false
