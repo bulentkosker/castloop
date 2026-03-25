@@ -291,6 +291,10 @@
     .btn-schedule { background: rgba(251,191,36,0.1); color: #fbbf24; border: 1px solid rgba(251,191,36,0.4); padding: 7px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
     .btn-schedule:hover { background: rgba(251,191,36,0.2); }
     .btn-schedule.scheduled { background: rgba(251,191,36,0.2); border-color: #fbbf24; }
+    .schedule-info { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 8px 12px; background: rgba(251,191,36,0.06); border: 1px solid rgba(251,191,36,0.2); border-radius: 8px; font-size: 12px; color: #fbbf24; }
+    .schedule-info .sched-text { flex: 1; }
+    .schedule-info .sched-edit { background: none; border: none; color: #fbbf24; cursor: pointer; font-size: 14px; padding: 2px 6px; border-radius: 4px; }
+    .schedule-info .sched-edit:hover { background: rgba(251,191,36,0.15); }
     .btn-edit:disabled, .btn-delete:disabled { opacity: 0.3; cursor: not-allowed; }
     .day-checkbox-group { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 16px; }
     .day-checkbox-group label { display: flex; align-items: center; gap: 4px; font-size: 13px; color: #aaa; cursor: pointer; background: #080810; border: 1px solid #1e1e35; padding: 5px 10px; border-radius: 6px; }
@@ -542,6 +546,7 @@
 
     let currentUser = null;
     let streams = [];
+    let streamSchedules = {}; // keyed by stream_id
     let playlist = []; // { path, name }
     let availableVideos = [];
 
@@ -673,6 +678,11 @@
       const { data, error } = await client.from('streams').select('*').order('created_at', { ascending: false });
       if (error) { console.error(error); return; }
       streams = data || [];
+
+      const { data: scheds } = await client.from('stream_schedules').select('*').eq('user_id', currentUser.id);
+      streamSchedules = {};
+      if (scheds) scheds.forEach(s => { streamSchedules[s.stream_id] = s; });
+
       renderStreams();
       updateStats();
     }
@@ -694,20 +704,26 @@ if (typeof paths === "string") { try { paths = JSON.parse(paths); } catch { path
 if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
         const pathStrings = paths.map(item => typeof item === 'object' && item !== null ? item.path : item).filter(Boolean);
         const videoCount = pathStrings.length;
+        const sched = streamSchedules[s.id];
+        const hasActiveSchedule = sched && sched.enabled;
+        const schedSummary = hasActiveSchedule ? formatScheduleSummary(sched) : '';
         return `
         <div class="stream-card">
           <div class="stream-name">${s.name}</div>
           <div class="stream-platform">${s.platform.toUpperCase()} · ${videoCount} video${videoCount !== 1 ? 's' : ''}</div>
           <span class="status-badge status-${s.status}">${s.status}</span>
           <div class="stream-actions">
-            ${s.status !== 'running'
-              ? `<button class="btn-start" id="btn-start-${s.id}" onclick="startStream('${s.id}', '${s.rtmp_url}', '${s.stream_key}', ${JSON.stringify(pathStrings).replace(/"/g, '&quot;')})">▶ Start</button>`
-              : `<button class="btn-stop" onclick="stopStream('${s.id}')">■ Stop</button>`
+            ${hasActiveSchedule
+              ? (s.status === 'running' ? `<button class="btn-stop" onclick="stopStream('${s.id}')">■ Stop</button>` : '')
+              : (s.status !== 'running'
+                ? `<button class="btn-start" id="btn-start-${s.id}" onclick="startStream('${s.id}', '${s.rtmp_url}', '${s.stream_key}', ${JSON.stringify(pathStrings).replace(/"/g, '&quot;')})">▶ Start</button>`
+                : `<button class="btn-stop" onclick="stopStream('${s.id}')">■ Stop</button>`)
             }
             <button class="btn-edit" onclick="openEditModal('${s.id}')" ${s.status === 'running' ? 'disabled' : ''}>✎ Edit</button>
-            <button class="btn-schedule" onclick="openScheduleModal('${s.id}')">🕐 Schedule</button>
+            ${!hasActiveSchedule ? `<button class="btn-schedule" onclick="openScheduleModal('${s.id}')">🕐 Schedule</button>` : ''}
             <button class="btn-delete" onclick="confirmDelete('${s.id}', '${s.name.replace(/'/g, "\\'")}', '${s.status}')" ${s.status === 'running' ? 'disabled' : ''}>Delete</button>
           </div>
+          ${hasActiveSchedule ? `<div class="schedule-info"><span class="sched-text">🕐 ${schedSummary}</span><button class="sched-edit" onclick="openScheduleModal('${s.id}')" title="Edit schedule">✎</button></div>` : ''}
           <div style="font-size:11px;color:#f87171;margin-top:8px;min-height:16px" id="err-${s.id}"></div>
         </div>`;
       }).join('')}
@@ -1125,6 +1141,28 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
     }
 
     // ── Schedule ──────────────────────────────────────────────────────────────
+    function formatScheduleSummary(sched) {
+      const start = (sched.start_time || '00:00').slice(0, 5);
+      const end = (sched.end_time || '23:59').slice(0, 5);
+      const dayOrder = ['mon','tue','wed','thu','fri','sat','sun'];
+      const dayLabels = { mon:'Mon', tue:'Tue', wed:'Wed', thu:'Thu', fri:'Fri', sat:'Sat', sun:'Sun' };
+      const days = (sched.days || []).slice().sort((a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b));
+      let dayStr;
+      if (days.length === 7) { dayStr = 'Every day'; }
+      else if (days.length === 5 && !days.includes('sat') && !days.includes('sun')) { dayStr = 'Mon–Fri'; }
+      else if (days.length === 2 && days.includes('sat') && days.includes('sun')) { dayStr = 'Sat–Sun'; }
+      else {
+        // Check for consecutive ranges
+        const indices = days.map(d => dayOrder.indexOf(d));
+        const isConsecutive = indices.every((v, i) => i === 0 || v === indices[i - 1] + 1);
+        if (isConsecutive && days.length > 2) {
+          dayStr = dayLabels[days[0]] + '–' + dayLabels[days[days.length - 1]];
+        } else {
+          dayStr = days.map(d => dayLabels[d]).join(', ');
+        }
+      }
+      return `${start} – ${end} · ${dayStr}`;
+    }
     const COMMON_TZ = [
       'UTC',
       'America/New_York','America/Chicago','America/Denver','America/Los_Angeles',
@@ -1203,6 +1241,9 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       if (error) { toast('Failed to save schedule: ' + error.message, 'error'); return; }
       toast(enabled ? '✅ Schedule saved' : 'Schedule disabled', 'success');
       closeScheduleModal();
+      if (enabled) { streamSchedules[streamId] = { ...payload, id: existing?.id }; }
+      else { delete streamSchedules[streamId]; }
+      renderStreams();
     }
 
     init();
