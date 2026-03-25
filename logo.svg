@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 100">
+  <defs>
+    <linearGradient id="iconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#818cf8"/>
+    </linearGradient>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#818cf8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Icon: rounded square with linked rings -->
+  <rect x="0" y="0" width="100" height="100" rx="22" fill="url(#iconGrad)"/>
+  <ellipse cx="38" cy="50" rx="13" ry="16" fill="none" stroke="white" stroke-width="5.5" stroke-linecap="round"/>
+  <ellipse cx="62" cy="50" rx="13" ry="16" fill="none" stroke="white" stroke-width="5.5" stroke-linecap="round"/>
+
+  <!-- Text: Castl -->
+  <text x="120" y="70" font-family="'Figtree','DM Sans','Segoe UI',system-ui,sans-serif" font-size="62" font-weight="800" fill="url(#textGrad)" letter-spacing="-1">
+    Castl
+  </text>
+
+  <!-- oo as linked rings in text -->
+  <ellipse cx="370" cy="56" rx="16" ry="20" fill="none" stroke="url(#textGrad)" stroke-width="7" stroke-linecap="round"/>
+  <ellipse cx="400" cy="56" rx="16" ry="20" fill="none" stroke="url(#textGrad)" stroke-width="7" stroke-linecap="round"/>
+
+  <!-- p -->
+  <text x="422" y="70" font-family="'Figtree','DM Sans','Segoe UI',system-ui,sans-serif" font-size="62" font-weight="800" fill="url(#textGrad)" letter-spacing="-1">
+    p
+  </text>
+</svg>
