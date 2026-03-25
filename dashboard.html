@@ -197,10 +197,19 @@
     .schedule-info .sched-edit { background: none; border: none; color: #fbbf24; cursor: pointer; font-size: 14px; padding: 2px 6px; border-radius: 4px; }
     .schedule-info .sched-edit:hover { background: rgba(251,191,36,0.15); }
     .btn-edit:disabled, .btn-delete:disabled { opacity: 0.3; cursor: not-allowed; }
-    .day-checkbox-group { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 16px; }
-    .day-checkbox-group label { display: flex; align-items: center; gap: 4px; font-size: 13px; color: #aaa; cursor: pointer; background: #080810; border: 1px solid #1e1e35; padding: 5px 10px; border-radius: 6px; }
+    .day-checkbox-group { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 12px; }
+    .day-checkbox-group label { display: flex; align-items: center; gap: 4px; font-size: 12px; color: #aaa; cursor: pointer; background: #080810; border: 1px solid #1e1e35; padding: 4px 8px; border-radius: 6px; }
     .day-checkbox-group label:has(input:checked) { border-color: #6366f1; color: #818cf8; background: rgba(99,102,241,0.1); }
     .day-checkbox-group input { display: none; }
+    .sched-row { position: relative; padding: 14px; background: rgba(99,102,241,0.04); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; }
+    .sched-row-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .sched-row-header span { font-size: 12px; color: var(--accent2); font-weight: 600; }
+    .sched-row-remove { background: none; border: none; color: #f87171; cursor: pointer; font-size: 16px; padding: 2px 6px; border-radius: 4px; }
+    .sched-row-remove:hover { background: rgba(248,113,113,0.1); }
+    .sched-row .time-row { display: flex; gap: 10px; margin-bottom: 8px; }
+    .sched-row .time-row > div { flex: 1; }
+    .sched-row .time-row label { color: #aaa; font-size: 11px; }
+    .sched-row .time-row input { width: 100%; padding: 8px; background: #0f0f1a; border: 1px solid #2a2a3e; color: #f0f0ff; border-radius: 6px; font-size: 13px; margin-top: 3px; }
 
     /* Toast */
     .toast { position: fixed; bottom: 24px; right: 24px; background: var(--bg2); border: 1px solid var(--border); color: var(--text); padding: 12px 20px; border-radius: 10px; font-size: 13px; z-index: 2000; transform: translateY(20px); opacity: 0; transition: all 0.3s; pointer-events: none; }
@@ -415,46 +424,23 @@
 
   <!-- Schedule Modal -->
   <div class="modal-overlay" id="scheduleModalOverlay">
-    <div class="modal" style="max-width:440px">
+    <div class="modal" style="max-width:520px">
       <h3 style="color:#fbbf24">🕐 Stream Schedule</h3>
       <input type="hidden" id="scheduleStreamId">
 
       <div style="margin-top:16px;">
-        <label style="color:#aaa;font-size:13px;display:flex;align-items:center;gap:8px;margin-bottom:16px;cursor:pointer;">
-          <input type="checkbox" id="scheduleEnabled" style="width:18px;height:18px;accent-color:#6366f1;">
-          <span>Enable schedule</span>
-        </label>
-
-        <div style="display:flex;gap:12px;margin-bottom:12px;">
-          <div style="flex:1;">
-            <label style="color:#aaa;font-size:12px;">Start Time</label>
-            <input type="time" id="scheduleStart" style="width:100%;padding:10px;background:#0f0f1a;border:1px solid #2a2a3e;color:#f0f0ff;border-radius:8px;font-size:14px;margin-top:4px;">
-          </div>
-          <div style="flex:1;">
-            <label style="color:#aaa;font-size:12px;">End Time</label>
-            <input type="time" id="scheduleEnd" style="width:100%;padding:10px;background:#0f0f1a;border:1px solid #2a2a3e;color:#f0f0ff;border-radius:8px;font-size:14px;margin-top:4px;">
-          </div>
-        </div>
-
-        <label style="color:#aaa;font-size:12px;">Days</label>
-        <div class="day-checkbox-group">
-          <label><input type="checkbox" name="schedDay" value="mon">Mon</label>
-          <label><input type="checkbox" name="schedDay" value="tue">Tue</label>
-          <label><input type="checkbox" name="schedDay" value="wed">Wed</label>
-          <label><input type="checkbox" name="schedDay" value="thu">Thu</label>
-          <label><input type="checkbox" name="schedDay" value="fri">Fri</label>
-          <label><input type="checkbox" name="schedDay" value="sat">Sat</label>
-          <label><input type="checkbox" name="schedDay" value="sun">Sun</label>
-        </div>
-
         <label style="color:#aaa;font-size:12px;">Timezone</label>
         <select id="scheduleTz" style="width:100%;padding:10px;background:#0f0f1a;border:1px solid #2a2a3e;color:#f0f0ff;border-radius:8px;font-size:14px;margin-top:4px;margin-bottom:16px;">
         </select>
+
+        <div id="scheduleRows"></div>
+
+        <button type="button" onclick="addScheduleRow()" style="width:100%;padding:10px;background:rgba(99,102,241,0.08);border:1px dashed rgba(99,102,241,0.3);color:#818cf8;border-radius:8px;font-size:13px;cursor:pointer;margin-top:8px;margin-bottom:16px;font-family:inherit;">+ Add Another Schedule</button>
       </div>
 
       <div class="modal-actions">
         <button class="btn-cancel" onclick="closeScheduleModal()">Cancel</button>
-        <button class="btn-primary" style="flex:2" onclick="saveSchedule()">Save Schedule</button>
+        <button class="btn-primary" style="flex:2" onclick="saveSchedules()">Save Schedule</button>
       </div>
     </div>
   </div>
@@ -603,7 +589,10 @@
 
       const { data: scheds } = await client.from('stream_schedules').select('*').eq('user_id', currentUser.id);
       streamSchedules = {};
-      if (scheds) scheds.forEach(s => { streamSchedules[s.stream_id] = s; });
+      if (scheds) scheds.forEach(s => {
+        if (!streamSchedules[s.stream_id]) streamSchedules[s.stream_id] = [];
+        streamSchedules[s.stream_id].push(s);
+      });
 
       renderStreams();
       updateStats();
@@ -626,9 +615,10 @@ if (typeof paths === "string") { try { paths = JSON.parse(paths); } catch { path
 if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
         const pathStrings = paths.map(item => typeof item === 'object' && item !== null ? item.path : item).filter(Boolean);
         const videoCount = pathStrings.length;
-        const sched = streamSchedules[s.id];
-        const hasActiveSchedule = sched && sched.enabled;
-        const schedSummary = hasActiveSchedule ? formatScheduleSummary(sched) : '';
+        const scheds = streamSchedules[s.id] || [];
+        const activeScheds = scheds.filter(sc => sc.enabled);
+        const hasActiveSchedule = activeScheds.length > 0;
+        const schedSummaries = activeScheds.map(sc => formatScheduleSummary(sc));
         return `
         <div class="stream-card">
           <div class="stream-name">${s.name}</div>
@@ -642,10 +632,10 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
                 : `<button class="btn-stop" onclick="stopStream('${s.id}')">■ Stop</button>`)
             }
             <button class="btn-edit" onclick="openEditModal('${s.id}')" ${s.status === 'running' ? 'disabled' : ''}>✎ Edit</button>
-            ${!hasActiveSchedule ? `<button class="btn-schedule" onclick="openScheduleModal('${s.id}')">🕐 Schedule</button>` : ''}
+            <button class="btn-schedule" onclick="openScheduleModal('${s.id}')">🕐 Schedule</button>
             <button class="btn-delete" onclick="confirmDelete('${s.id}', '${s.name.replace(/'/g, "\\'")}', '${s.status}')" ${s.status === 'running' ? 'disabled' : ''}>Delete</button>
           </div>
-          ${hasActiveSchedule ? `<div class="schedule-info"><span class="sched-text">🕐 ${schedSummary}</span><button class="sched-edit" onclick="openScheduleModal('${s.id}')" title="Edit schedule">✎</button></div>` : ''}
+          ${hasActiveSchedule ? `<div class="schedule-info"><span class="sched-text">🕐 ${schedSummaries.join('<br>🕐 ')}</span><button class="sched-edit" onclick="openScheduleModal('${s.id}')" title="Edit schedule">✎</button></div>` : ''}
           <div style="font-size:11px;color:#f87171;margin-top:8px;min-height:16px" id="err-${s.id}"></div>
         </div>`;
       }).join('')}
@@ -1106,25 +1096,63 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       });
     })();
 
+    let scheduleRowCounter = 0;
+
+    function buildScheduleRowHTML(idx, data) {
+      const id = 'sr_' + idx;
+      const start = data ? (data.start_time || '08:00').slice(0, 5) : '08:00';
+      const end = data ? (data.end_time || '23:00').slice(0, 5) : '23:00';
+      const days = data ? (data.days || []) : [];
+      const enabled = data ? !!data.enabled : true;
+      const dbId = data?.id || '';
+      const dayBoxes = ['mon','tue','wed','thu','fri','sat','sun'].map(d =>
+        `<label><input type="checkbox" name="${id}_day" value="${d}" ${days.includes(d) ? 'checked' : ''}>${d.charAt(0).toUpperCase()+d.slice(1)}</label>`
+      ).join('');
+      return `<div class="sched-row" data-idx="${idx}" data-db-id="${dbId}">
+        <div class="sched-row-header">
+          <label style="color:#aaa;font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <input type="checkbox" name="${id}_enabled" ${enabled ? 'checked' : ''} style="width:16px;height:16px;accent-color:#6366f1;">
+            <span>Enabled</span>
+          </label>
+          <button type="button" class="sched-row-remove" onclick="removeScheduleRow(this)" title="Remove">✕</button>
+        </div>
+        <div class="time-row">
+          <div><label>Start</label><input type="time" name="${id}_start" value="${start}"></div>
+          <div><label>End</label><input type="time" name="${id}_end" value="${end}"></div>
+        </div>
+        <div class="day-checkbox-group">${dayBoxes}</div>
+      </div>`;
+    }
+
+    function addScheduleRow(data) {
+      const container = document.getElementById('scheduleRows');
+      const idx = scheduleRowCounter++;
+      container.insertAdjacentHTML('beforeend', buildScheduleRowHTML(idx, data || null));
+    }
+
+    function removeScheduleRow(btn) {
+      const row = btn.closest('.sched-row');
+      if (document.querySelectorAll('#scheduleRows .sched-row').length <= 1) {
+        toast('At least one schedule row is required. Uncheck "Enabled" to disable.', 'error');
+        return;
+      }
+      row.remove();
+    }
+
     async function openScheduleModal(streamId) {
       document.getElementById('scheduleStreamId').value = streamId;
-      document.getElementById('scheduleEnabled').checked = false;
-      document.getElementById('scheduleStart').value = '08:00';
-      document.getElementById('scheduleEnd').value = '23:00';
-      document.querySelectorAll('input[name="schedDay"]').forEach(cb => cb.checked = false);
+      document.getElementById('scheduleRows').innerHTML = '';
+      scheduleRowCounter = 0;
 
       const { data } = await client.from('stream_schedules')
-        .select('*').eq('stream_id', streamId).single();
+        .select('*').eq('stream_id', streamId).order('start_time', { ascending: true });
 
-      if (data) {
-        document.getElementById('scheduleEnabled').checked = !!data.enabled;
-        document.getElementById('scheduleStart').value = (data.start_time || '08:00').slice(0, 5);
-        document.getElementById('scheduleEnd').value = (data.end_time || '23:00').slice(0, 5);
-        document.getElementById('scheduleTz').value = data.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const days = data.days || [];
-        document.querySelectorAll('input[name="schedDay"]').forEach(cb => {
-          cb.checked = days.includes(cb.value);
-        });
+      if (data && data.length > 0) {
+        const tz = data[0].timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+        document.getElementById('scheduleTz').value = tz;
+        data.forEach(row => addScheduleRow(row));
+      } else {
+        addScheduleRow();
       }
 
       document.getElementById('scheduleModalOverlay').classList.add('active');
@@ -1134,37 +1162,68 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       document.getElementById('scheduleModalOverlay').classList.remove('active');
     }
 
-    async function saveSchedule() {
+    async function saveSchedules() {
       const streamId = document.getElementById('scheduleStreamId').value;
-      const enabled = document.getElementById('scheduleEnabled').checked;
-      const start_time = document.getElementById('scheduleStart').value + ':00';
-      const end_time = document.getElementById('scheduleEnd').value + ':00';
       const timezone = document.getElementById('scheduleTz').value;
-      const days = [...document.querySelectorAll('input[name="schedDay"]:checked')].map(cb => cb.value);
+      const rows = document.querySelectorAll('#scheduleRows .sched-row');
+      const newSchedules = [];
 
-      if (enabled && days.length === 0) { toast('Please select at least one day.', 'error'); return; }
+      for (const row of rows) {
+        const idx = row.dataset.idx;
+        const dbId = row.dataset.dbId || null;
+        const enabled = row.querySelector(`[name="sr_${idx}_enabled"]`).checked;
+        const start_time = row.querySelector(`[name="sr_${idx}_start"]`).value + ':00';
+        const end_time = row.querySelector(`[name="sr_${idx}_end"]`).value + ':00';
+        const days = [...row.querySelectorAll(`[name="sr_${idx}_day"]:checked`)].map(cb => cb.value);
 
-      const payload = {
-        stream_id: streamId,
-        user_id: currentUser.id,
-        start_time, end_time, days, timezone, enabled
-      };
+        if (enabled && days.length === 0) {
+          toast('Each enabled schedule must have at least one day selected.', 'error');
+          return;
+        }
 
-      const { data: existing } = await client.from('stream_schedules')
-        .select('id').eq('stream_id', streamId).single();
-
-      let error;
-      if (existing) {
-        ({ error } = await client.from('stream_schedules').update(payload).eq('id', existing.id));
-      } else {
-        ({ error } = await client.from('stream_schedules').insert(payload));
+        newSchedules.push({ dbId, stream_id: streamId, user_id: currentUser.id, start_time, end_time, days, timezone, enabled });
       }
 
-      if (error) { toast('Failed to save schedule: ' + error.message, 'error'); return; }
-      toast(enabled ? '✅ Schedule saved' : 'Schedule disabled', 'success');
+      // Get existing DB IDs for this stream
+      const { data: existing } = await client.from('stream_schedules')
+        .select('id').eq('stream_id', streamId);
+      const existingIds = (existing || []).map(e => e.id);
+      const keepIds = newSchedules.map(s => s.dbId).filter(Boolean);
+      const deleteIds = existingIds.filter(id => !keepIds.includes(id));
+
+      // Delete removed rows
+      for (const id of deleteIds) {
+        await client.from('stream_schedules').delete().eq('id', id);
+      }
+
+      // Upsert remaining
+      const savedSchedules = [];
+      for (const sched of newSchedules) {
+        const payload = {
+          stream_id: sched.stream_id,
+          user_id: sched.user_id,
+          start_time: sched.start_time,
+          end_time: sched.end_time,
+          days: sched.days,
+          timezone: sched.timezone,
+          enabled: sched.enabled
+        };
+        let error, data;
+        if (sched.dbId) {
+          ({ error } = await client.from('stream_schedules').update(payload).eq('id', sched.dbId));
+          if (!error) savedSchedules.push({ ...payload, id: sched.dbId });
+        } else {
+          ({ data, error } = await client.from('stream_schedules').insert(payload).select().single());
+          if (!error && data) savedSchedules.push(data);
+        }
+        if (error) { toast('Failed to save schedule: ' + error.message, 'error'); return; }
+      }
+
+      const activeCount = savedSchedules.filter(s => s.enabled).length;
+      toast(activeCount > 0 ? `✅ ${activeCount} schedule(s) saved` : 'All schedules disabled', 'success');
       closeScheduleModal();
-      if (enabled) { streamSchedules[streamId] = { ...payload, id: existing?.id }; }
-      else { delete streamSchedules[streamId]; }
+
+      streamSchedules[streamId] = savedSchedules;
       renderStreams();
     }
 

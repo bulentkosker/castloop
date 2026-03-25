@@ -1,8 +1,8 @@
 require('dotenv').config({ path: '/root/.env' });
-const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = 'https://pdttjblnvxoitskhdtro.supabase.co';
-const supabase = createClient(SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const SB_HEADERS = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` };
 
 const API_KEY = 'castloop-secret-2024';
 const DEFAULT_API_URL = 'http://localhost:3000';
@@ -28,6 +28,20 @@ function parseVideoPaths(raw) {
   return [];
 }
 
+async function sbGet(table, query) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, { headers: SB_HEADERS });
+  return res.json();
+}
+
+async function sbUpdate(table, query, body) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
+    method: 'PATCH',
+    headers: { ...SB_HEADERS, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+    body: JSON.stringify(body)
+  });
+  return res.ok;
+}
+
 async function apiCall(url, endpoint, body) {
   const resp = await fetch(`${url}${endpoint}`, {
     method: 'POST',
@@ -40,45 +54,61 @@ async function apiCall(url, endpoint, body) {
 async function tick() {
   const now = new Date();
 
-  const { data: schedules, error } = await supabase
-    .from('stream_schedules')
-    .select('*, streams:stream_id(id, rtmp_url, stream_key, video_paths, status, server_id)')
-    .eq('enabled', true);
+  let schedules;
+  try {
+    schedules = await sbGet('stream_schedules', 'enabled=eq.true&select=*');
+  } catch (e) { console.error('[scheduler] Schedules fetch error:', e.message); return; }
 
-  if (error) { console.error('[scheduler] Query error:', error.message); return; }
-  if (!schedules || !schedules.length) return;
+  if (!Array.isArray(schedules) || !schedules.length) return;
 
+  // Group schedules by stream_id
+  const schedulesByStream = {};
   for (const sched of schedules) {
-    const stream = sched.streams;
+    if (!sched.stream_id) continue;
+    if (!schedulesByStream[sched.stream_id]) schedulesByStream[sched.stream_id] = [];
+    schedulesByStream[sched.stream_id].push(sched);
+  }
+
+  const streamIds = Object.keys(schedulesByStream);
+  if (!streamIds.length) return;
+
+  let streams;
+  try {
+    streams = await sbGet('streams', `id=in.(${streamIds.join(',')})&select=id,rtmp_url,stream_key,video_paths,status,server_id`);
+  } catch (e) { console.error('[scheduler] Streams fetch error:', e.message); return; }
+
+  const streamMap = {};
+  if (Array.isArray(streams)) streams.forEach(s => { streamMap[s.id] = s; });
+
+  for (const streamId of streamIds) {
+    const stream = streamMap[streamId];
     if (!stream) continue;
 
-    const tz = sched.timezone || 'UTC';
-    const day = getDayName(now, tz);
-    const currentTime = getTimeInTz(now, tz);
+    const streamScheds = schedulesByStream[streamId];
 
-    if (!sched.days || !sched.days.includes(day)) {
-      // Not a scheduled day — if stream is running and was started by scheduler, stop it
-      if (stream.status === 'running') {
-        console.log(`[scheduler] ${stream.id}: Not a scheduled day (${day}), stopping.`);
-        try {
-          const apiUrl = stream.server_id ? await getServerApiUrl(stream.server_id) : DEFAULT_API_URL;
-          await apiCall(apiUrl, '/stop', { streamId: stream.id });
-          await supabase.from('streams').update({ status: 'stopped' }).eq('id', stream.id);
-        } catch (e) { console.error(`[scheduler] Stop error ${stream.id}:`, e.message); }
+    // Check if ANY schedule is currently active for this stream
+    let anyActive = false;
+    for (const sched of streamScheds) {
+      const tz = sched.timezone || 'UTC';
+      const day = getDayName(now, tz);
+      const currentTime = getTimeInTz(now, tz);
+
+      if (!sched.days || !sched.days.includes(day)) continue;
+
+      const startTime = sched.start_time || '00:00:00';
+      const endTime = sched.end_time || '23:59:59';
+
+      if (currentTime >= startTime && currentTime < endTime) {
+        anyActive = true;
+        break;
       }
-      continue;
     }
 
-    const startTime = sched.start_time || '00:00:00';
-    const endTime = sched.end_time || '23:59:59';
-    const inWindow = currentTime >= startTime && currentTime < endTime;
-
-    if (inWindow && stream.status !== 'running') {
-      // Should be running but isn't — start it
+    if (anyActive && stream.status !== 'running') {
       const videoPaths = parseVideoPaths(stream.video_paths);
       if (!videoPaths.length) { console.log(`[scheduler] ${stream.id}: No video paths, skipping.`); continue; }
 
-      console.log(`[scheduler] ${stream.id}: Starting (${currentTime} in ${startTime}-${endTime}, ${tz})`);
+      console.log(`[scheduler] ${stream.id}: Starting (schedule window active)`);
       try {
         const apiUrl = stream.server_id ? await getServerApiUrl(stream.server_id) : DEFAULT_API_URL;
         await apiCall(apiUrl, '/start', {
@@ -87,28 +117,23 @@ async function tick() {
           streamKey: stream.stream_key,
           videoPaths
         });
-        await supabase.from('streams').update({ status: 'running' }).eq('id', stream.id);
+        await sbUpdate('streams', `id=eq.${stream.id}`, { status: 'running' });
       } catch (e) { console.error(`[scheduler] Start error ${stream.id}:`, e.message); }
 
-    } else if (!inWindow && stream.status === 'running') {
-      // Outside window but running — stop it
-      console.log(`[scheduler] ${stream.id}: Stopping (${currentTime} outside ${startTime}-${endTime}, ${tz})`);
+    } else if (!anyActive && stream.status === 'running') {
+      console.log(`[scheduler] ${stream.id}: Stopping (no schedule window active)`);
       try {
         const apiUrl = stream.server_id ? await getServerApiUrl(stream.server_id) : DEFAULT_API_URL;
         await apiCall(apiUrl, '/stop', { streamId: stream.id });
-        await supabase.from('streams').update({ status: 'stopped' }).eq('id', stream.id);
+        await sbUpdate('streams', `id=eq.${stream.id}`, { status: 'stopped' });
       } catch (e) { console.error(`[scheduler] Stop error ${stream.id}:`, e.message); }
     }
   }
 }
 
 async function getServerApiUrl(serverId) {
-  const { data } = await supabase
-    .from('servers')
-    .select('api_url')
-    .eq('id', serverId)
-    .single();
-  return data?.api_url || DEFAULT_API_URL;
+  const rows = await sbGet('servers', `id=eq.${serverId}&select=api_url&limit=1`);
+  return (Array.isArray(rows) && rows[0]?.api_url) || DEFAULT_API_URL;
 }
 
 // Run every 60 seconds
