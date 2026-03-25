@@ -5,104 +5,483 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Castloop - Login</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%20100%20100%27%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%25%27%20y1%3D%270%25%27%20x2%3D%27100%25%27%20y2%3D%27100%25%27%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%270%25%27%20style%3D%27stop-color%3A%25236366f1%27/%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%27100%25%27%20style%3D%27stop-color%3A%2523818cf8%27/%3E%0A%20%20%20%20%3C/linearGradient%3E%0A%20%20%3C/defs%3E%0A%20%20%3Crect%20width%3D%27100%27%20height%3D%27100%27%20rx%3D%2722%27%20fill%3D%27url%28%2523g%29%27/%3E%0A%20%20%3Cpath%20d%3D%27M20%2050%20Q32%2028%2050%2050%20Q68%2072%2080%2050%27%20stroke%3D%27white%27%20stroke-width%3D%277%27%20fill%3D%27none%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27/%3E%0A%20%20%3Ccircle%20cx%3D%2750%27%20cy%3D%2750%27%20r%3D%277%27%20fill%3D%27white%27/%3E%0A%20%20%3Ccircle%20cx%3D%2720%27%20cy%3D%2750%27%20r%3D%274%27%20fill%3D%27white%27%20opacity%3D%270.7%27/%3E%0A%20%20%3Ccircle%20cx%3D%2780%27%20cy%3D%2750%27%20r%3D%274%27%20fill%3D%27white%27%20opacity%3D%270.7%27/%3E%0A%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
+    :root {
+      --bg: #080810;
+      --bg2: #0f0f1a;
+      --bg3: #1a1a2e;
+      --border: #1e1e35;
+      --accent: #6366f1;
+      --accent2: #818cf8;
+      --accent-glow: rgba(99,102,241,0.15);
+      --text: #f0f0ff;
+      --muted: #6b6b8a;
+      --green: #34d399;
+      --red: #f87171;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #0f0f1a;
-      color: #fff;
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
       height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Layout ─────────────────────────────────── */
+    .login-wrapper {
+      display: flex;
+      height: 100vh;
+    }
+
+    /* ── Left Panel ─────────────────────────────── */
+    .left-panel {
+      flex: 1;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 60px;
+      overflow: hidden;
+      background: linear-gradient(135deg, #080810 0%, #0f0f1a 40%, #1a1035 100%);
+    }
+    .left-panel::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background:
+        radial-gradient(ellipse at 20% 50%, rgba(99,102,241,0.12) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 20%, rgba(129,140,248,0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 60% 80%, rgba(99,102,241,0.06) 0%, transparent 50%);
+      animation: gradientShift 12s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+    @keyframes gradientShift {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(2%, -1%) rotate(1deg); }
+      66% { transform: translate(-1%, 2%) rotate(-1deg); }
+      100% { transform: translate(1%, -2%) rotate(0.5deg); }
+    }
+
+    /* Floating particles */
+    .particles {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      background: var(--accent);
+      opacity: 0;
+      animation: particleFloat linear infinite;
+    }
+    @keyframes particleFloat {
+      0% { opacity: 0; transform: translateY(100vh) scale(0); }
+      10% { opacity: 0.6; }
+      90% { opacity: 0.6; }
+      100% { opacity: 0; transform: translateY(-10vh) scale(1); }
+    }
+
+    .left-content {
+      position: relative;
+      z-index: 2;
+      max-width: 480px;
+    }
+    .left-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      margin-bottom: 48px;
+    }
+    .left-logo .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    .container {
-      background: #1a1a2e;
+    .left-logo .logo-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+    .left-logo span {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .left-headline {
+      font-size: 44px;
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, var(--text) 0%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .left-sub {
+      font-size: 16px;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 40px;
+    }
+    .feature-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 15px;
+      color: rgba(240,240,255,0.85);
+    }
+    .feature-check {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: rgba(99,102,241,0.12);
+      border: 1px solid rgba(99,102,241,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--accent2);
+      font-size: 14px;
+    }
+
+    /* Stats bar */
+    .stats-bar {
+      display: flex;
+      gap: 32px;
+      margin-top: 48px;
+      padding-top: 32px;
+      border-top: 1px solid rgba(99,102,241,0.12);
+    }
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .stat-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--accent2);
+    }
+    .stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Right Panel ────────────────────────────── */
+    .right-panel {
+      width: 480px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       padding: 40px;
-      border-radius: 16px;
+      background: var(--bg2);
+      border-left: 1px solid var(--border);
+      position: relative;
+    }
+    .right-panel::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 0%, rgba(99,102,241,0.06) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .form-container {
       width: 100%;
-      max-width: 400px;
-      box-shadow: 0 0 40px rgba(99, 102, 241, 0.15);
+      max-width: 360px;
+      position: relative;
+      z-index: 2;
     }
-    .logo { text-align: center; margin-bottom: 32px; }
-    .logo h1 { font-size: 28px; font-weight: 700; color: #6366f1; }
-    .logo p { color: #888; font-size: 14px; margin-top: 4px; }
-    .form-group { margin-bottom: 16px; }
-    label { display: block; font-size: 13px; color: #aaa; margin-bottom: 6px; }
-    input {
-      width: 100%; padding: 12px 16px;
-      background: #0f0f1a; border: 1px solid #2a2a3e;
-      border-radius: 8px; color: #fff; font-size: 14px;
-      outline: none; transition: border 0.2s;
+    .form-header {
+      text-align: center;
+      margin-bottom: 32px;
     }
-    input:focus { border-color: #6366f1; }
-    button {
-      width: 100%; padding: 13px; background: #6366f1;
-      color: #fff; border: none; border-radius: 8px;
-      font-size: 15px; font-weight: 600; cursor: pointer;
-      margin-top: 8px; transition: background 0.2s;
+    .form-header h2 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
     }
-    button:hover { background: #4f46e5; }
+    .form-header p {
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border 0.2s, box-shadow 0.2s;
+    }
+    .form-group input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    .form-group input::placeholder {
+      color: var(--muted);
+      opacity: 0.5;
+    }
+    .btn-primary {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, var(--accent), #4f46e5);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(99,102,241,0.4);
+    }
+    .btn-primary:active { transform: translateY(0); }
     .divider {
-      display: flex; align-items: center; gap: 12px; margin: 20px 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 24px 0;
     }
     .divider::before, .divider::after {
-      content: ''; flex: 1; height: 1px; background: #2a2a3e;
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
     }
-    .divider span { color: #555; font-size: 12px; }
+    .divider span {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
     .btn-google {
-      width: 100%; padding: 13px; background: #fff; color: #333;
-      border: none; border-radius: 8px; font-size: 15px; font-weight: 600;
-      cursor: pointer; display: flex; align-items: center;
-      justify-content: center; gap: 10px; transition: background 0.2s;
+      width: 100%;
+      padding: 13px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.2s;
     }
-    .btn-google:hover { background: #f1f1f1; }
-    .btn-google svg { width: 20px; height: 20px; }
-    .toggle { text-align: center; margin-top: 20px; font-size: 13px; color: #888; }
-    .toggle a { color: #6366f1; cursor: pointer; text-decoration: none; }
-    .message { text-align: center; font-size: 13px; margin-top: 12px; min-height: 20px; color: #f87171; }
-    .message.success { color: #34d399; }
+    .btn-google:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(99,102,241,0.3);
+    }
+    .btn-google svg { width: 18px; height: 18px; }
+    .toggle {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .toggle a {
+      color: var(--accent2);
+      cursor: pointer;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .toggle a:hover { color: var(--accent); }
+    .message {
+      text-align: center;
+      font-size: 13px;
+      margin-top: 12px;
+      min-height: 20px;
+      color: var(--red);
+    }
+    .message.success { color: var(--green); }
+
+    /* ── Mobile ─────────────────────────────────── */
+    @media (max-width: 900px) {
+      .login-wrapper { flex-direction: column; }
+      .left-panel {
+        flex: none;
+        padding: 40px 24px 32px;
+        min-height: auto;
+      }
+      .left-headline { font-size: 28px; }
+      .left-sub { margin-bottom: 24px; font-size: 14px; }
+      .feature-list { flex-direction: row; flex-wrap: wrap; gap: 12px; }
+      .feature-item { font-size: 13px; gap: 8px; }
+      .feature-check { width: 22px; height: 22px; font-size: 12px; border-radius: 6px; }
+      .stats-bar { margin-top: 24px; padding-top: 20px; gap: 24px; }
+      .stat-value { font-size: 18px; }
+      .right-panel {
+        width: 100%;
+        flex: 1;
+        border-left: none;
+        border-top: 1px solid var(--border);
+        padding: 32px 24px;
+      }
+    }
+    @media (max-width: 480px) {
+      .stats-bar { display: none; }
+      .left-logo { margin-bottom: 24px; }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="logo">
-      <h1>Castloop</h1>
-      <p>24/7 Live Stream Platform</p>
+  <div class="login-wrapper">
+    <!-- Left Panel -->
+    <div class="left-panel">
+      <div class="particles" id="particles"></div>
+      <div class="left-content">
+        <a href="index.html" class="left-logo">
+          <div class="logo-icon">
+            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 50 Q32 28 50 50 Q68 72 80 50" stroke="white" stroke-width="8" fill="none" stroke-linecap="round"/>
+              <circle cx="50" cy="50" r="7" fill="white"/>
+            </svg>
+          </div>
+          <span>Castloop</span>
+        </a>
+
+        <h1 class="left-headline">Stream 24/7<br>Without Lifting<br>a Finger</h1>
+        <p class="left-sub">Upload your videos once and go live on every platform — forever. No hardware, no babysitting, no downtime.</p>
+
+        <div class="feature-list">
+          <div class="feature-item">
+            <div class="feature-check">&#10003;</div>
+            All platforms — YouTube, Twitch, Facebook & more
+          </div>
+          <div class="feature-item">
+            <div class="feature-check">&#10003;</div>
+            Auto-restart — streams recover from any interruption
+          </div>
+          <div class="feature-item">
+            <div class="feature-check">&#10003;</div>
+            Smart playlists — shuffle, schedule & loop content
+          </div>
+          <div class="feature-item">
+            <div class="feature-check">&#10003;</div>
+            No OBS or PC required — fully cloud-powered
+          </div>
+        </div>
+
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-value">10K+</span>
+            <span class="stat-label">Active Streams</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">99.9%</span>
+            <span class="stat-label">Uptime</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">150+</span>
+            <span class="stat-label">Countries</span>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div class="form-group">
-      <label>Email</label>
-      <input type="email" id="email" placeholder="you@example.com">
+    <!-- Right Panel -->
+    <div class="right-panel">
+      <div class="form-container">
+        <div class="form-header">
+          <h2>Welcome back</h2>
+          <p>Sign in to your Castloop account</p>
+        </div>
+
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="email" placeholder="you@example.com">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="password" placeholder="Enter your password">
+        </div>
+
+        <button class="btn-primary" onclick="handleAuth()" id="authBtn">Sign In</button>
+
+        <div class="divider"><span>or</span></div>
+
+        <button class="btn-google" onclick="signInWithGoogle()">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+          </svg>
+          Continue with Google
+        </button>
+
+        <div class="toggle">
+          No account? <a onclick="toggleMode()">Sign up free</a>
+        </div>
+
+        <div class="message" id="message"></div>
+      </div>
     </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input type="password" id="password" placeholder="••••••••">
-    </div>
-
-    <button onclick="handleAuth()" id="authBtn">Sign In</button>
-
-    <div class="divider"><span>or</span></div>
-
-    <button class="btn-google" onclick="signInWithGoogle()">
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-      </svg>
-      Continue with Google
-    </button>
-
-    <div class="toggle">
-      No account? <a onclick="toggleMode()">Sign up free</a>
-    </div>
-
-    <div class="message" id="message"></div>
   </div>
 
   <script>
+    // ── Particles ──────────────────────────────────
+    (function() {
+      const container = document.getElementById('particles');
+      for (let i = 0; i < 20; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        const size = Math.random() * 4 + 2;
+        p.style.width = size + 'px';
+        p.style.height = size + 'px';
+        p.style.left = Math.random() * 100 + '%';
+        p.style.animationDuration = (Math.random() * 12 + 8) + 's';
+        p.style.animationDelay = (Math.random() * 10) + 's';
+        p.style.opacity = 0;
+        container.appendChild(p);
+      }
+    })();
+
+    // ── Auth ───────────────────────────────────────
     const SUPABASE_URL = 'https://pdttjblnvxoitskhdtro.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_vxcNOoezd_FKxKWmWj-rZQ_w3IrSMaG';
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -112,6 +491,10 @@
     function toggleMode() {
       isSignUp = !isSignUp;
       document.getElementById('authBtn').textContent = isSignUp ? 'Sign Up' : 'Sign In';
+      document.querySelector('.form-header h2').textContent = isSignUp ? 'Create account' : 'Welcome back';
+      document.querySelector('.form-header p').textContent = isSignUp
+        ? 'Start streaming in minutes'
+        : 'Sign in to your Castloop account';
       document.querySelector('.toggle').innerHTML = isSignUp
         ? 'Already have an account? <a onclick="toggleMode()">Sign in</a>'
         : 'No account? <a onclick="toggleMode()">Sign up free</a>';
