@@ -877,6 +877,11 @@
 
     async function uploadVideo(file) {
       if (!file) return;
+      if (currentUploadXhr && currentUploadXhr.readyState !== XMLHttpRequest.DONE) {
+        currentUploadXhr.onabort = null;
+        currentUploadXhr.abort();
+        currentUploadXhr = null;
+      }
       const progressContainer = document.getElementById('progressContainer');
       const progressFill = document.getElementById('progressFill');
       const progressPercent = document.getElementById('progressPercent');
