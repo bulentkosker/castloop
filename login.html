@@ -44,8 +44,8 @@
       position: relative;
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      padding: 0 48px;
+      justify-content: flex-start;
+      padding: 60px 48px 40px;
       overflow: hidden;
       background: linear-gradient(135deg, #080810 0%, #0f0f1a 40%, #1a1035 100%);
     }
@@ -404,7 +404,19 @@
     <div class="right-panel">
       <div class="form-container">
         <div class="form-lang">
-          <select class="lang-select" onchange="setLang(this.value)"></select>
+          <select class="lang-select" onchange="setLang(this.value)">
+            <option value="en">🌐 EN</option>
+            <option value="tr">🇹🇷 TR</option>
+            <option value="ar">🇸🇦 AR</option>
+            <option value="hi">🇮🇳 HI</option>
+            <option value="id">🇮🇩 ID</option>
+            <option value="ja">🇯🇵 JA</option>
+            <option value="pt">🇧🇷 PT</option>
+            <option value="es">🇪🇸 ES</option>
+            <option value="ru">🇷🇺 RU</option>
+            <option value="ko">🇰🇷 KO</option>
+            <option value="fr">🇫🇷 FR</option>
+          </select>
         </div>
         <div class="form-header">
           <h2>Welcome back</h2>
