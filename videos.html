@@ -62,6 +62,7 @@
       background: transparent; width: 100%; text-align: left; font-family: inherit;
     }
     .dropdown-item:hover { background: rgba(99,102,241,0.08); }
+    a.dropdown-item { text-decoration: none; color: var(--text); }
     .dropdown-item.danger { color: var(--red); }
     .dropdown-item.danger:hover { background: rgba(248,113,113,0.08); }
     .dropdown-item .d-icon { font-size: 15px; width: 20px; text-align: center; }
@@ -263,10 +264,26 @@
           <div class="dropdown-header">
             <div class="d-email" id="dropEmail">—</div>
           </div>
+          <a href="profile.html" class="dropdown-item" onclick="closeUserMenu()">
+            <span class="d-icon">👤</span>
+            Profile Settings
+          </a>
+          <a href="pricing.html" class="dropdown-item" onclick="closeUserMenu()">
+            <span class="d-icon">🎯</span>
+            Upgrade Plan
+          </a>
           <button class="dropdown-item" onclick="toggleTheme(); closeUserMenu()">
             <span class="d-icon" id="themeIcon">🌙</span>
             <span id="themeLabel">Dark Mode</span>
           </button>
+          <a href="billing.html" class="dropdown-item" onclick="closeUserMenu()">
+            <span class="d-icon">📊</span>
+            Usage &amp; Billing
+          </a>
+          <a href="help.html" class="dropdown-item" onclick="closeUserMenu()">
+            <span class="d-icon">📚</span>
+            Help &amp; Documentation
+          </a>
           <div class="dropdown-divider"></div>
           <button class="dropdown-item danger" onclick="logout()">
             <span class="d-icon">🚪</span>
