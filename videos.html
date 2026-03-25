@@ -13,96 +13,45 @@
     /* Inter loaded in head */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'DM Sans', 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; transition: background 0.3s, color 0.3s; }
-    :root { --bg:#080810; --bg2:#0f0f1a; --bg3:#1a1a2e; --border:#1e1e35; --accent:#6366f1; --accent2:#818cf8; --text:#f0f0ff; --muted:#6b6b8a; --green:#34d399; --red:#f87171; }
-    [data-theme="light"] { --bg:#f4f4ff; --bg2:#ffffff; --bg3:#eeeeff; --border:#ddddf0; --accent:#6366f1; --accent2:#4f46e5; --text:#1a1a2e; --muted:#6b6b8a; --green:#059669; --red:#dc2626; }
+    :root { --bg:#080810; --bg2:#0f0f1a; --bg3:#1a1a2e; --border:#1e1e35; --accent:#6366f1; --accent2:#818cf8; --text:#f0f0ff; --muted:#6b6b8a; --green:#34d399; --red:#f87171; --sidebar-w:240px; }
+    [data-theme="light"] { --bg:#f5f5ff; --bg2:#ffffff; --bg3:#eeeeff; --border:#ddddf0; --accent:#6366f1; --accent2:#4f46e5; --text:#1a1a2e; --muted:#6b6b8a; --green:#059669; --red:#dc2626; }
 
-    .navbar {
-      background: rgba(8,8,16,0.85);
-      padding: 0 32px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--border);
-      height: 60px;
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      backdrop-filter: blur(20px);
+    /* ── Sidebar Layout ── */
+    .app-layout { display: flex; min-height: 100vh; }
+    .sidebar { width: var(--sidebar-w); background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; top: 0; bottom: 0; left: 0; z-index: 60; }
+    .sidebar-logo { padding: 24px 24px 28px; }
+    .sidebar-logo a { font-family: 'Figtree', sans-serif; font-size: 22px; font-weight: 800; color: var(--accent2); text-decoration: none; letter-spacing: -0.5px; }
+    .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 2px; padding: 0 12px; }
+    .sidebar-link { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; font-size: 14px; font-weight: 500; color: var(--muted); text-decoration: none; transition: all 0.15s; }
+    .sidebar-link:hover { background: rgba(99,102,241,0.06); color: var(--text); }
+    .sidebar-link.active { background: rgba(99,102,241,0.1); color: var(--accent2); font-weight: 600; }
+    .sl-icon { font-size: 16px; width: 22px; text-align: center; }
+    .sidebar-bottom { padding: 16px 12px; border-top: 1px solid var(--border); }
+    .sidebar-user { position: relative; }
+    .sidebar-user-btn { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; font-family: inherit; font-size: 13px; transition: all 0.15s; }
+    .sidebar-user-btn:hover { border-color: rgba(99,102,241,0.3); background: rgba(99,102,241,0.04); }
+    .sidebar-user-btn .avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+    .sidebar-user-info { flex: 1; text-align: left; overflow: hidden; }
+    .sidebar-user-email { display: block; font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sidebar-user-plan { display: block; font-size: 11px; color: var(--accent2); font-weight: 600; }
+    .sidebar-user-btn .chevron { color: var(--muted); font-size: 9px; flex-shrink: 0; }
+    .user-dropdown { position: absolute; bottom: calc(100% + 8px); left: 0; right: 0; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; z-index: 200; box-shadow: 0 -8px 24px rgba(0,0,0,0.4); opacity: 0; pointer-events: none; transform: translateY(8px); transition: all 0.15s; }
+    .sidebar-user.open .user-dropdown { opacity: 1; pointer-events: all; transform: translateY(0); }
+    .main-content { margin-left: var(--sidebar-w); flex: 1; min-height: 100vh; }
+    /* Responsive: mobile sidebar */
+    @media (max-width: 768px) {
+      .sidebar { width: 60px; overflow: hidden; }
+      .sidebar-logo a { font-size: 0; }
+      .sidebar-logo a::first-letter { font-size: 22px; }
+      .sidebar-link span:not(.sl-icon) { display: none; }
+      .sidebar-link { justify-content: center; padding: 10px; }
+      .sl-icon { margin: 0; }
+      .sidebar-user-info, .sidebar-user-btn .chevron { display: none; }
+      .sidebar-user-btn { justify-content: center; padding: 10px; }
+      .main-content { margin-left: 60px; }
+      :root { --sidebar-w: 60px; }
     }
-    .navbar h1 {
-      font-family: 'Figtree', sans-serif;
-      font-size: 22px;
-      font-weight: 800;
-      color: var(--accent2);
-      letter-spacing: -0.5px;
-      flex-shrink: 0;
-    }
-    .nav-links {
-      display: flex;
-      align-items: stretch;
-      gap: 0;
-      height: 100%;
-      margin: 0 24px;
-    }
-    .nav-links a {
-      color: var(--muted);
-      text-decoration: none;
-      font-size: 13px;
-      font-weight: 500;
-      padding: 0 16px;
-      display: flex;
-      align-items: center;
-      border-bottom: 2px solid transparent;
-      transition: color 0.15s, border-color 0.15s;
-      white-space: nowrap;
-    }
-    .nav-links a:hover { color: var(--text); border-color: var(--border); }
-    .nav-links a.active { color: var(--accent2); border-color: var(--accent); }
-
-    .navbar .user-info { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
-    .navbar .user-email { color: var(--muted); font-size: 12px; min-width: 140px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; }
-    .navbar button {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--muted);
-      padding: 6px 14px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 500;
-      transition: all 0.15s;
-      white-space: nowrap;
-      font-family: inherit;
-    }
-    .navbar button:hover { border-color: var(--accent); color: var(--text); }
-    /* User dropdown */
-    .user-menu { position: relative; }
-    .user-menu-btn {
-      display: flex; align-items: center; gap: 8px;
-      cursor: pointer; padding: 6px 12px; border-radius: 8px;
-      border: 1px solid var(--border); background: transparent;
-      color: var(--text); font-size: 13px; font-family: inherit;
-      transition: all 0.15s; white-space: nowrap; max-width: 200px;
-    }
-    .user-menu-btn:hover { border-color: var(--accent); background: rgba(99,102,241,0.05); }
-    .user-menu-btn .avatar {
-      width: 26px; height: 26px; border-radius: 50%;
-      background: var(--accent); color: #fff;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 11px; font-weight: 700; flex-shrink: 0;
-    }
-    .user-menu-btn .email-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .user-menu-btn .chevron { color: var(--muted); font-size: 10px; flex-shrink: 0; transition: transform 0.2s; }
-    .user-menu.open .chevron { transform: rotate(180deg); }
-    .user-dropdown {
-      position: absolute; top: calc(100% + 8px); right: 0;
-      background: var(--bg2); border: 1px solid var(--border);
-      border-radius: 10px; min-width: 200px; z-index: 200;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-      opacity: 0; pointer-events: none; transform: translateY(-8px);
-      transition: all 0.15s;
-    }
-    .user-menu.open .user-dropdown { opacity: 1; pointer-events: all; transform: translateY(0); }
+    /* Dropdown items kept for sidebar */
     .dropdown-header { padding: 12px 16px; border-bottom: 1px solid var(--border); }
     .dropdown-header .d-email { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .dropdown-header .d-plan { font-size: 11px; color: var(--accent2); font-weight: 600; margin-top: 2px; }
@@ -118,13 +67,8 @@
     .dropdown-item .d-icon { font-size: 15px; width: 20px; text-align: center; }
     .dropdown-divider { height: 1px; background: var(--border); margin: 4px 0; }
 
-    .theme-toggle { padding: 6px 10px !important; font-size: 15px !important; }
-
     @media (max-width: 600px) {
-      .navbar { padding: 0 16px; }
-      .navbar .user-email { display: none; }
-      .nav-links { margin: 0 8px; }
-      .nav-links a { padding: 0 10px; font-size: 12px; }
+      .main { padding: 20px 16px; }
     }
     .main { padding: 32px; max-width: 1100px; margin: 0 auto; }
     .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
@@ -294,24 +238,27 @@
   </style>
 </head>
 <body>
-  <div class="navbar">
-    <h1>Castloop</h1>
-    <div class="nav-links">
-      <a href="dashboard.html">Streams</a>
-      <a href="videos.html" class="active">Videos</a>
-    </div>
-    <div class="user-info">
-      
-      <div class="user-menu" id="userMenu">
-        <button class="user-menu-btn" onclick="toggleUserMenu(event)">
+  <div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><a href="dashboard.html">Castloop</a></div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="sidebar-link"><span class="sl-icon">📡</span> Streams</a>
+      <a href="videos.html" class="sidebar-link active"><span class="sl-icon">🎬</span> Videos</a>
+      <a href="pricing.html" class="sidebar-link"><span class="sl-icon">💎</span> Plans</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user" id="userMenu">
+        <button class="sidebar-user-btn" onclick="toggleUserMenu(event)">
           <div class="avatar" id="userAvatar">?</div>
-          <span class="email-text" id="userEmail">Loading...</span>
+          <div class="sidebar-user-info">
+            <span class="sidebar-user-email" id="userEmail">Loading...</span>
+            <span class="sidebar-user-plan" id="dropPlan">—</span>
+          </div>
           <span class="chevron">▼</span>
         </button>
         <div class="user-dropdown">
           <div class="dropdown-header">
             <div class="d-email" id="dropEmail">—</div>
-            <div class="d-plan" id="dropPlan">—</div>
           </div>
           <button class="dropdown-item" onclick="toggleTheme(); closeUserMenu()">
             <span class="d-icon" id="themeIcon">🌙</span>
@@ -325,8 +272,9 @@
         </div>
       </div>
     </div>
-    </div>
+  </aside>
 
+  <div class="main-content">
   <div class="main">
     <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;">
       <h2>My Videos</h2>
@@ -1093,5 +1041,7 @@
     };
     init();
   </script>
+  </div><!-- /main-content -->
+  </div><!-- /app-layout -->
 </body>
 </html>
