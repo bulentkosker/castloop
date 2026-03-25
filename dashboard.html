@@ -928,14 +928,26 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       document.getElementById('editRtmpUrl').value = s.rtmp_url;
       document.getElementById('editStreamKey').value = s.stream_key;
       document.getElementById('editModalMessage').textContent = '';
+
+      // Open modal immediately so user sees it
+      document.getElementById('editModalOverlay').classList.add('active');
+
+      // Load videos in background
       const select = document.getElementById('editVideoSelect');
       select.innerHTML = '<option value="">Loading...</option>';
       try {
         const res = await fetch(`${SERVER_URL}/videos`, { headers: { 'x-api-key': API_KEY, 'x-user-id': currentUser.id } });
+        if (!res.ok) throw new Error('Server returned ' + res.status);
         availableVideos = await res.json();
+        if (!Array.isArray(availableVideos)) availableVideos = [];
         select.innerHTML = '<option value="">Select a video...</option>' +
           availableVideos.map(v => `<option value="${v.path}">${v.originalName}</option>`).join('');
-      } catch (e) { select.innerHTML = '<option value="">Could not load videos</option>'; }
+      } catch (e) {
+        console.error('Failed to load videos:', e);
+        select.innerHTML = '<option value="">Could not load videos</option>';
+        availableVideos = [];
+      }
+
       let paths = s.video_paths || (s.video_path ? [s.video_path] : []);
       if (typeof paths === 'string') { try { paths = JSON.parse(paths); } catch { paths = []; } }
       if (!Array.isArray(paths)) paths = [];
@@ -946,7 +958,6 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
         return { path: pathStr, name: v ? v.originalName : (storedName || pathStr.split('/').pop()) };
       });
       renderEditPlaylist();
-      document.getElementById('editModalOverlay').classList.add('active');
     }
 
     function closeEditModal() { document.getElementById('editModalOverlay').classList.remove('active'); editPlaylist = []; }
