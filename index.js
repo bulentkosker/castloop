@@ -280,29 +280,44 @@ function startFFmpeg(streamId) {
   const { rtmpUrl, streamKey, videoPaths } = streamConfigs[streamId];
   const destination = `${rtmpUrl}/${streamKey}`;
 
+  const is4K = process.env.SERVER_TYPE === '4k';
+
   let ffmpegArgs;
   if (videoPaths.length === 1) {
-    ffmpegArgs = [
-  '-re', '-stream_loop', '-1', '-i', videoPaths[0],
-  '-c:v', 'libx264', '-preset', 'ultrafast',
-  '-b:v', '3000k', '-maxrate', '3000k', '-bufsize', '6000k',
-  '-vf', 'scale=1920:1080',
-  '-pix_fmt', 'yuv420p', '-g', '60',
-  '-c:a', 'aac', '-b:a', '128k', '-ar', '44100',
-  '-f', 'flv', destination
-];
+    ffmpegArgs = is4K
+      ? [
+          '-re', '-stream_loop', '-1', '-i', videoPaths[0],
+          '-c:v', 'copy', '-c:a', 'copy',
+          '-f', 'flv', destination
+        ]
+      : [
+          '-re', '-stream_loop', '-1', '-i', videoPaths[0],
+          '-c:v', 'libx264', '-preset', 'ultrafast',
+          '-b:v', '3000k', '-maxrate', '3000k', '-bufsize', '6000k',
+          '-vf', 'scale=1920:1080',
+          '-pix_fmt', 'yuv420p', '-g', '60',
+          '-c:a', 'aac', '-b:a', '128k', '-ar', '44100',
+          '-f', 'flv', destination
+        ];
   } else {
     const concatFile = buildConcatFile(videoPaths, streamId);
-   ffmpegArgs = [
-  '-re', '-stream_loop', '-1',
-  '-f', 'concat', '-safe', '0', '-i', concatFile,
-  '-c:v', 'libx264', '-preset', 'ultrafast',
-  '-b:v', '3000k', '-maxrate', '3000k', '-bufsize', '6000k',
-  '-vf', 'scale=1920:1080',
-  '-pix_fmt', 'yuv420p', '-g', '60',
-  '-c:a', 'aac', '-b:a', '128k', '-ar', '44100',
-  '-f', 'flv', destination
-]; 
+    ffmpegArgs = is4K
+      ? [
+          '-re', '-stream_loop', '-1',
+          '-f', 'concat', '-safe', '0', '-i', concatFile,
+          '-c:v', 'copy', '-c:a', 'copy',
+          '-f', 'flv', destination
+        ]
+      : [
+          '-re', '-stream_loop', '-1',
+          '-f', 'concat', '-safe', '0', '-i', concatFile,
+          '-c:v', 'libx264', '-preset', 'ultrafast',
+          '-b:v', '3000k', '-maxrate', '3000k', '-bufsize', '6000k',
+          '-vf', 'scale=1920:1080',
+          '-pix_fmt', 'yuv420p', '-g', '60',
+          '-c:a', 'aac', '-b:a', '128k', '-ar', '44100',
+          '-f', 'flv', destination
+        ];
   }
 
   streamStartTime[streamId] = Date.now();
