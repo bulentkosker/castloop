@@ -202,7 +202,7 @@ function parseVideoPaths(raw) {
 async function recoverRunningStreamsOnStartup() {
   try {
     console.log('[startup-recovery] Fetching running streams from Supabase...');
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('streams')
       .select('id, rtmp_url, stream_key, video_paths, server_id, status')
       .eq('status', 'running');
@@ -227,10 +227,7 @@ async function recoverRunningStreamsOnStartup() {
       const videoPaths = parseVideoPaths(stream.video_paths || stream.videoPaths);
       const serverId = stream.server_id || stream.serverId || null;
 
-      const parsedDuration = Number(stream.max_duration ?? stream.maxDuration);
-      const safeMaxDuration = Number.isFinite(parsedDuration) && parsedDuration > 0
-        ? Math.floor(parsedDuration)
-        : 43200;
+      const safeMaxDuration = 43200; // 12h default, no max_duration column
 
       if (!streamId || !rtmpUrl || !streamKey || !videoPaths.length) {
         skipped += 1;
