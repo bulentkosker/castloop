@@ -15,6 +15,26 @@ function getTimeInTz(date, tz) {
   return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: tz });
 }
 
+function getDateInTz(date, tz) {
+  const parts = date.toLocaleDateString('en-CA', { timeZone: tz }).split('-');
+  return parts.join('-'); // YYYY-MM-DD
+}
+
+function getPrevDateInTz(date, tz) {
+  const d = new Date(date.toLocaleString('en-US', { timeZone: tz }));
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+function isInWindow(currentTime, startTime, endTime) {
+  if (endTime > startTime) {
+    return currentTime >= startTime && currentTime < endTime;
+  } else {
+    // Wraps midnight: e.g. 22:00-02:00
+    return currentTime >= startTime || currentTime < endTime;
+  }
+}
+
 function parseVideoPaths(raw) {
   const extract = (item) => (typeof item === 'object' && item !== null ? item.path : item);
   if (Array.isArray(raw)) return raw.map(extract).filter(Boolean);
@@ -49,6 +69,55 @@ async function apiCall(url, endpoint, body) {
     body: JSON.stringify(body)
   });
   return resp.json();
+}
+
+function isScheduleActiveNow(sched, now) {
+  const tz = sched.timezone || 'UTC';
+  const currentTime = getTimeInTz(now, tz);
+  const startTime = sched.start_time || '00:00:00';
+  const endTime = sched.end_time || '23:59:59';
+  const wrapsMidnight = endTime <= startTime;
+
+  // Date-based schedule (schedule_date field)
+  if (sched.schedule_date) {
+    const todayDate = getDateInTz(now, tz);
+    const prevDate = getPrevDateInTz(now, tz);
+
+    if (sched.schedule_date === todayDate) {
+      // Today's schedule — check if we're in the time window
+      return isInWindow(currentTime, startTime, endTime);
+    }
+
+    if (wrapsMidnight && sched.schedule_date === prevDate) {
+      // Yesterday's schedule wraps past midnight into today
+      // We're in window if currentTime < endTime
+      return currentTime < endTime;
+    }
+
+    return false;
+  }
+
+  // Legacy day-based schedule (days[] field) — backwards compatible
+  if (sched.days && sched.days.length > 0) {
+    const todayDay = getDayName(now, tz);
+
+    if (sched.days.includes(todayDay)) {
+      return isInWindow(currentTime, startTime, endTime);
+    }
+
+    // If schedule wraps midnight, check if yesterday was a scheduled day
+    if (wrapsMidnight) {
+      const yesterday = new Date(now.getTime() - 86400000);
+      const yesterdayDay = getDayName(yesterday, tz);
+      if (sched.days.includes(yesterdayDay)) {
+        return currentTime < endTime;
+      }
+    }
+
+    return false;
+  }
+
+  return false;
 }
 
 async function tick() {
@@ -87,33 +156,9 @@ async function tick() {
     const streamScheds = schedulesByStream[streamId];
 
     // Check if ANY schedule is currently active for this stream
-    let anyActive = false;
-    for (const sched of streamScheds) {
-      const tz = sched.timezone || 'UTC';
-      const day = getDayName(now, tz);
-      const currentTime = getTimeInTz(now, tz);
+    const shouldBeRunning = streamScheds.some(sched => isScheduleActiveNow(sched, now));
 
-      if (!sched.days || !sched.days.includes(day)) continue;
-
-      const startTime = sched.start_time || '00:00:00';
-      const endTime = sched.end_time || '23:59:59';
-
-      let inWindow;
-      if (endTime > startTime) {
-        // Normal: e.g. 08:00 - 17:00
-        inWindow = currentTime >= startTime && currentTime < endTime;
-      } else {
-        // Wraps midnight: e.g. 22:00 - 04:00
-        inWindow = currentTime >= startTime || currentTime < endTime;
-      }
-
-      if (inWindow) {
-        anyActive = true;
-        break;
-      }
-    }
-
-    if (anyActive && stream.status !== 'running') {
+    if (shouldBeRunning && stream.status !== 'running') {
       const videoPaths = parseVideoPaths(stream.video_paths);
       if (!videoPaths.length) { console.log(`[scheduler] ${stream.id}: No video paths, skipping.`); continue; }
 
@@ -129,7 +174,7 @@ async function tick() {
         await sbUpdate('streams', `id=eq.${stream.id}`, { status: 'running' });
       } catch (e) { console.error(`[scheduler] Start error ${stream.id}:`, e.message); }
 
-    } else if (!anyActive && stream.status === 'running') {
+    } else if (!shouldBeRunning && stream.status === 'running') {
       console.log(`[scheduler] ${stream.id}: Stopping (no schedule window active)`);
       try {
         const apiUrl = stream.server_id ? await getServerApiUrl(stream.server_id) : DEFAULT_API_URL;

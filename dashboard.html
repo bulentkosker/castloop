@@ -197,10 +197,9 @@
     .schedule-info .sched-edit { background: none; border: none; color: #fbbf24; cursor: pointer; font-size: 14px; padding: 2px 6px; border-radius: 4px; }
     .schedule-info .sched-edit:hover { background: rgba(251,191,36,0.15); }
     .btn-edit:disabled, .btn-delete:disabled { opacity: 0.3; cursor: not-allowed; }
-    .day-checkbox-group { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 12px; }
-    .day-checkbox-group label { display: flex; align-items: center; gap: 4px; font-size: 12px; color: #aaa; cursor: pointer; background: #080810; border: 1px solid #1e1e35; padding: 4px 8px; border-radius: 6px; }
-    .day-checkbox-group label:has(input:checked) { border-color: #6366f1; color: #818cf8; background: rgba(99,102,241,0.1); }
-    .day-checkbox-group input { display: none; }
+    .sched-row .date-row { margin-bottom: 8px; }
+    .sched-row .date-row label { color: #aaa; font-size: 11px; display: block; }
+    .sched-row .date-row input[type="date"] { width: 100%; padding: 8px; background: #0f0f1a; border: 1px solid #2a2a3e; color: #f0f0ff; border-radius: 6px; font-size: 13px; margin-top: 3px; font-family: inherit; color-scheme: dark; }
     .sched-row { position: relative; padding: 14px; background: rgba(99,102,241,0.04); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; }
     .sched-row-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
     .sched-row-header span { font-size: 12px; color: var(--accent2); font-weight: 600; }
@@ -1076,6 +1075,15 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       const end = (sched.end_time || '23:59').slice(0, 5);
       const dur = calcDuration(start, end);
       const durStr = dur.h > 0 && dur.m > 0 ? `${dur.h}h ${dur.m}m` : dur.h > 0 ? `${dur.h}h` : `${dur.m}m`;
+
+      // Date-based schedule
+      if (sched.schedule_date) {
+        const d = new Date(sched.schedule_date + 'T00:00:00');
+        const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        return `${start} + ${durStr} · ${dateStr}`;
+      }
+
+      // Legacy day-based (backwards compat)
       const dayOrder = ['mon','tue','wed','thu','fri','sat','sun'];
       const dayLabels = { mon:'Mon', tue:'Tue', wed:'Wed', thu:'Thu', fri:'Fri', sat:'Sat', sun:'Sun' };
       const days = (sched.days || []).slice().sort((a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b));
@@ -1154,8 +1162,8 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       const durM = parseInt(row.querySelector(`[name="${id}_dur_m"]`)?.value) || 0;
       const endVal = calcEndTime(startVal, durH, durM);
       const enabled = row.querySelector(`[name="${id}_enabled"]`)?.checked;
-      const days = [...row.querySelectorAll(`[name="${id}_day"]:checked`)].map(cb => cb.value);
-      return { idx, startVal, endVal, durH, durM, enabled, days, startMin: timeToMin(startVal), endMin: timeToMin(endVal), totalDurMin: durH * 60 + durM };
+      const schedDate = row.querySelector(`[name="${id}_date"]`)?.value || '';
+      return { idx, startVal, endVal, durH, durM, enabled, schedDate, startMin: timeToMin(startVal), endMin: timeToMin(endVal), totalDurMin: durH * 60 + durM };
     }
 
     function timeToMin(t) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
@@ -1169,20 +1177,18 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
 
       for (let i = 0; i < allData.length; i++) {
         const a = allData[i];
-        if (!a.enabled || a.days.length === 0 || a.totalDurMin === 0) continue;
+        if (!a.enabled || !a.schedDate || a.totalDurMin === 0) continue;
         for (let j = i + 1; j < allData.length; j++) {
           const b = allData[j];
-          if (!b.enabled || b.days.length === 0 || b.totalDurMin === 0) continue;
-          // Check day overlap
-          const commonDays = a.days.filter(d => b.days.includes(d));
-          if (!commonDays.length) continue;
+          if (!b.enabled || !b.schedDate || b.totalDurMin === 0) continue;
+          // Check date overlap — same date or adjacent for midnight wrapping
+          if (a.schedDate !== b.schedDate) continue;
           // Check time overlap
           if (hasTimeOverlap(a.startMin, a.totalDurMin, b.startMin, b.totalDurMin)) {
-            const dayLabels = { mon:'Mon',tue:'Tue',wed:'Wed',thu:'Thu',fri:'Fri',sat:'Sat',sun:'Sun' };
-            const warn = `⚠ Overlaps with [${a.startVal}–${a.endVal} ${commonDays.map(d=>dayLabels[d]).join(',')}]`;
+            const warn = `⚠ Overlaps with [${a.startVal}–${a.endVal} ${a.schedDate}]`;
             const warnEl = b.row.querySelector('.sched-overlap-warn');
             if (warnEl) { warnEl.textContent = warn; warnEl.style.display = 'block'; }
-            const warn2 = `⚠ Overlaps with [${b.startVal}–${b.endVal} ${commonDays.map(d=>dayLabels[d]).join(',')}]`;
+            const warn2 = `⚠ Overlaps with [${b.startVal}–${b.endVal} ${b.schedDate}]`;
             const warnEl2 = a.row.querySelector('.sched-overlap-warn');
             if (warnEl2) { warnEl2.textContent = warn2; warnEl2.style.display = 'block'; }
           }
@@ -1216,16 +1222,13 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
         durH = d.h; durM = d.m;
       }
       const endPreview = calcEndTime(start, durH, durM);
-      const days = data ? (data.days || []) : [];
+      const schedDate = data?.schedule_date || new Date().toISOString().slice(0, 10);
       const enabled = data ? !!data.enabled : true;
       const dbId = data?.id || '';
 
       const hourOpts = Array.from({length:24}, (_,i) => `<option value="${i}" ${i===durH?'selected':''}>${i}h</option>`).join('');
       const minOpts = [0,5,10,15,20,25,30,35,40,45,50,55].map(m => `<option value="${m}" ${m===durM?'selected':''}>${m}m</option>`).join('');
 
-      const dayBoxes = ['mon','tue','wed','thu','fri','sat','sun'].map(d =>
-        `<label><input type="checkbox" name="${id}_day" value="${d}" ${days.includes(d) ? 'checked' : ''} onchange="checkOverlaps()">${d.charAt(0).toUpperCase()+d.slice(1)}</label>`
-      ).join('');
       return `<div class="sched-row" data-idx="${idx}" data-db-id="${dbId}">
         <div class="sched-row-header">
           <label style="color:#aaa;font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;">
@@ -1233,6 +1236,10 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
             <span>Enabled</span>
           </label>
           <button type="button" class="sched-row-remove" onclick="removeScheduleRow(this)" title="Remove">✕</button>
+        </div>
+        <div class="date-row">
+          <label>Date</label>
+          <input type="date" name="${id}_date" value="${schedDate}" onchange="checkOverlaps()">
         </div>
         <div class="time-row">
           <div><label>Start Time</label><input type="time" name="${id}_start" value="${start}" onchange="updateEndPreview(${idx})"></div>
@@ -1245,7 +1252,6 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
         </div>
         <div class="end-preview" id="${id}_end_preview">Ends at ${endPreview}</div>
         <div class="sched-overlap-warn"></div>
-        <div class="day-checkbox-group">${dayBoxes}</div>
       </div>`;
     }
 
@@ -1297,15 +1303,15 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
         const idx = row.dataset.idx;
         const dbId = row.dataset.dbId || null;
         const enabled = row.querySelector(`[name="sr_${idx}_enabled"]`).checked;
+        const schedule_date = row.querySelector(`[name="sr_${idx}_date"]`).value;
         const startVal = row.querySelector(`[name="sr_${idx}_start"]`).value;
         const durH = parseInt(row.querySelector(`[name="sr_${idx}_dur_h"]`).value) || 0;
         const durM = parseInt(row.querySelector(`[name="sr_${idx}_dur_m"]`).value) || 0;
         const start_time = startVal + ':00';
         const end_time = calcEndTime(startVal, durH, durM) + ':00';
-        const days = [...row.querySelectorAll(`[name="sr_${idx}_day"]:checked`)].map(cb => cb.value);
 
-        if (enabled && days.length === 0) {
-          toast('Each enabled schedule must have at least one day selected.', 'error');
+        if (enabled && !schedule_date) {
+          toast('Each enabled schedule must have a date selected.', 'error');
           return;
         }
         if (enabled && durH === 0 && durM === 0) {
@@ -1313,7 +1319,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
           return;
         }
 
-        newSchedules.push({ dbId, stream_id: streamId, user_id: currentUser.id, start_time, end_time, days, timezone, enabled });
+        newSchedules.push({ dbId, stream_id: streamId, user_id: currentUser.id, start_time, end_time, schedule_date, timezone, enabled });
       }
 
       // Get existing DB IDs for this stream
@@ -1336,7 +1342,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
           user_id: sched.user_id,
           start_time: sched.start_time,
           end_time: sched.end_time,
-          days: sched.days,
+          schedule_date: sched.schedule_date,
           timezone: sched.timezone,
           enabled: sched.enabled
         };
