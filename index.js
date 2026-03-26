@@ -424,6 +424,28 @@ app.post('/stop', (req, res) => {
   res.json({ success: true, message: 'Stream stopped' });
 });
 
+app.post('/delete', (req, res) => {
+  const { streamId } = req.body;
+  if (!streamId) return res.status(400).json({ error: 'streamId required' });
+
+  // Kill FFmpeg process if running
+  if (activeStreams[streamId]) {
+    activeStreams[streamId].kill('SIGTERM');
+    delete activeStreams[streamId];
+  }
+
+  // Clean up all state
+  streamStopped[streamId] = true;
+  clearMaxDurationTimer(streamId);
+  delete streamRestartByDuration[streamId];
+  delete streamConfigs[streamId];
+  delete streamStartTime[streamId];
+  delete streamFailCount[streamId];
+
+  console.log(`[${streamId}] Stream deleted, all state cleaned up`);
+  res.json({ success: true, message: 'Stream deleted and cleaned up' });
+});
+
 app.get('/status/:streamId', (req, res) => {
   const { streamId } = req.params;
   const isRunning = !!activeStreams[streamId];

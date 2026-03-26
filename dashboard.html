@@ -882,16 +882,37 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
     function closeDeleteModal() { document.getElementById('deleteModalOverlay').classList.remove('active'); }
     async function confirmDeleteAction() {
       const id = document.getElementById('deleteStreamId').value;
-      const status = document.getElementById('deleteStreamStatus').value;
       closeDeleteModal();
-      if (status === 'running') await stopStream(id).catch(() => {});
+      // Kill FFmpeg process on API server
+      try {
+        const server = await getStreamServer(id);
+        const apiUrl = server ? server.api_url : SERVER_URL;
+        await fetch(`${apiUrl}/delete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+          body: JSON.stringify({ streamId: id })
+        });
+      } catch (e) { console.warn('API delete cleanup failed:', e); }
+      // Delete from Supabase
+      await client.from('stream_schedules').delete().eq('stream_id', id);
       await client.from('streams').delete().eq('id', id);
+      delete streamSchedules[id];
       await loadStreams();
     }
 
     async function deleteStream(id) {
-      await stopStream(id).catch(() => {});
+      try {
+        const server = await getStreamServer(id);
+        const apiUrl = server ? server.api_url : SERVER_URL;
+        await fetch(`${apiUrl}/delete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+          body: JSON.stringify({ streamId: id })
+        });
+      } catch (e) { console.warn('API delete cleanup failed:', e); }
+      await client.from('stream_schedules').delete().eq('stream_id', id);
       await client.from('streams').delete().eq('id', id);
+      delete streamSchedules[id];
       await loadStreams();
     }
 
