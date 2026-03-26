@@ -251,7 +251,7 @@ async function recoverRunningStreamsOnStartup() {
       streamFailCount[streamId] = 0;
       startFFmpeg(streamId);
       try {
-        await supabase.from('streams').update({ status: 'running' }).eq('id', streamId);
+        await supabaseAdmin.from('streams').update({ status: 'running' }).eq('id', streamId);
       } catch (updateErr) {
         console.error('[startup-recovery] Failed to update stream status:', updateErr.message || updateErr);
       }
@@ -261,8 +261,10 @@ async function recoverRunningStreamsOnStartup() {
     }
 
     console.log('[startup-recovery] Completed. recovered=' + recovered + ', skipped=' + skipped);
+    recoverRunningStreamsOnStartup._done = true;
   } catch (err) {
     console.error('[startup-recovery] Unexpected error:', err.message || err);
+    recoverRunningStreamsOnStartup._done = true;
   }
 }
 
@@ -901,6 +903,12 @@ async function getMyServerId() {
 }
 
 async function reconcile() {
+  // Don't run until startup recovery is complete
+  if (!recoverRunningStreamsOnStartup._done) {
+    console.log('[reconciler] Waiting for startup recovery to finish...');
+    return;
+  }
+
   try {
     const serverId = await getMyServerId();
 
