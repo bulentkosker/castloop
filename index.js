@@ -861,7 +861,115 @@ app.post('/paddle-webhook', async (req, res) => {
   res.json({ received: true });
 });
 
+// ── Reconciler: sync activeStreams ↔ Supabase every 2 min ──────────────────
+
+async function getMyServerId() {
+  // Cache server ID after first lookup
+  if (getMyServerId._cached) return getMyServerId._cached;
+
+  // Try env var first
+  if (process.env.SERVER_ID) {
+    getMyServerId._cached = process.env.SERVER_ID;
+    return getMyServerId._cached;
+  }
+
+  // Auto-detect from Supabase by matching this server's IP
+  try {
+    const ifaces = os.networkInterfaces();
+    const ips = [];
+    for (const name in ifaces) {
+      for (const iface of ifaces[name]) {
+        if (!iface.internal && iface.family === 'IPv4') ips.push(iface.address);
+      }
+    }
+
+    if (ips.length) {
+      const { data } = await supabaseAdmin
+        .from('servers')
+        .select('id')
+        .in('ip', ips)
+        .limit(1)
+        .single();
+      if (data?.id) {
+        getMyServerId._cached = data.id;
+        console.log(`[reconciler] Auto-detected server ID: ${data.id}`);
+        return data.id;
+      }
+    }
+  } catch (e) {
+    // Ignore lookup errors
+  }
+
+  return null;
+}
+
+async function reconcile() {
+  try {
+    const serverId = await getMyServerId();
+
+    // 1. Get streams Supabase thinks are running on this server
+    let query = supabaseAdmin
+      .from('streams')
+      .select('id')
+      .eq('status', 'running');
+
+    if (serverId) {
+      query = query.eq('server_id', serverId);
+    }
+
+    const { data: dbRunning, error } = await query;
+    if (error) {
+      console.error('[reconciler] Supabase query error:', error.message);
+      return;
+    }
+
+    const dbRunningIds = new Set((dbRunning || []).map(s => String(s.id)));
+    const activeIds = new Set(Object.keys(activeStreams));
+
+    // 2. Supabase says running, but no FFmpeg process → mark stopped
+    let fixedStale = 0;
+    for (const id of dbRunningIds) {
+      if (!activeIds.has(id)) {
+        console.log(`[reconciler] Stale stream ${id}: running in DB but no FFmpeg. Marking stopped.`);
+        await supabaseAdmin.from('streams').update({ status: 'stopped' }).eq('id', id);
+        fixedStale++;
+      }
+    }
+
+    // 3. FFmpeg running, but Supabase doesn't say running → kill orphan
+    let killedOrphans = 0;
+    for (const id of activeIds) {
+      if (!dbRunningIds.has(id)) {
+        console.log(`[reconciler] Orphan FFmpeg ${id}: process alive but not running in DB. Killing.`);
+        try {
+          activeStreams[id].kill('SIGTERM');
+        } catch (e) { /* already dead */ }
+        delete activeStreams[id];
+        streamStopped[id] = true;
+        clearMaxDurationTimer(id);
+        delete streamRestartByDuration[id];
+        delete streamConfigs[id];
+        delete streamStartTime[id];
+        delete streamFailCount[id];
+        killedOrphans++;
+      }
+    }
+
+    if (fixedStale || killedOrphans) {
+      console.log(`[reconciler] Fixed ${fixedStale} stale, killed ${killedOrphans} orphans.`);
+    }
+  } catch (e) {
+    console.error('[reconciler] Error:', e.message);
+  }
+}
+
 app.listen(3000, () => {
   console.log('Castloop Stream API running on port 3000');
   recoverRunningStreamsOnStartup();
+
+  // Start reconciler after 30s, then every 2 min
+  setTimeout(() => {
+    reconcile();
+    setInterval(reconcile, 2 * 60 * 1000);
+  }, 30000);
 });
