@@ -16,9 +16,9 @@ app.use('/paddle-webhook', express.raw({ type: '*/*' }));
 app.use(express.json());
 
 const SUPABASE_URL = 'https://pdttjblnvxoitskhdtro.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_vxcNOoezd_FKxKWmWj-rZQ_w3IrSMaG';
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-const supabaseAdmin = createClient(SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+const supabaseAdmin = supabase;
 
 app.use((req, res, next) => {
   if (req.path === '/health') return next();
