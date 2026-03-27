@@ -1055,7 +1055,7 @@ app.get('/auth/youtube', (req, res) => {
     state: userId,
   });
 
-  res.json({ url: `https://accounts.google.com/o/oauth2/v2/auth?${params}` });
+  res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
 });
 
 // GET /auth/youtube/callback — exchange code for tokens

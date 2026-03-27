@@ -640,14 +640,8 @@
       }
     }
 
-    async function connectYouTube() {
-      try {
-        const res = await fetch(`${SERVER_URL}/auth/youtube?user_id=${currentUser.id}`);
-        const data = await res.json();
-        if (data.url) window.location.href = data.url;
-      } catch (e) {
-        toast('Failed to connect YouTube', 'error');
-      }
+    function connectYouTube() {
+      window.location.href = `${SERVER_URL}/auth/youtube?user_id=${currentUser.id}`;
     }
 
     // ── Stream Restart Timer ──────────────────────────
