@@ -454,47 +454,40 @@
   function toggleFaq(el) { el.classList.toggle('open'); }
 </script>
 
-<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 <script>
-  // Sandbox mode — production'a geçince kaldır
-  Paddle.Environment.set('sandbox');
-  Paddle.Initialize({ token: 'live_dc277bbcc2cab6e58e5cce04974' });
-
-  const PRICES = {
-    lite:       { monthly: 'pri_01kkq2qhxdmqreg93wfa90cqqr', yearly: 'pri_01kkq68n48m06g366npzg7fk01' },
-    basic:      { monthly: 'pri_01kkq6k6kr5xmza70p6n574378', yearly: 'pri_01kkq6n0p98rx63q3dj6qd4c83' },
-    pro:        { monthly: 'pri_01kkq6tjh7rmq5s19ns35n52d7', yearly: 'pri_01kkq6vvphytz0xjk2y2vqswv2' },
-    business:   { monthly: 'pri_01kkq6y9a729e82r153t4ckakr', yearly: 'pri_01kkq70cs983hs30fqxq5s2sga' },
-    enterprise:   { monthly: 'pri_01kkq72xsn1hvest90mdw6ag4e', yearly: 'pri_01kkq748ydd7tcdbky4zfsdkda' },
-    '4k_starter': { monthly: 'pri_01kmcxn7vvjz06vhpbjg6zyxyq', yearly: 'pri_01kmcxqe1n6sk6st551z4gjpbw' },
-    '4k_plus':    { monthly: 'pri_01kmcxszdwcdk30bpwga1qnyq7', yearly: 'pri_01kmcxvg3t6krm3twh9tp35pjj' },
-    '4k_pro':     { monthly: 'pri_01kmcxx4491c5m32tr70ah258x', yearly: 'pri_01kmcxy7vwxqez6jzyqjdfy438' },
+  const LEMON_VARIANTS = {
+    lite:         { monthly: '1454817', yearly: '1454827' },
+    basic:        { monthly: '1454861', yearly: '1454869' },
+    pro:          { monthly: '1454889', yearly: '1454894' },
+    business:     { monthly: '1454918', yearly: '1454919' },
+    enterprise:   { monthly: '1455250', yearly: '1455251' },
+    '4k_starter': { monthly: '1455281', yearly: '1455282' },
+    '4k_plus':    { monthly: '1455295', yearly: '1455296' },
+    '4k_pro':     { monthly: '1455309', yearly: '1455310' },
   };
 
   function openCheckout(plan) {
     const billing = document.getElementById('billingToggle').checked ? 'yearly' : 'monthly';
-    const priceId = PRICES[plan][billing];
+    const variantId = LEMON_VARIANTS[plan]?.[billing];
+    if (!variantId) return;
 
     // Supabase session'dan email al
-    const storageKey = Object.keys(localStorage).find(k => k.includes('auth-token'));
     let userEmail;
+    const storageKey = Object.keys(localStorage).find(k => k.includes('auth-token'));
     if (storageKey) {
       try {
         const session = JSON.parse(localStorage.getItem(storageKey));
-        userEmail = session?.user?.email || session?.access_token ? undefined : undefined;
-        // Token'dan email çek
         if (session?.user?.email) userEmail = session.user.email;
       } catch(e) {}
     }
 
-    const checkoutConfig = {
-      items: [{ priceId, quantity: 1 }],
-      customData: { source: 'castloop', plan, billing },
-      successUrl: window.location.origin + '/dashboard.html?subscribed=1',
-    };
-    if (userEmail) checkoutConfig.customer = { email: userEmail };
+    let url = `https://castloop.lemonsqueezy.com/buy/${variantId}`;
+    const params = [];
+    if (userEmail) params.push('checkout[email]=' + encodeURIComponent(userEmail));
+    params.push('checkout[custom][email]=' + encodeURIComponent(userEmail || ''));
+    if (params.length) url += '?' + params.join('&');
 
-    Paddle.Checkout.open(checkoutConfig);
+    window.open(url, '_blank');
   }
 </script>
 <script src="i18n.js"></script>
