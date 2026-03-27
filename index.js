@@ -13,6 +13,7 @@ const app = express();
 const API_KEY = 'castloop-secret-2024';
 app.use(cors());
 app.use('/paddle-webhook', express.raw({ type: '*/*' }));
+app.use('/lemonsqueezy-webhook', express.raw({ type: '*/*' }));
 app.use(express.json());
 
 const SUPABASE_URL = 'https://pdttjblnvxoitskhdtro.supabase.co';
@@ -23,6 +24,7 @@ const supabaseAdmin = supabase;
 app.use((req, res, next) => {
   if (req.path === '/health') return next();
   if (req.path === '/paddle-webhook') return next();
+  if (req.path === '/lemonsqueezy-webhook') return next();
   if (req.path === '/upload-token/validate') return next();
   if (req.path === '/upload-by-token') return next();
   const streamQueryKey = req.path.startsWith('/stream/') ? req.query.apiKey : null;
@@ -855,6 +857,101 @@ app.post('/paddle-webhook', async (req, res) => {
     } else {
       console.log('[paddle-webhook] No email in data.customer, skipping profile update');
     }
+  }
+
+  res.json({ received: true });
+});
+
+// ── LemonSqueezy Webhook ────────────────────────────────────────────────────
+
+const LEMON_VARIANT_PLAN_MAP = {
+  // Add LemonSqueezy variant IDs here: variant_id → plan name
+  // e.g. '123456': 'lite', '123457': 'basic', ...
+};
+
+app.post('/lemonsqueezy-webhook', async (req, res) => {
+  const secret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET;
+  if (!secret) {
+    console.error('[lemon-webhook] LEMONSQUEEZY_WEBHOOK_SECRET not set');
+    return res.status(500).json({ error: 'Webhook secret not configured' });
+  }
+
+  const rawBody = req.body instanceof Buffer ? req.body.toString('utf8') : JSON.stringify(req.body);
+
+  // Verify HMAC signature
+  const signature = req.headers['x-signature'];
+  if (!signature) {
+    return res.status(400).json({ error: 'Missing X-Signature header' });
+  }
+
+  const expectedHash = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+  if (expectedHash !== signature) {
+    console.error('[lemon-webhook] Signature mismatch');
+    return res.status(401).json({ error: 'Invalid signature' });
+  }
+
+  let event;
+  try {
+    event = JSON.parse(rawBody);
+  } catch (e) {
+    return res.status(400).json({ error: 'Invalid JSON body' });
+  }
+
+  const eventName = event.meta?.event_name;
+  const data = event.data?.attributes || {};
+  const email = data.user_email || event.meta?.custom_data?.email;
+
+  console.log(`[lemon-webhook] Event: ${eventName}, email: ${email || 'unknown'}`);
+
+  if (!email) {
+    console.log('[lemon-webhook] No email found, skipping');
+    return res.json({ received: true });
+  }
+
+  if (eventName === 'subscription_created' || eventName === 'order_created') {
+    const variantId = String(data.variant_id || data.first_order_item?.variant_id || '');
+    let plan = LEMON_VARIANT_PLAN_MAP[variantId];
+
+    // Fallback: extract plan from product_name if variant not mapped
+    if (!plan && data.product_name) {
+      const name = data.product_name.toLowerCase();
+      if (name.includes('enterprise')) plan = 'enterprise';
+      else if (name.includes('business')) plan = 'business';
+      else if (name.includes('4k_pro') || name.includes('4k pro')) plan = '4k_pro';
+      else if (name.includes('4k_plus') || name.includes('4k plus')) plan = '4k_plus';
+      else if (name.includes('4k')) plan = '4k_starter';
+      else if (name.includes('pro')) plan = 'pro';
+      else if (name.includes('basic')) plan = 'basic';
+      else if (name.includes('lite')) plan = 'lite';
+    }
+
+    if (!plan) {
+      console.log(`[lemon-webhook] No plan mapped for variant ${variantId}, product: ${data.product_name}`);
+      return res.json({ received: true });
+    }
+
+    const { error } = await supabaseAdmin
+      .from('profiles')
+      .update({ plan })
+      .eq('email', email);
+
+    if (error) {
+      console.error('[lemon-webhook] Supabase update error:', error.message);
+      return res.status(500).json({ error: 'Failed to update profile' });
+    }
+    console.log(`[lemon-webhook] Upgraded ${email} to "${plan}"`);
+
+  } else if (eventName === 'subscription_cancelled') {
+    const { error } = await supabaseAdmin
+      .from('profiles')
+      .update({ plan: 'free' })
+      .eq('email', email);
+
+    if (error) {
+      console.error('[lemon-webhook] Supabase downgrade error:', error.message);
+      return res.status(500).json({ error: 'Failed to downgrade profile' });
+    }
+    console.log(`[lemon-webhook] Downgraded ${email} to "free"`);
   }
 
   res.json({ received: true });
