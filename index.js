@@ -25,6 +25,7 @@ app.use((req, res, next) => {
   if (req.path === '/health') return next();
   if (req.path === '/paddle-webhook') return next();
   if (req.path === '/lemonsqueezy-webhook') return next();
+  if (req.path.startsWith('/auth/youtube')) return next();
   if (req.path === '/upload-token/validate') return next();
   if (req.path === '/upload-by-token') return next();
   const streamQueryKey = req.path.startsWith('/stream/') ? req.query.apiKey : null;
@@ -969,6 +970,463 @@ app.post('/lemonsqueezy-webhook', async (req, res) => {
   }
 
   res.json({ received: true });
+});
+
+// ── YouTube OAuth & Broadcast Management ────────────────────────────────────
+
+const YT_CLIENT_ID = process.env.YOUTUBE_CLIENT_ID;
+const YT_CLIENT_SECRET = process.env.YOUTUBE_CLIENT_SECRET;
+const YT_REDIRECT_URI = 'https://api.castloop.tv/auth/youtube/callback';
+const YT_SCOPES = [
+  'https://www.googleapis.com/auth/youtube',
+  'https://www.googleapis.com/auth/youtube.upload',
+  'https://www.googleapis.com/auth/youtube.force-ssl',
+].join(' ');
+
+async function refreshYouTubeToken(userId) {
+  const { data: profile } = await supabaseAdmin
+    .from('profiles')
+    .select('youtube_refresh_token')
+    .eq('id', userId)
+    .single();
+
+  if (!profile?.youtube_refresh_token) return null;
+
+  const resp = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: YT_CLIENT_ID,
+      client_secret: YT_CLIENT_SECRET,
+      refresh_token: profile.youtube_refresh_token,
+      grant_type: 'refresh_token',
+    }),
+  });
+
+  const tokens = await resp.json();
+  if (!tokens.access_token) return null;
+
+  await supabaseAdmin
+    .from('profiles')
+    .update({ youtube_access_token: tokens.access_token })
+    .eq('id', userId);
+
+  return tokens.access_token;
+}
+
+async function ytApi(userId, url, options = {}) {
+  const { data: profile } = await supabaseAdmin
+    .from('profiles')
+    .select('youtube_access_token')
+    .eq('id', userId)
+    .single();
+
+  let token = profile?.youtube_access_token;
+  let resp = await fetch(url, {
+    ...options,
+    headers: { ...options.headers, Authorization: `Bearer ${token}` },
+  });
+
+  // Token expired — refresh and retry once
+  if (resp.status === 401) {
+    token = await refreshYouTubeToken(userId);
+    if (!token) throw new Error('YouTube token refresh failed');
+    resp = await fetch(url, {
+      ...options,
+      headers: { ...options.headers, Authorization: `Bearer ${token}` },
+    });
+  }
+
+  return resp.json();
+}
+
+// GET /auth/youtube — returns OAuth URL
+app.get('/auth/youtube', (req, res) => {
+  const userId = req.query.user_id;
+  if (!userId) return res.status(400).json({ error: 'user_id required' });
+
+  const params = new URLSearchParams({
+    client_id: YT_CLIENT_ID,
+    redirect_uri: YT_REDIRECT_URI,
+    response_type: 'code',
+    scope: YT_SCOPES,
+    access_type: 'offline',
+    prompt: 'consent',
+    state: userId,
+  });
+
+  res.json({ url: `https://accounts.google.com/o/oauth2/v2/auth?${params}` });
+});
+
+// GET /auth/youtube/callback — exchange code for tokens
+app.get('/auth/youtube/callback', async (req, res) => {
+  const { code, state: userId } = req.query;
+  if (!code || !userId) return res.status(400).send('Missing code or state');
+
+  try {
+    // Exchange code for tokens
+    const tokenResp = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: YT_CLIENT_ID,
+        client_secret: YT_CLIENT_SECRET,
+        redirect_uri: YT_REDIRECT_URI,
+        grant_type: 'authorization_code',
+      }),
+    });
+
+    const tokens = await tokenResp.json();
+    if (!tokens.access_token) {
+      console.error('[youtube] Token exchange failed:', tokens);
+      return res.status(400).send('Token exchange failed');
+    }
+
+    // Get channel info
+    const channelResp = await fetch(
+      'https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true',
+      { headers: { Authorization: `Bearer ${tokens.access_token}` } }
+    );
+    const channelData = await channelResp.json();
+    const channel = channelData.items?.[0];
+
+    // Save to Supabase
+    await supabaseAdmin
+      .from('profiles')
+      .update({
+        youtube_access_token: tokens.access_token,
+        youtube_refresh_token: tokens.refresh_token || null,
+        youtube_channel_id: channel?.id || null,
+        youtube_channel_name: channel?.snippet?.title || null,
+        youtube_channel_thumb: channel?.snippet?.thumbnails?.default?.url || null,
+      })
+      .eq('id', userId);
+
+    console.log(`[youtube] Connected: user=${userId}, channel=${channel?.snippet?.title}`);
+    res.redirect('https://castloop.tv/dashboard.html?youtube=connected');
+  } catch (e) {
+    console.error('[youtube] Callback error:', e.message);
+    res.status(500).send('OAuth failed');
+  }
+});
+
+// GET /youtube/status — check connection
+app.get('/youtube/status', async (req, res) => {
+  const userId = req.headers['x-user-id'];
+  if (!userId) return res.status(400).json({ error: 'x-user-id required' });
+
+  const { data } = await supabaseAdmin
+    .from('profiles')
+    .select('youtube_channel_id, youtube_channel_name, youtube_channel_thumb')
+    .eq('id', userId)
+    .single();
+
+  if (data?.youtube_channel_id) {
+    res.json({
+      connected: true,
+      channel_id: data.youtube_channel_id,
+      channel_name: data.youtube_channel_name,
+      channel_thumb: data.youtube_channel_thumb,
+    });
+  } else {
+    res.json({ connected: false });
+  }
+});
+
+// POST /youtube/create-broadcast — create live broadcast + stream
+app.post('/youtube/create-broadcast', async (req, res) => {
+  const userId = req.headers['x-user-id'];
+  const { title, description, privacy } = req.body;
+
+  if (!userId) return res.status(400).json({ error: 'x-user-id required' });
+
+  try {
+    // 1. Create broadcast
+    const broadcast = await ytApi(userId,
+      'https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status,contentDetails',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          snippet: {
+            title: title || 'Castloop Live Stream',
+            description: description || 'Powered by Castloop',
+            scheduledStartTime: new Date().toISOString(),
+          },
+          status: { privacyStatus: privacy || 'public' },
+          contentDetails: {
+            enableAutoStart: true,
+            enableAutoStop: false,
+            latencyPreference: 'ultraLow',
+          },
+        }),
+      }
+    );
+
+    if (broadcast.error) {
+      return res.status(400).json({ error: broadcast.error.message || 'Failed to create broadcast' });
+    }
+
+    // 2. Create stream
+    const liveStream = await ytApi(userId,
+      'https://www.googleapis.com/youtube/v3/liveStreams?part=snippet,cdn',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          snippet: { title: (title || 'Castloop Stream') + ' - ingestion' },
+          cdn: {
+            frameRate: 'variable',
+            ingestionType: 'rtmp',
+            resolution: 'variable',
+          },
+        }),
+      }
+    );
+
+    if (liveStream.error) {
+      return res.status(400).json({ error: liveStream.error.message || 'Failed to create stream' });
+    }
+
+    // 3. Bind broadcast to stream
+    await ytApi(userId,
+      `https://www.googleapis.com/youtube/v3/liveBroadcasts/bind?id=${broadcast.id}&part=id,contentDetails&streamId=${liveStream.id}`,
+      { method: 'POST' }
+    );
+
+    const ingestion = liveStream.cdn?.ingestionInfo;
+    res.json({
+      success: true,
+      broadcast_id: broadcast.id,
+      stream_id: liveStream.id,
+      rtmp_url: ingestion?.ingestionAddress,
+      stream_key: ingestion?.streamName,
+      watch_url: `https://youtube.com/watch?v=${broadcast.id}`,
+    });
+
+    console.log(`[youtube] Broadcast created: ${broadcast.id} for user ${userId}`);
+  } catch (e) {
+    console.error('[youtube] Create broadcast error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /youtube/end-broadcast — transition broadcast to complete
+app.post('/youtube/end-broadcast', async (req, res) => {
+  const userId = req.headers['x-user-id'];
+  const { broadcast_id } = req.body;
+
+  if (!userId || !broadcast_id) {
+    return res.status(400).json({ error: 'user_id and broadcast_id required' });
+  }
+
+  try {
+    const result = await ytApi(userId,
+      `https://www.googleapis.com/youtube/v3/liveBroadcasts/transition?broadcastStatus=complete&id=${broadcast_id}&part=id,status`,
+      { method: 'POST' }
+    );
+
+    if (result.error) {
+      return res.status(400).json({ error: result.error.message });
+    }
+
+    console.log(`[youtube] Broadcast ended: ${broadcast_id}`);
+    res.json({ success: true, broadcast_id });
+  } catch (e) {
+    console.error('[youtube] End broadcast error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /youtube/restart-broadcast — end current, create new, return new keys
+app.post('/youtube/restart-broadcast', async (req, res) => {
+  const userId = req.headers['x-user-id'];
+  const { broadcast_id, title, description, privacy } = req.body;
+
+  if (!userId) return res.status(400).json({ error: 'x-user-id required' });
+
+  try {
+    // End current broadcast if provided
+    if (broadcast_id) {
+      try {
+        await ytApi(userId,
+          `https://www.googleapis.com/youtube/v3/liveBroadcasts/transition?broadcastStatus=complete&id=${broadcast_id}&part=id,status`,
+          { method: 'POST' }
+        );
+        console.log(`[youtube] Ended broadcast ${broadcast_id} for restart`);
+      } catch (e) {
+        console.warn(`[youtube] Could not end broadcast ${broadcast_id}:`, e.message);
+      }
+    }
+
+    // Create new broadcast (reuse create-broadcast logic internally)
+    const broadcast = await ytApi(userId,
+      'https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status,contentDetails',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          snippet: {
+            title: title || 'Castloop Live Stream',
+            description: description || 'Powered by Castloop',
+            scheduledStartTime: new Date().toISOString(),
+          },
+          status: { privacyStatus: privacy || 'public' },
+          contentDetails: { enableAutoStart: true, enableAutoStop: false, latencyPreference: 'ultraLow' },
+        }),
+      }
+    );
+
+    const liveStream = await ytApi(userId,
+      'https://www.googleapis.com/youtube/v3/liveStreams?part=snippet,cdn',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          snippet: { title: (title || 'Castloop Stream') + ' - ingestion' },
+          cdn: { frameRate: 'variable', ingestionType: 'rtmp', resolution: 'variable' },
+        }),
+      }
+    );
+
+    await ytApi(userId,
+      `https://www.googleapis.com/youtube/v3/liveBroadcasts/bind?id=${broadcast.id}&part=id,contentDetails&streamId=${liveStream.id}`,
+      { method: 'POST' }
+    );
+
+    const ingestion = liveStream.cdn?.ingestionInfo;
+    res.json({
+      success: true,
+      broadcast_id: broadcast.id,
+      stream_id: liveStream.id,
+      rtmp_url: ingestion?.ingestionAddress,
+      stream_key: ingestion?.streamName,
+    });
+  } catch (e) {
+    console.error('[youtube] Restart broadcast error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Stream restart timer ────────────────────────────────────────────────────
+
+const restartTimers = {};
+
+app.post('/set-restart-timer', async (req, res) => {
+  const { streamId, hours, userId, broadcastId, title } = req.body;
+  if (!streamId || !hours) return res.status(400).json({ error: 'streamId and hours required' });
+
+  // Clear existing timer
+  if (restartTimers[streamId]) {
+    clearTimeout(restartTimers[streamId]);
+    delete restartTimers[streamId];
+  }
+
+  const ms = hours * 3600 * 1000;
+  console.log(`[restart] Timer set: ${streamId} will restart in ${hours}h`);
+
+  restartTimers[streamId] = setTimeout(async () => {
+    delete restartTimers[streamId];
+    console.log(`[restart] Executing restart for ${streamId}`);
+
+    try {
+      // 1. Stop current FFmpeg
+      if (activeStreams[streamId]) {
+        activeStreams[streamId].kill('SIGTERM');
+        delete activeStreams[streamId];
+      }
+
+      // 2. If YouTube broadcast, end old + create new
+      if (userId && broadcastId) {
+        const resp = await fetch(`http://localhost:3000/youtube/restart-broadcast`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': API_KEY,
+            'x-user-id': userId,
+          },
+          body: JSON.stringify({ broadcast_id: broadcastId, title }),
+        });
+        const newBroadcast = await resp.json();
+
+        if (newBroadcast.success && newBroadcast.rtmp_url && newBroadcast.stream_key) {
+          // Update stream with new keys
+          await supabaseAdmin.from('streams').update({
+            rtmp_url: newBroadcast.rtmp_url,
+            stream_key: newBroadcast.stream_key,
+          }).eq('id', streamId);
+
+          // 3. Restart FFmpeg with new keys
+          const { data: stream } = await supabaseAdmin
+            .from('streams')
+            .select('*')
+            .eq('id', streamId)
+            .single();
+
+          if (stream) {
+            const videoPaths = Array.isArray(stream.video_paths) ? stream.video_paths : [];
+            const paths = videoPaths.map(v => typeof v === 'object' ? v.path : v).filter(Boolean);
+            if (paths.length) {
+              // Re-trigger start via local API
+              await fetch('http://localhost:3000/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+                body: JSON.stringify({
+                  streamId,
+                  rtmpUrl: newBroadcast.rtmp_url,
+                  streamKey: newBroadcast.stream_key,
+                  videoPaths: paths,
+                }),
+              });
+            }
+          }
+          console.log(`[restart] ${streamId}: Restarted with new broadcast ${newBroadcast.broadcast_id}`);
+        }
+      } else {
+        // Non-YouTube: just restart FFmpeg with same keys
+        const { data: stream } = await supabaseAdmin
+          .from('streams')
+          .select('*')
+          .eq('id', streamId)
+          .single();
+
+        if (stream) {
+          const videoPaths = Array.isArray(stream.video_paths) ? stream.video_paths : [];
+          const paths = videoPaths.map(v => typeof v === 'object' ? v.path : v).filter(Boolean);
+          if (paths.length) {
+            streamStopped[streamId] = false;
+            delete streamFailCount[streamId];
+            await fetch('http://localhost:3000/start', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+              body: JSON.stringify({
+                streamId,
+                rtmpUrl: stream.rtmp_url,
+                streamKey: stream.stream_key,
+                videoPaths: paths,
+              }),
+            });
+          }
+        }
+        console.log(`[restart] ${streamId}: Restarted with same keys`);
+      }
+    } catch (e) {
+      console.error(`[restart] Error restarting ${streamId}:`, e.message);
+    }
+  }, ms);
+
+  res.json({ success: true, restart_at: new Date(Date.now() + ms).toISOString() });
+});
+
+app.post('/cancel-restart-timer', (req, res) => {
+  const { streamId } = req.body;
+  if (restartTimers[streamId]) {
+    clearTimeout(restartTimers[streamId]);
+    delete restartTimers[streamId];
+    console.log(`[restart] Timer cancelled for ${streamId}`);
+  }
+  res.json({ success: true });
 });
 
 // ── Reconciler: sync activeStreams ↔ Supabase every 2 min ──────────────────

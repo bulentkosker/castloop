@@ -190,6 +190,15 @@
     .btn-delete { background: transparent; color: var(--muted); border: 1px solid var(--border); padding: 7px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
     .btn-delete:hover { color: var(--red); border-color: var(--red); }
     .btn-schedule { background: rgba(251,191,36,0.1); color: #fbbf24; border: 1px solid rgba(251,191,36,0.4); padding: 7px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+    .restart-select { background: rgba(52,211,153,0.1); color: #34d399; border: 1px solid rgba(52,211,153,0.4); padding: 6px 8px; border-radius: 8px; font-size: 11px; cursor: pointer; font-family: inherit; }
+    .restart-select option { background: var(--bg2); color: var(--text); }
+    .yt-connect { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: rgba(248,113,113,0.06); border: 1px solid rgba(248,113,113,0.2); border-radius: 10px; margin-top: 12px; }
+    .yt-connect img { width: 32px; height: 32px; border-radius: 50%; }
+    .yt-connect-info { flex: 1; font-size: 13px; }
+    .yt-connect-info .yt-name { font-weight: 600; color: var(--text); }
+    .yt-connect-info .yt-label { color: var(--muted); font-size: 11px; }
+    .btn-yt { background: #ff0000; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; cursor: pointer; font-family: inherit; font-weight: 600; }
+    .btn-yt:hover { background: #cc0000; }
     .btn-schedule:hover { background: rgba(251,191,36,0.2); }
     .btn-schedule.scheduled { background: rgba(251,191,36,0.2); border-color: #fbbf24; }
     .schedule-info { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 8px 12px; background: rgba(251,191,36,0.06); border: 1px solid rgba(251,191,36,0.2); border-radius: 8px; font-size: 12px; color: #fbbf24; }
@@ -312,6 +321,19 @@
       <div class="stat-card"><div class="label">Running</div><div class="value" id="runningStreams">0</div></div>
       <div class="stat-card"><div class="label">Plan</div><div class="value" id="userPlan">Free</div></div>
       <div class="stat-card" id="trialCard" style="display:none"><div class="label">Trial</div><div class="value" id="trialDays" style="font-size:18px">—</div></div>
+    </div>
+
+    <div id="youtubeConnect" class="yt-connect" style="display:none">
+      <div id="ytConnected" style="display:none">
+        <img id="ytThumb" src="" alt="">
+      </div>
+      <div class="yt-connect-info">
+        <div id="ytStatus">
+          <span class="yt-label">YouTube</span>
+          <span class="yt-name" id="ytChannelName">Not connected</span>
+        </div>
+      </div>
+      <button class="btn-yt" id="ytBtn" onclick="connectYouTube()">▶ Connect YouTube</button>
     </div>
 
     <div class="section-header">
@@ -508,6 +530,13 @@
       }
 
       await loadStreams();
+      checkYouTubeStatus();
+
+      // Handle YouTube OAuth redirect
+      if (new URLSearchParams(window.location.search).get('youtube') === 'connected') {
+        toast('✅ YouTube connected!', 'success');
+        window.history.replaceState({}, '', window.location.pathname);
+      }
     }
 
     function showTrialBanner(type, daysLeft) {
@@ -586,6 +615,61 @@
         </div>`).join('');
     }
 
+    // ── YouTube Connection ──────────────────────────────
+    async function checkYouTubeStatus() {
+      try {
+        const el = document.getElementById('youtubeConnect');
+        el.style.display = 'flex';
+        const res = await fetch(`${SERVER_URL}/youtube/status`, {
+          headers: { 'x-api-key': API_KEY, 'x-user-id': currentUser.id }
+        });
+        const data = await res.json();
+        if (data.connected) {
+          document.getElementById('ytChannelName').textContent = data.channel_name;
+          document.getElementById('ytBtn').textContent = '✓ Connected';
+          document.getElementById('ytBtn').disabled = true;
+          document.getElementById('ytBtn').style.background = '#22c55e';
+          if (data.channel_thumb) {
+            const img = document.getElementById('ytThumb');
+            img.src = data.channel_thumb;
+            document.getElementById('ytConnected').style.display = 'block';
+          }
+        }
+      } catch (e) {
+        console.warn('YouTube status check failed:', e);
+      }
+    }
+
+    async function connectYouTube() {
+      try {
+        const res = await fetch(`${SERVER_URL}/auth/youtube?user_id=${currentUser.id}`);
+        const data = await res.json();
+        if (data.url) window.location.href = data.url;
+      } catch (e) {
+        toast('Failed to connect YouTube', 'error');
+      }
+    }
+
+    // ── Stream Restart Timer ──────────────────────────
+    async function setRestartTimer(streamId, hours, userId) {
+      if (!hours) return;
+      try {
+        const server = await getStreamServer(streamId);
+        const apiUrl = server ? server.api_url : SERVER_URL;
+        const res = await fetch(`${apiUrl}/set-restart-timer`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+          body: JSON.stringify({ streamId, hours: parseInt(hours), userId: currentUser.id })
+        });
+        const data = await res.json();
+        if (data.success) {
+          toast(`🔄 Stream will restart in ${hours}h`, 'success');
+        }
+      } catch (e) {
+        toast('Failed to set restart timer', 'error');
+      }
+    }
+
     async function loadStreams() {
       const { data, error } = await client.from('streams').select('*').order('created_at', { ascending: false });
       if (error) { console.error(error); return; }
@@ -637,6 +721,13 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
             }
             <button class="btn-edit" onclick="openEditModal('${s.id}')" ${s.status === 'running' ? 'disabled' : ''}>✎ Edit</button>
             <button class="btn-schedule" onclick="openScheduleModal('${s.id}')">🕐 Schedule</button>
+            ${s.status === 'running' ? `<select class="restart-select" onchange="setRestartTimer('${s.id}', this.value, '${s.user_id || ''}')">
+              <option value="">🔄 Restart in...</option>
+              <option value="3">3 hours</option>
+              <option value="6">6 hours</option>
+              <option value="9">9 hours</option>
+              <option value="12">12 hours</option>
+            </select>` : ''}
             <button class="btn-delete" onclick="confirmDelete('${s.id}', '${s.name.replace(/'/g, "\\'")}', '${s.status}')" ${s.status === 'running' ? 'disabled' : ''}>Delete</button>
           </div>
           ${hasActiveSchedule ? `<div class="schedule-info"><span class="sched-text">🕐 ${schedSummaries.join('<br>🕐 ')}</span><button class="sched-edit" onclick="openScheduleModal('${s.id}')" title="Edit schedule">✎</button></div>` : ''}

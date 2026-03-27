@@ -36,6 +36,9 @@ pm2 restart castloop-api
 SUPABASE_SERVICE_KEY=...
 SERVER_TYPE=4k          # only on 4K server, omit for HD
 SERVER_ID=...           # optional, auto-detected from IP if missing
+YOUTUBE_CLIENT_ID=...   # Google OAuth client ID
+YOUTUBE_CLIENT_SECRET=... # Google OAuth client secret
+LEMONSQUEEZY_WEBHOOK_SECRET=... # LemonSqueezy webhook HMAC secret
 ```
 
 ## Database Schema
@@ -55,7 +58,7 @@ SERVER_ID=...           # optional, auto-detected from IP if missing
 `id`, `name`, `ip`, `api_url`, `status`, `active_streams`, `max_streams`, `server_type`
 
 ### `profiles` table columns
-`id`, `plan`, `trial_started_at`
+`id`, `plan`, `trial_started_at`, `youtube_access_token`, `youtube_refresh_token`, `youtube_channel_id`, `youtube_channel_name`, `youtube_channel_thumb`
 
 ## Key Components
 
@@ -68,6 +71,9 @@ SERVER_ID=...           # optional, auto-detected from IP if missing
 - **Startup recovery** — On boot, restarts streams that were `running` in DB
 - **Reconciler** — Every 2 min, syncs activeStreams with Supabase (kills orphans, marks stale as stopped)
 - **4K mode** — When `SERVER_TYPE=4k`, uses `-c:v copy -c:a copy` (no re-encode)
+- **YouTube OAuth** — `/auth/youtube`, `/auth/youtube/callback`, `/youtube/status`
+- **YouTube Broadcast** — `/youtube/create-broadcast`, `/youtube/end-broadcast`, `/youtube/restart-broadcast`
+- **Stream restart timer** — `/set-restart-timer`, `/cancel-restart-timer` (auto-restart after X hours)
 
 ### scheduler.js
 - Runs every 60s, fetches enabled schedules
