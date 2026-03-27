@@ -865,8 +865,22 @@ app.post('/paddle-webhook', async (req, res) => {
 // ── LemonSqueezy Webhook ────────────────────────────────────────────────────
 
 const LEMON_VARIANT_PLAN_MAP = {
-  // Add LemonSqueezy variant IDs here: variant_id → plan name
-  // e.g. '123456': 'lite', '123457': 'basic', ...
+  // HD Lite
+  '1454856': 'lite', '1454817': 'lite', '1454827': 'lite',
+  // HD Basic
+  '1454872': 'basic', '1454861': 'basic', '1454869': 'basic',
+  // HD Pro
+  '1454875': 'pro', '1454889': 'pro', '1454894': 'pro',
+  // HD Business
+  '1454917': 'business', '1454918': 'business', '1454919': 'business',
+  // HD Enterprise
+  '1455249': 'enterprise', '1455250': 'enterprise', '1455251': 'enterprise',
+  // 4K Starter
+  '1455280': '4k_starter', '1455281': '4k_starter', '1455282': '4k_starter',
+  // 4K Plus
+  '1455294': '4k_plus', '1455295': '4k_plus', '1455296': '4k_plus',
+  // 4K Pro
+  '1455308': '4k_pro', '1455309': '4k_pro', '1455310': '4k_pro',
 };
 
 app.post('/lemonsqueezy-webhook', async (req, res) => {
@@ -909,7 +923,7 @@ app.post('/lemonsqueezy-webhook', async (req, res) => {
   }
 
   if (eventName === 'subscription_created' || eventName === 'order_created') {
-    const variantId = String(data.variant_id || data.first_order_item?.variant_id || '');
+    const variantId = String(data.variant_id || data.first_subscription_item?.variant_id || data.first_order_item?.variant_id || '');
     let plan = LEMON_VARIANT_PLAN_MAP[variantId];
 
     // Fallback: extract plan from product_name if variant not mapped
