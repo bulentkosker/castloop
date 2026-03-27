@@ -799,9 +799,15 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       }
     }
 
+    const startingStreams = {};
     async function startStream(id, rtmpUrl, streamKey, videoPaths) {
+      // Çift tıklama / çift çağrı koruması
+      if (startingStreams[id]) return;
+      startingStreams[id] = true;
+
       // Trial süresi kontrolü
       if (trialExpired) {
+        delete startingStreams[id];
         showStreamError(id, 'Trial süreniz doldu. Lütfen planınızı yükseltin.');
         return;
       }
@@ -809,6 +815,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       const limit = PLAN_LIMITS[userPlan] || 1;
       const running = streams.filter(s => s.status === 'running').length;
       if (running >= limit) {
+        delete startingStreams[id];
         showStreamError(id, `Plan limitine ulaştınız (${limit} aktif yayın). Planınızı yükseltin.`);
         return;
       }
@@ -819,6 +826,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       // Müsait sunucu bul
       const server = await getAvailableServer(requiredServerType);
       if (!server) {
+        delete startingStreams[id];
         showStreamError(id, `No available ${requiredServerType} server. Please try again later.`);
         return;
       }
@@ -833,9 +841,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
         });
         const data = await res.json();
         if (data.success) {
-          // Stream'i güncelle: status + server_id
           await client.from('streams').update({ status: 'running', server_id: server.id }).eq('id', id);
-          // Sunucu active_streams sayacını ilgili server_id için artır
           await adjustServerActiveStreams(server.id, 1);
           await loadStreams();
           setTimeout(() => checkStreamHealth(id, server), 15000);
@@ -846,6 +852,8 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       } catch (e) {
         if (btn) { btn.disabled = false; btn.textContent = '▶ Start'; }
         showStreamError(id, 'Cannot reach stream server.');
+      } finally {
+        delete startingStreams[id];
       }
     }
 

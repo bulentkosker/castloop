@@ -165,12 +165,15 @@ async function tick() {
       console.log(`[scheduler] ${stream.id}: Starting (schedule window active)`);
       try {
         const apiUrl = stream.server_id ? await getServerApiUrl(stream.server_id) : DEFAULT_API_URL;
-        await apiCall(apiUrl, '/start', {
+        const result = await apiCall(apiUrl, '/start', {
           streamId: stream.id,
           rtmpUrl: stream.rtmp_url,
           streamKey: stream.stream_key,
           videoPaths
         });
+        if (result.error === 'Stream already running') {
+          console.log(`[scheduler] ${stream.id}: Already running on API, updating DB status.`);
+        }
         await sbUpdate('streams', `id=eq.${stream.id}`, { status: 'running' });
       } catch (e) { console.error(`[scheduler] Start error ${stream.id}:`, e.message); }
 
