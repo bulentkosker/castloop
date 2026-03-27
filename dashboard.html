@@ -334,6 +334,7 @@
         </div>
       </div>
       <button class="btn-yt" id="ytBtn" onclick="connectYouTube()">▶ Connect YouTube</button>
+      <button class="btn-yt" id="ytDisconnectBtn" onclick="disconnectYouTube()" style="display:none;background:#450a0a;color:#f87171;font-size:11px;padding:6px 12px;">Disconnect</button>
     </div>
 
     <div class="section-header">
@@ -629,6 +630,7 @@
           document.getElementById('ytBtn').textContent = '✓ Connected';
           document.getElementById('ytBtn').disabled = true;
           document.getElementById('ytBtn').style.background = '#22c55e';
+          document.getElementById('ytDisconnectBtn').style.display = '';
           if (data.channel_thumb) {
             const img = document.getElementById('ytThumb');
             img.src = data.channel_thumb;
@@ -642,6 +644,26 @@
 
     function connectYouTube() {
       window.location.href = `${SERVER_URL}/auth/youtube?user_id=${currentUser.id}`;
+    }
+
+    async function disconnectYouTube() {
+      const { error } = await client.from('profiles').update({
+        youtube_access_token: null,
+        youtube_refresh_token: null,
+        youtube_channel_id: null,
+        youtube_channel_name: null,
+        youtube_channel_thumb: null,
+      }).eq('id', currentUser.id);
+
+      if (error) { toast('Failed to disconnect YouTube', 'error'); return; }
+
+      document.getElementById('ytChannelName').textContent = 'Not connected';
+      document.getElementById('ytBtn').textContent = '▶ Connect YouTube';
+      document.getElementById('ytBtn').disabled = false;
+      document.getElementById('ytBtn').style.background = '#ff0000';
+      document.getElementById('ytDisconnectBtn').style.display = 'none';
+      document.getElementById('ytConnected').style.display = 'none';
+      toast('YouTube disconnected', 'success');
     }
 
     // ── Stream Restart Timer ──────────────────────────
