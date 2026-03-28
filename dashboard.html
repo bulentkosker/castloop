@@ -356,18 +356,22 @@
       </div>
       <div class="form-group" id="ytAccountGroup" style="display:none">
         <label>YouTube Channel</label>
-        <select id="ytAccountSelect">
-          <option value="">Manual RTMP (don't use YouTube account)</option>
+        <select id="ytAccountSelect" onchange="onYtAccountChange()">
+          <option value="">Manual RTMP (enter key below)</option>
         </select>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px;">Select a connected channel or use manual RTMP below</div>
       </div>
-      <div class="form-group" id="rtmpGroup">
-        <label>RTMP URL</label>
-        <input type="text" id="rtmpUrl" placeholder="rtmp://a.rtmp.youtube.com/live2">
+      <div id="manualRtmpFields">
+        <div class="form-group">
+          <label>RTMP URL</label>
+          <input type="text" id="rtmpUrl" placeholder="rtmp://a.rtmp.youtube.com/live2">
+        </div>
+        <div class="form-group">
+          <label>Stream Key</label>
+          <input type="text" id="streamKey" placeholder="xxxx-xxxx-xxxx-xxxx">
+        </div>
       </div>
-      <div class="form-group">
-        <label>Stream Key</label>
-        <input type="text" id="streamKey" placeholder="xxxx-xxxx-xxxx-xxxx">
+      <div id="ytAutoMessage" style="display:none;padding:12px;background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);border-radius:8px;margin-bottom:16px;font-size:13px;color:#34d399;">
+        ▶ YouTube will create broadcast and manage stream key automatically when you start this stream.
       </div>
       <div class="form-group">
         <label>Playlist</label>
@@ -760,23 +764,28 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
     async function createStream() {
       const name = document.getElementById('streamName').value;
       const platform = document.getElementById('streamPlatform').value;
-      const rtmp_url = document.getElementById('rtmpUrl').value;
-      const stream_key = document.getElementById('streamKey').value;
+      const ytAccountId = document.getElementById('ytAccountSelect')?.value || '';
+      const rtmp_url = ytAccountId ? 'youtube-auto' : document.getElementById('rtmpUrl').value;
+      const stream_key = ytAccountId ? 'youtube-auto' : document.getElementById('streamKey').value;
       const msg = document.getElementById('modalMessage');
 
-      if (!name || !rtmp_url || !stream_key) { msg.textContent = 'Please fill in all fields.'; return; }
+      if (!name) { msg.textContent = 'Please enter a stream name.'; return; }
+      if (!ytAccountId && (!rtmp_url || !stream_key)) { msg.textContent = 'Please fill in RTMP URL and stream key.'; return; }
       if (!playlist.length) { msg.textContent = 'Please add at least one video.'; return; }
 
       const video_paths_objs = playlist.map(v => ({ path: v.path, name: v.name }));
       const video_path = video_paths_objs[0].path;
 
-      const { error } = await client.from('streams').insert({
+      const insertData = {
         user_id: currentUser.id,
         name, platform, rtmp_url, stream_key,
         video_path,
         video_paths: JSON.stringify(video_paths_objs),
         status: 'stopped'
-      });
+      };
+      if (ytAccountId) insertData.youtube_account_id = ytAccountId;
+
+      const { error } = await client.from('streams').insert(insertData);
 
       if (error) { msg.textContent = error.message; return; }
       closeModal();
@@ -932,10 +941,44 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       const btn = document.getElementById(`btn-start-${id}`);
       if (btn) { btn.disabled = true; btn.textContent = 'Starting...'; }
       try {
+        // Auto-create YouTube broadcast if stream has youtube_account_id
+        const streamData = streams.find(s => s.id === id);
+        let finalRtmpUrl = rtmpUrl;
+        let finalStreamKey = streamKey;
+
+        if (streamData?.youtube_account_id && (rtmpUrl === 'youtube-auto' || !rtmpUrl)) {
+          if (btn) btn.textContent = 'Creating broadcast...';
+          const ytRes = await fetch(`${SERVER_URL}/youtube/create-broadcast`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY, 'x-user-id': currentUser.id },
+            body: JSON.stringify({
+              title: streamData.name || 'Castloop Live Stream',
+              account_id: streamData.youtube_account_id,
+            })
+          });
+          const ytData = await ytRes.json();
+          if (!ytData.success || !ytData.rtmp_url || !ytData.stream_key) {
+            delete startingStreams[id];
+            if (btn) { btn.disabled = false; btn.textContent = '▶ Start'; }
+            showStreamError(id, ytData.error || 'Failed to create YouTube broadcast.');
+            return;
+          }
+          finalRtmpUrl = ytData.rtmp_url;
+          finalStreamKey = ytData.stream_key;
+          // Save broadcast info and new keys to DB
+          await client.from('streams').update({
+            rtmp_url: finalRtmpUrl,
+            stream_key: finalStreamKey,
+            youtube_broadcast_id: ytData.broadcast_id,
+            youtube_stream_id: ytData.stream_id,
+          }).eq('id', id);
+          if (btn) btn.textContent = 'Starting...';
+        }
+
         const res = await fetch(`${server.api_url}/start`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-          body: JSON.stringify({ streamId: id, rtmpUrl, streamKey, videoPaths })
+          body: JSON.stringify({ streamId: id, rtmpUrl: finalRtmpUrl, streamKey: finalStreamKey, videoPaths })
         });
         const data = await res.json();
         if (data.success) {
@@ -1034,6 +1077,12 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
           ytAccounts.map(a => `<option value="${a.id}">${a.channel_name || a.channel_id}</option>`).join('');
         group.style.display = ytAccounts.length ? '' : 'none';
       } catch (e) { ytAccounts = []; }
+    }
+
+    function onYtAccountChange() {
+      const val = document.getElementById('ytAccountSelect').value;
+      document.getElementById('manualRtmpFields').style.display = val ? 'none' : '';
+      document.getElementById('ytAutoMessage').style.display = val ? '' : 'none';
     }
 
     async function openModal() {

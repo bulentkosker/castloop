@@ -1252,7 +1252,7 @@ app.delete('/youtube/accounts/:id', async (req, res) => {
 // POST /youtube/create-broadcast — create live broadcast + stream
 app.post('/youtube/create-broadcast', async (req, res) => {
   const userId = req.headers['x-user-id'];
-  const { title, description, privacy } = req.body;
+  const { title, description, privacy, account_id } = req.body;
 
   if (!userId) return res.status(400).json({ error: 'x-user-id required' });
 
@@ -1276,7 +1276,8 @@ app.post('/youtube/create-broadcast', async (req, res) => {
             latencyPreference: 'ultraLow',
           },
         }),
-      }
+      },
+      account_id
     );
 
     if (broadcast.error) {
@@ -1297,7 +1298,8 @@ app.post('/youtube/create-broadcast', async (req, res) => {
             resolution: 'variable',
           },
         }),
-      }
+      },
+      account_id
     );
 
     if (liveStream.error) {
@@ -1307,7 +1309,8 @@ app.post('/youtube/create-broadcast', async (req, res) => {
     // 3. Bind broadcast to stream
     await ytApi(userId,
       `https://www.googleapis.com/youtube/v3/liveBroadcasts/bind?id=${broadcast.id}&part=id,contentDetails&streamId=${liveStream.id}`,
-      { method: 'POST' }
+      { method: 'POST' },
+      account_id
     );
 
     const ingestion = liveStream.cdn?.ingestionInfo;
