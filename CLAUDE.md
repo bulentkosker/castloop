@@ -39,6 +39,9 @@ SERVER_ID=...           # optional, auto-detected from IP if missing
 YOUTUBE_CLIENT_ID=...   # Google OAuth client ID
 YOUTUBE_CLIENT_SECRET=... # Google OAuth client secret
 LEMONSQUEEZY_WEBHOOK_SECRET=... # LemonSqueezy webhook HMAC secret
+TWILIO_ACCOUNT_SID=...          # Twilio account SID
+TWILIO_AUTH_TOKEN=...           # Twilio auth token
+TWILIO_WHATSAPP_FROM=whatsapp:+14155238886  # Twilio WhatsApp sender
 ```
 
 ## Database Schema
@@ -58,7 +61,7 @@ LEMONSQUEEZY_WEBHOOK_SECRET=... # LemonSqueezy webhook HMAC secret
 `id`, `name`, `ip`, `api_url`, `status`, `active_streams`, `max_streams`, `server_type`
 
 ### `profiles` table columns
-`id`, `plan`, `trial_started_at`, `youtube_access_token`, `youtube_refresh_token`, `youtube_channel_id`, `youtube_channel_name`, `youtube_channel_thumb`
+`id`, `plan`, `trial_started_at`, `youtube_access_token`, `youtube_refresh_token`, `youtube_channel_id`, `youtube_channel_name`, `youtube_channel_thumb`, `phone`, `whatsapp_notifications`
 
 ## Key Components
 
@@ -74,6 +77,7 @@ LEMONSQUEEZY_WEBHOOK_SECRET=... # LemonSqueezy webhook HMAC secret
 - **YouTube OAuth** — `/auth/youtube`, `/auth/youtube/callback`, `/youtube/status`
 - **YouTube Broadcast** — `/youtube/create-broadcast`, `/youtube/end-broadcast`, `/youtube/restart-broadcast`
 - **Stream restart timer** — `/set-restart-timer`, `/cancel-restart-timer` (auto-restart after X hours)
+- **WhatsApp alerts** — Sends Twilio WhatsApp message when stream fails 3 times
 
 ### scheduler.js
 - Runs every 60s, fetches enabled schedules

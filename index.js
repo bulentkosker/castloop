@@ -153,6 +153,54 @@ const streamStopped = {};
 const streamStartTime = {};
 const streamFailCount = {};
 const streamMaxDurationTimers = {};
+
+// ── WhatsApp notification via Twilio ──────────────────────────────────────
+async function sendWhatsAppAlert(streamId) {
+  const sid = process.env.TWILIO_ACCOUNT_SID;
+  const token = process.env.TWILIO_AUTH_TOKEN;
+  const from = process.env.TWILIO_WHATSAPP_FROM;
+  if (!sid || !token || !from) return;
+
+  try {
+    // Get stream info
+    const { data: stream } = await supabaseAdmin
+      .from('streams')
+      .select('name, user_id')
+      .eq('id', streamId)
+      .single();
+    if (!stream?.user_id) return;
+
+    // Get user profile
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('phone, whatsapp_notifications')
+      .eq('id', stream.user_id)
+      .single();
+
+    if (!profile?.phone || profile.whatsapp_notifications === false) return;
+
+    const to = `whatsapp:${profile.phone}`;
+    const body = `🔴 Castloop: "${stream.name || streamId}" yayınınız düştü. Dashboard'dan kontrol edin: https://castloop.tv/dashboard.html`;
+
+    const resp = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Basic ' + Buffer.from(`${sid}:${token}`).toString('base64'),
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({ From: from, To: to, Body: body }),
+    });
+
+    const result = await resp.json();
+    if (result.sid) {
+      console.log(`[whatsapp] Alert sent to ${profile.phone} for stream ${streamId}`);
+    } else {
+      console.error(`[whatsapp] Failed:`, result.message || result);
+    }
+  } catch (e) {
+    console.error(`[whatsapp] Error sending alert for ${streamId}:`, e.message);
+  }
+}
 const streamRestartByDuration = {};
 
 
@@ -362,6 +410,7 @@ function startFFmpeg(streamId) {
     // 3 kez üst üste hızlı kapandıysa watchdog'u durdur
     if (streamFailCount[streamId] >= 3) {
       console.log(`[${streamId}] Too many failures, giving up.`);
+      sendWhatsAppAlert(streamId);
       delete streamConfigs[streamId];
       delete streamStartTime[streamId];
       delete streamFailCount[streamId];
