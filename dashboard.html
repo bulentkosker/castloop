@@ -531,6 +531,7 @@
       }
 
       await loadStreams();
+      cleanupPastSchedules();
       checkYouTubeStatus();
 
       // Handle YouTube OAuth redirect
@@ -686,6 +687,29 @@
       }
     }
 
+    async function cleanupPastSchedules() {
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: expired } = await client
+        .from('stream_schedules')
+        .select('id, stream_id')
+        .eq('user_id', currentUser.id)
+        .eq('enabled', false)
+        .lt('schedule_date', today);
+
+      if (expired && expired.length > 0) {
+        const ids = expired.map(e => e.id);
+        await client.from('stream_schedules').delete().in('id', ids);
+        // Update local cache
+        for (const e of expired) {
+          if (streamSchedules[e.stream_id]) {
+            streamSchedules[e.stream_id] = streamSchedules[e.stream_id].filter(s => !ids.includes(s.id));
+            if (!streamSchedules[e.stream_id].length) delete streamSchedules[e.stream_id];
+          }
+        }
+        console.log(`[cleanup] Removed ${ids.length} past disabled schedule(s)`);
+      }
+    }
+
     async function loadStreams() {
       const { data, error } = await client.from('streams').select('*').order('created_at', { ascending: false });
       if (error) { console.error(error); return; }
@@ -720,7 +744,8 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
         const pathStrings = paths.map(item => typeof item === 'object' && item !== null ? item.path : item).filter(Boolean);
         const videoCount = pathStrings.length;
         const scheds = streamSchedules[s.id] || [];
-        const activeScheds = scheds.filter(sc => sc.enabled);
+        const activeScheds = scheds.filter(sc => sc.enabled)
+          .sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
         const hasActiveSchedule = activeScheds.length > 0;
         const schedSummaries = activeScheds.map(sc => formatScheduleSummary(sc));
         return `
@@ -1408,6 +1433,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       document.getElementById('scheduleStreamId').value = streamId;
       document.getElementById('scheduleRows').innerHTML = '';
       scheduleRowCounter = 0;
+      await cleanupPastSchedules();
 
       const { data } = await client.from('stream_schedules')
         .select('*').eq('stream_id', streamId).order('start_time', { ascending: true });
@@ -1415,7 +1441,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       if (data && data.length > 0) {
         const tz = data[0].timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
         document.getElementById('scheduleTz').value = tz;
-        data.forEach(row => addScheduleRow(row));
+        data.sort((a, b) => (a.start_time || '').localeCompare(b.start_time || '')).forEach(row => addScheduleRow(row));
       } else {
         addScheduleRow();
       }
