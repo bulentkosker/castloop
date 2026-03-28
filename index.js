@@ -1161,6 +1161,43 @@ app.get('/auth/youtube/callback', async (req, res) => {
 });
 
 // GET /youtube/status — check connection
+// ── Profile ─────────────────────────────────────────────────────────────────
+
+app.get('/api/profile', async (req, res) => {
+  const userId = req.headers['x-user-id'];
+  if (!userId) return res.status(400).json({ error: 'x-user-id required' });
+
+  const { data, error } = await supabaseAdmin
+    .from('profiles')
+    .select('id, plan, phone, whatsapp_notifications, youtube_channel_id, youtube_channel_name, youtube_channel_thumb')
+    .eq('id', userId)
+    .single();
+
+  if (error) return res.status(404).json({ error: 'Profile not found' });
+  res.json(data);
+});
+
+app.patch('/api/profile', async (req, res) => {
+  const userId = req.headers['x-user-id'];
+  if (!userId) return res.status(400).json({ error: 'x-user-id required' });
+
+  const allowed = ['phone', 'whatsapp_notifications'];
+  const updates = {};
+  for (const key of allowed) {
+    if (req.body[key] !== undefined) updates[key] = req.body[key];
+  }
+
+  if (!Object.keys(updates).length) return res.status(400).json({ error: 'No valid fields to update' });
+
+  const { error } = await supabaseAdmin
+    .from('profiles')
+    .update(updates)
+    .eq('id', userId);
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true });
+});
+
 app.get('/youtube/status', async (req, res) => {
   const userId = req.headers['x-user-id'];
   if (!userId) return res.status(400).json({ error: 'x-user-id required' });
