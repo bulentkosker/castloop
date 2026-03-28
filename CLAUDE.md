@@ -44,7 +44,7 @@ LEMONSQUEEZY_WEBHOOK_SECRET=... # LemonSqueezy webhook HMAC secret
 ## Database Schema
 
 ### `streams` table columns
-`id`, `rtmp_url`, `stream_key`, `video_paths`, `status`, `server_id`, `name`, `platform`, `created_at`, `user_id`
+`id`, `rtmp_url`, `stream_key`, `video_paths`, `status`, `server_id`, `name`, `platform`, `created_at`, `user_id`, `restart_at`
 
 **Columns that DO NOT exist:** `max_duration`, `stream_id`
 

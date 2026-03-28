@@ -192,6 +192,9 @@
     .btn-schedule { background: rgba(251,191,36,0.1); color: #fbbf24; border: 1px solid rgba(251,191,36,0.4); padding: 7px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
     .restart-select { background: rgba(52,211,153,0.1); color: #34d399; border: 1px solid rgba(52,211,153,0.4); padding: 6px 8px; border-radius: 8px; font-size: 11px; cursor: pointer; font-family: inherit; }
     .restart-select option { background: var(--bg2); color: var(--text); }
+    .restart-info { display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 6px 10px; background: rgba(52,211,153,0.06); border: 1px solid rgba(52,211,153,0.2); border-radius: 8px; font-size: 11px; color: #34d399; }
+    .restart-info .restart-cancel { background: none; border: none; color: #f87171; cursor: pointer; font-size: 12px; padding: 2px 6px; border-radius: 4px; }
+    .restart-info .restart-cancel:hover { background: rgba(248,113,113,0.1); }
     .yt-connect { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: rgba(248,113,113,0.06); border: 1px solid rgba(248,113,113,0.2); border-radius: 10px; margin-top: 12px; }
     .yt-connect img { width: 32px; height: 32px; border-radius: 50%; }
     .yt-connect-info { flex: 1; font-size: 13px; }
@@ -681,10 +684,35 @@
         const data = await res.json();
         if (data.success) {
           toast(`🔄 Stream will restart in ${hours}h`, 'success');
+          await loadStreams();
         }
       } catch (e) {
         toast('Failed to set restart timer', 'error');
       }
+    }
+
+    async function cancelRestartTimer(streamId) {
+      try {
+        const server = await getStreamServer(streamId);
+        const apiUrl = server ? server.api_url : SERVER_URL;
+        await fetch(`${apiUrl}/cancel-restart-timer`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+          body: JSON.stringify({ streamId })
+        });
+        toast('Restart timer cancelled', 'success');
+        await loadStreams();
+      } catch (e) {
+        toast('Failed to cancel timer', 'error');
+      }
+    }
+
+    function formatTimeRemaining(restartAt) {
+      const diff = new Date(restartAt) - Date.now();
+      if (diff <= 0) return null;
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      return h > 0 ? `${h}h ${m}m` : `${m}m`;
     }
 
     async function cleanupPastSchedules() {
@@ -762,7 +790,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
             }
             <button class="btn-edit" onclick="openEditModal('${s.id}')" ${s.status === 'running' ? 'disabled' : ''}>✎ Edit</button>
             <button class="btn-schedule" onclick="openScheduleModal('${s.id}')">🕐 Schedule</button>
-            ${s.status === 'running' ? `<select class="restart-select" onchange="setRestartTimer('${s.id}', this.value, '${s.user_id || ''}')">
+            ${s.status === 'running' && !(s.restart_at && new Date(s.restart_at) > Date.now()) ? `<select class="restart-select" onchange="setRestartTimer('${s.id}', this.value)">
               <option value="">🔄 Restart in...</option>
               <option value="3">3 hours</option>
               <option value="6">6 hours</option>
@@ -771,6 +799,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
             </select>` : ''}
             <button class="btn-delete" onclick="confirmDelete('${s.id}', '${s.name.replace(/'/g, "\\'")}', '${s.status}')" ${s.status === 'running' ? 'disabled' : ''}>Delete</button>
           </div>
+          ${s.restart_at && new Date(s.restart_at) > Date.now() ? `<div class="restart-info"><span>🔄 Restart in ${formatTimeRemaining(s.restart_at)}</span><button class="restart-cancel" onclick="cancelRestartTimer('${s.id}')" title="Cancel">✕</button></div>` : ''}
           ${hasActiveSchedule ? `<div class="schedule-info"><span class="sched-text">🕐 ${schedSummaries.join('<br>🕐 ')}</span><button class="sched-edit" onclick="openScheduleModal('${s.id}')" title="Edit schedule">✎</button></div>` : ''}
           <div style="font-size:11px;color:#f87171;margin-top:8px;min-height:16px" id="err-${s.id}"></div>
         </div>`;

@@ -1324,11 +1324,18 @@ app.post('/set-restart-timer', async (req, res) => {
   }
 
   const ms = hours * 3600 * 1000;
-  console.log(`[restart] Timer set: ${streamId} will restart in ${hours}h`);
+  const restartAt = new Date(Date.now() + ms).toISOString();
+  console.log(`[restart] Timer set: ${streamId} will restart at ${restartAt}`);
+
+  // Persist to Supabase
+  await supabaseAdmin.from('streams').update({ restart_at: restartAt }).eq('id', streamId);
 
   restartTimers[streamId] = setTimeout(async () => {
     delete restartTimers[streamId];
     console.log(`[restart] Executing restart for ${streamId}`);
+
+    // Clear restart_at in DB
+    await supabaseAdmin.from('streams').update({ restart_at: null }).eq('id', streamId);
 
     try {
       // 1. Stop current FFmpeg
@@ -1419,13 +1426,14 @@ app.post('/set-restart-timer', async (req, res) => {
   res.json({ success: true, restart_at: new Date(Date.now() + ms).toISOString() });
 });
 
-app.post('/cancel-restart-timer', (req, res) => {
+app.post('/cancel-restart-timer', async (req, res) => {
   const { streamId } = req.body;
   if (restartTimers[streamId]) {
     clearTimeout(restartTimers[streamId]);
     delete restartTimers[streamId];
     console.log(`[restart] Timer cancelled for ${streamId}`);
   }
+  await supabaseAdmin.from('streams').update({ restart_at: null }).eq('id', streamId);
   res.json({ success: true });
 });
 
