@@ -350,7 +350,7 @@
 
     <div class="notif-settings" id="notifSettings">
       <span style="font-size:13px;color:var(--text);font-weight:600;">📱 WhatsApp Alerts</span>
-      <input type="tel" id="phoneInput" placeholder="+12025551234">
+      <input type="tel" id="phoneInput" placeholder="+15550000000">
       <label class="notif-toggle">
         <input type="checkbox" id="whatsappToggle" checked>
         Enabled
@@ -682,7 +682,7 @@
       const whatsapp_notifications = document.getElementById('whatsappToggle').checked;
 
       if (whatsapp_notifications && phone && !/^\+\d{7,15}$/.test(phone)) {
-        toast('Enter a valid phone number (e.g. +905xxxxxxxxx)', 'error');
+        toast('Enter a valid phone number (e.g. +15550000000)', 'error');
         return;
       }
 
