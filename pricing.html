@@ -455,6 +455,19 @@
 </script>
 
 <script>
+  // Product checkout UUIDs from LemonSqueezy
+  const LEMON_CHECKOUT = {
+    lite:         'd32c1809-6499-4e49-b063-81abe391d023',
+    basic:        '104fda36-41ce-4a0d-8a97-3d585a680104',
+    pro:          '7552f023-f9c5-4ff8-b376-993c0ea66149',
+    business:     'ead39efe-0d13-46db-ae67-cabc3eecfb6a',
+    enterprise:   '102712bc-6325-4bec-884b-c66db5e937af',
+    '4k_starter': '5e7dcde0-1792-46ec-b572-cc5a877c845c',
+    '4k_plus':    '1ac8809a-309e-48c9-a509-e11b29c3b2a5',
+    '4k_pro':     '52392024-8b1b-4906-bbaa-5ac6caf23948',
+  };
+
+  // Variant IDs for monthly/yearly billing
   const LEMON_VARIANTS = {
     lite:         { monthly: '1454817', yearly: '1454827' },
     basic:        { monthly: '1454861', yearly: '1454869' },
@@ -468,8 +481,9 @@
 
   function openCheckout(plan) {
     const billing = document.getElementById('billingToggle').checked ? 'yearly' : 'monthly';
+    const checkoutId = LEMON_CHECKOUT[plan];
     const variantId = LEMON_VARIANTS[plan]?.[billing];
-    if (!variantId) return;
+    if (!checkoutId || !variantId) return;
 
     // Supabase session'dan email al
     let userEmail;
@@ -481,11 +495,11 @@
       } catch(e) {}
     }
 
-    let url = `https://castloop.lemonsqueezy.com/buy/${variantId}`;
-    const params = [];
+    let url = `https://castloop.lemonsqueezy.com/checkout/buy/${checkoutId}`;
+    const params = [`variant=${variantId}`];
     if (userEmail) params.push('checkout[email]=' + encodeURIComponent(userEmail));
     params.push('checkout[custom][email]=' + encodeURIComponent(userEmail || ''));
-    if (params.length) url += '?' + params.join('&');
+    url += '?' + params.join('&');
 
     window.open(url, '_blank');
   }
