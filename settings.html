@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en" id="htmlRoot">
+<head>
+  <meta charset="UTF-8">
+  <script>document.documentElement.setAttribute("data-theme", localStorage.getItem("cl_theme") || "dark");</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Castloop - Settings</title>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    :root { --bg:#10121a; --bg2:#171923; --bg3:#1e2130; --border:#262a3a; --accent:#6366f1; --accent2:#818cf8; --text:#e8e8f0; --muted:#7a7d8e; --green:#34d399; --red:#f87171; --sidebar-w:240px; }
+    [data-theme="light"] { --bg:#f5f5f7; --bg2:#ffffff; --bg3:#eeeef0; --border:#dddde0; --text:#1a1a2e; --muted:#6b6b8a; }
+
+    .sidebar { width: var(--sidebar-w); background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; top: 0; bottom: 0; left: 0; z-index: 60; }
+    .sidebar-logo { padding: 24px 24px 28px; }
+    .sidebar-logo a { font-family: 'Figtree', sans-serif; font-size: 22px; font-weight: 800; color: var(--accent2); text-decoration: none; letter-spacing: -0.5px; }
+    .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 2px; padding: 0 12px; }
+    .sidebar-link { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; font-size: 14px; font-weight: 500; color: var(--muted); text-decoration: none; transition: all 0.15s; }
+    .sidebar-link:hover { background: rgba(99,102,241,0.06); color: var(--text); }
+    .sidebar-link.active { background: rgba(99,102,241,0.12); color: var(--accent2); font-weight: 600; border-left: 3px solid var(--accent); padding-left: 11px; }
+    .sl-icon { font-size: 18px; width: 24px; text-align: center; }
+    .main-content { margin-left: var(--sidebar-w); flex: 1; min-height: 100vh; }
+    .main { padding: 32px; max-width: 700px; margin: 0 auto; }
+    .main h1 { font-family: 'Figtree', sans-serif; font-size: 24px; font-weight: 700; margin-bottom: 28px; }
+
+    .settings-section { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    .settings-section h2 { font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+    /* YouTube accounts */
+    .yt-account { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg3); border-radius: 10px; margin-bottom: 8px; }
+    .yt-account img { width: 36px; height: 36px; border-radius: 50%; }
+    .yt-account-info { flex: 1; }
+    .yt-account-name { font-size: 14px; font-weight: 600; }
+    .yt-account-id { font-size: 11px; color: var(--muted); }
+    .btn-disconnect { background: rgba(248,113,113,0.1); color: var(--red); border: 1px solid rgba(248,113,113,0.3); padding: 6px 12px; border-radius: 8px; font-size: 11px; cursor: pointer; font-family: inherit; }
+    .btn-disconnect:hover { background: rgba(248,113,113,0.2); }
+    .btn-yt-connect { background: #ff0000; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; cursor: pointer; font-family: inherit; font-weight: 600; margin-top: 8px; }
+    .btn-yt-connect:hover { background: #cc0000; }
+
+    /* WhatsApp */
+    .wa-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .wa-row input[type="tel"] { padding: 9px 14px; background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 8px; font-size: 13px; font-family: inherit; width: 200px; }
+    .wa-row input[type="tel"]:focus { border-color: var(--accent); outline: none; }
+    .wa-toggle { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); cursor: pointer; }
+    .wa-toggle input { accent-color: #34d399; width: 16px; height: 16px; }
+    .btn-save { background: var(--accent); color: white; border: none; padding: 9px 20px; border-radius: 8px; font-size: 13px; cursor: pointer; font-family: inherit; font-weight: 600; }
+    .btn-save:hover { background: #4f46e5; }
+
+    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--bg3); color: var(--text); padding: 12px 20px; border-radius: 10px; font-size: 13px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999; border: 1px solid var(--border); }
+    .toast.active { opacity: 1; }
+    .toast.success { border-color: rgba(52,211,153,0.4); }
+    .toast.error { border-color: rgba(248,113,113,0.4); }
+
+    @media (max-width: 768px) {
+      .sidebar { width: 60px; overflow: hidden; }
+      .sidebar-logo a { font-size: 0; }
+      .sidebar-logo a::first-letter { font-size: 22px; }
+      .sidebar-link span:not(.sl-icon) { display: none; }
+      .sidebar-link { justify-content: center; padding: 10px; }
+      .sl-icon { margin: 0; }
+      .main-content { margin-left: 60px; }
+      :root { --sidebar-w: 60px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><a href="dashboard.html">Castloop</a></div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="sidebar-link"><span class="sl-icon">📡</span> Streams</a>
+      <a href="videos.html" class="sidebar-link"><span class="sl-icon">🎬</span> Videos</a>
+      <a href="pricing.html" class="sidebar-link"><span class="sl-icon">💎</span> Plans</a>
+      <a href="settings.html" class="sidebar-link active"><span class="sl-icon">⚙</span> Settings</a>
+    </nav>
+  </aside>
+
+  <div class="main-content">
+  <div class="main">
+    <h1>Settings</h1>
+
+    <!-- YouTube Accounts -->
+    <div class="settings-section">
+      <h2>▶ YouTube Channels</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Connect YouTube channels to auto-create broadcasts and get stream keys.</p>
+      <div id="ytAccountsList"></div>
+      <button class="btn-yt-connect" onclick="connectYouTube()">+ Connect YouTube Channel</button>
+    </div>
+
+    <!-- WhatsApp Notifications -->
+    <div class="settings-section">
+      <h2>📱 WhatsApp Alerts</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Get notified on WhatsApp when your stream goes down.</p>
+      <div class="wa-row">
+        <input type="tel" id="phoneInput" placeholder="+15550000000">
+        <label class="wa-toggle">
+          <input type="checkbox" id="whatsappToggle" checked>
+          Enabled
+        </label>
+        <button class="btn-save" onclick="saveNotifSettings()">Save</button>
+      </div>
+    </div>
+  </div>
+  </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const SUPABASE_URL = 'https://pdttjblnvxoitskhdtro.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_vxcNOoezd_FKxKWmWj-rZQ_w3IrSMaG';
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const SERVER_URL = 'https://api.castloop.tv';
+    const API_KEY = 'castloop-secret-2024';
+
+    let currentUser = null;
+
+    function toast(msg, type) {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.className = 'toast active ' + (type || '');
+      setTimeout(() => t.className = 'toast', 3500);
+    }
+
+    async function init() {
+      const { data: { user } } = await client.auth.getUser();
+      if (!user) { window.location.href = 'login.html'; return; }
+      currentUser = user;
+
+      loadYouTubeAccounts();
+      loadNotifSettings();
+
+      if (new URLSearchParams(window.location.search).get('youtube') === 'connected') {
+        toast('YouTube channel connected!', 'success');
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+
+    // ── YouTube Accounts ──────────────────────────────
+    async function loadYouTubeAccounts() {
+      const { data } = await client.from('youtube_accounts')
+        .select('*').eq('user_id', currentUser.id).order('created_at', { ascending: true });
+
+      const container = document.getElementById('ytAccountsList');
+      if (!data || !data.length) {
+        container.innerHTML = '<p style="font-size:13px;color:var(--muted);padding:8px 0;">No YouTube channels connected yet.</p>';
+        return;
+      }
+
+      container.innerHTML = data.map(a => `
+        <div class="yt-account">
+          ${a.channel_thumb ? `<img src="${a.channel_thumb}" alt="">` : '<div style="width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;">▶</div>'}
+          <div class="yt-account-info">
+            <div class="yt-account-name">${a.channel_name || 'YouTube Channel'}</div>
+            <div class="yt-account-id">${a.channel_id || ''}</div>
+          </div>
+          <button class="btn-disconnect" onclick="disconnectYouTube('${a.id}')">Disconnect</button>
+        </div>
+      `).join('');
+    }
+
+    function connectYouTube() {
+      window.location.href = `${SERVER_URL}/auth/youtube?user_id=${currentUser.id}`;
+    }
+
+    async function disconnectYouTube(accountId) {
+      const { error } = await client.from('youtube_accounts').delete().eq('id', accountId);
+      if (error) { toast('Failed to disconnect: ' + error.message, 'error'); return; }
+      toast('YouTube channel disconnected', 'success');
+      loadYouTubeAccounts();
+    }
+
+    // ── WhatsApp Notifications ────────────────────────
+    async function loadNotifSettings() {
+      const { data } = await client.from('profiles')
+        .select('phone, whatsapp_notifications')
+        .eq('id', currentUser.id)
+        .single();
+      if (data) {
+        document.getElementById('phoneInput').value = data.phone || '';
+        document.getElementById('whatsappToggle').checked = data.whatsapp_notifications !== false;
+      }
+    }
+
+    async function saveNotifSettings() {
+      const phone = document.getElementById('phoneInput').value.trim();
+      const whatsapp_notifications = document.getElementById('whatsappToggle').checked;
+
+      if (whatsapp_notifications && phone && !/^\+\d{7,15}$/.test(phone)) {
+        toast('Enter a valid phone number (e.g. +15550000000)', 'error');
+        return;
+      }
+
+      const { error } = await client.from('profiles')
+        .update({ phone: phone || null, whatsapp_notifications })
+        .eq('id', currentUser.id);
+
+      if (error) { toast('Failed to save: ' + error.message, 'error'); return; }
+      toast('Notification settings saved', 'success');
+    }
+
+    init();
+  </script>
+</body>
+</html>

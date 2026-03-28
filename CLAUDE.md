@@ -61,7 +61,13 @@ TWILIO_WHATSAPP_FROM=whatsapp:+14155238886  # Twilio WhatsApp sender
 `id`, `name`, `ip`, `api_url`, `status`, `active_streams`, `max_streams`, `server_type`
 
 ### `profiles` table columns
-`id`, `plan`, `trial_started_at`, `youtube_access_token`, `youtube_refresh_token`, `youtube_channel_id`, `youtube_channel_name`, `youtube_channel_thumb`, `phone`, `whatsapp_notifications`
+`id`, `plan`, `trial_started_at`, `phone`, `whatsapp_notifications`
+
+### `youtube_accounts` table columns
+`id`, `user_id`, `channel_id`, `channel_name`, `channel_thumb`, `access_token`, `refresh_token`, `created_at`
+
+- Supports multiple YouTube channels per user
+- UNIQUE constraint on (user_id, channel_id)
 
 ## Key Components
 

@@ -1032,14 +1032,26 @@ const YT_SCOPES = [
   'https://www.googleapis.com/auth/youtube.force-ssl',
 ].join(' ');
 
-async function refreshYouTubeToken(userId) {
-  const { data: profile } = await supabaseAdmin
-    .from('profiles')
-    .select('youtube_refresh_token')
-    .eq('id', userId)
+async function getYtAccount(userId, accountId) {
+  if (accountId) {
+    const { data } = await supabaseAdmin.from('youtube_accounts')
+      .select('*').eq('id', accountId).eq('user_id', userId).single();
+    return data;
+  }
+  // Fallback: first account
+  const { data } = await supabaseAdmin.from('youtube_accounts')
+    .select('*').eq('user_id', userId).limit(1).single();
+  return data;
+}
+
+async function refreshYouTubeToken(accountId) {
+  const { data: account } = await supabaseAdmin
+    .from('youtube_accounts')
+    .select('refresh_token')
+    .eq('id', accountId)
     .single();
 
-  if (!profile?.youtube_refresh_token) return null;
+  if (!account?.refresh_token) return null;
 
   const resp = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
@@ -1047,7 +1059,7 @@ async function refreshYouTubeToken(userId) {
     body: new URLSearchParams({
       client_id: YT_CLIENT_ID,
       client_secret: YT_CLIENT_SECRET,
-      refresh_token: profile.youtube_refresh_token,
+      refresh_token: account.refresh_token,
       grant_type: 'refresh_token',
     }),
   });
@@ -1056,21 +1068,18 @@ async function refreshYouTubeToken(userId) {
   if (!tokens.access_token) return null;
 
   await supabaseAdmin
-    .from('profiles')
-    .update({ youtube_access_token: tokens.access_token })
-    .eq('id', userId);
+    .from('youtube_accounts')
+    .update({ access_token: tokens.access_token })
+    .eq('id', accountId);
 
   return tokens.access_token;
 }
 
-async function ytApi(userId, url, options = {}) {
-  const { data: profile } = await supabaseAdmin
-    .from('profiles')
-    .select('youtube_access_token')
-    .eq('id', userId)
-    .single();
+async function ytApi(userId, url, options = {}, accountId) {
+  const account = await getYtAccount(userId, accountId);
+  if (!account) throw new Error('No YouTube account found');
 
-  let token = profile?.youtube_access_token;
+  let token = account.access_token;
   let resp = await fetch(url, {
     ...options,
     headers: { ...options.headers, Authorization: `Bearer ${token}` },
@@ -1078,7 +1087,7 @@ async function ytApi(userId, url, options = {}) {
 
   // Token expired — refresh and retry once
   if (resp.status === 401) {
-    token = await refreshYouTubeToken(userId);
+    token = await refreshYouTubeToken(account.id);
     if (!token) throw new Error('YouTube token refresh failed');
     resp = await fetch(url, {
       ...options,
@@ -1140,27 +1149,41 @@ app.get('/auth/youtube/callback', async (req, res) => {
     const channelData = await channelResp.json();
     const channel = channelData.items?.[0];
 
-    // Save to Supabase
-    await supabaseAdmin
-      .from('profiles')
-      .update({
-        youtube_access_token: tokens.access_token,
-        youtube_refresh_token: tokens.refresh_token || null,
-        youtube_channel_id: channel?.id || null,
-        youtube_channel_name: channel?.snippet?.title || null,
-        youtube_channel_thumb: channel?.snippet?.thumbnails?.default?.url || null,
-      })
-      .eq('id', userId);
+    // Save to youtube_accounts table (upsert by channel_id)
+    const channelId = channel?.id || null;
+    const accountData = {
+      user_id: userId,
+      channel_id: channelId,
+      channel_name: channel?.snippet?.title || null,
+      channel_thumb: channel?.snippet?.thumbnails?.default?.url || null,
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token || null,
+    };
+
+    if (channelId) {
+      // Check if already exists
+      const { data: existing } = await supabaseAdmin
+        .from('youtube_accounts')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('channel_id', channelId)
+        .single();
+
+      if (existing) {
+        await supabaseAdmin.from('youtube_accounts').update(accountData).eq('id', existing.id);
+      } else {
+        await supabaseAdmin.from('youtube_accounts').insert(accountData);
+      }
+    }
 
     console.log(`[youtube] Connected: user=${userId}, channel=${channel?.snippet?.title}`);
-    res.redirect('https://castloop.tv/dashboard.html?youtube=connected');
+    res.redirect('https://castloop.tv/settings.html?youtube=connected');
   } catch (e) {
     console.error('[youtube] Callback error:', e.message);
     res.status(500).send('OAuth failed');
   }
 });
 
-// GET /youtube/status — check connection
 // ── Profile ─────────────────────────────────────────────────────────────────
 
 app.get('/api/profile', async (req, res) => {
@@ -1169,7 +1192,7 @@ app.get('/api/profile', async (req, res) => {
 
   const { data, error } = await supabaseAdmin
     .from('profiles')
-    .select('id, plan, phone, whatsapp_notifications, youtube_channel_id, youtube_channel_name, youtube_channel_thumb')
+    .select('id, plan, phone, whatsapp_notifications')
     .eq('id', userId)
     .single();
 
