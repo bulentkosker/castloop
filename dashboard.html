@@ -373,6 +373,10 @@
       <div id="ytAutoMessage" style="display:none;padding:12px;background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);border-radius:8px;margin-bottom:16px;font-size:13px;color:#34d399;">
         ▶ YouTube will create broadcast and manage stream key automatically when you start this stream.
       </div>
+      <div class="form-group" id="ytDescGroup" style="display:none">
+        <label>Broadcast Description</label>
+        <textarea id="streamDescription" rows="3" placeholder="Optional description for YouTube broadcast" style="width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;"></textarea>
+      </div>
       <div class="form-group">
         <label>Playlist</label>
         <div class="playlist-builder">
@@ -776,6 +780,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       const video_paths_objs = playlist.map(v => ({ path: v.path, name: v.name }));
       const video_path = video_paths_objs[0].path;
 
+      const description = document.getElementById('streamDescription')?.value?.trim() || '';
       const insertData = {
         user_id: currentUser.id,
         name, platform, rtmp_url, stream_key,
@@ -783,7 +788,10 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
         video_paths: JSON.stringify(video_paths_objs),
         status: 'stopped'
       };
-      if (ytAccountId) insertData.youtube_account_id = ytAccountId;
+      if (ytAccountId) {
+        insertData.youtube_account_id = ytAccountId;
+        if (description) insertData.youtube_description = description;
+      }
 
       const { error } = await client.from('streams').insert(insertData);
 
@@ -953,6 +961,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
             headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY, 'x-user-id': currentUser.id },
             body: JSON.stringify({
               title: streamData.name || 'Castloop Live Stream',
+              description: streamData.youtube_description || '',
               account_id: streamData.youtube_account_id,
             })
           });
@@ -1083,6 +1092,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       const val = document.getElementById('ytAccountSelect').value;
       document.getElementById('manualRtmpFields').style.display = val ? 'none' : '';
       document.getElementById('ytAutoMessage').style.display = val ? '' : 'none';
+      document.getElementById('ytDescGroup').style.display = val ? '' : 'none';
     }
 
     async function openModal() {

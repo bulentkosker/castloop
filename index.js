@@ -1266,7 +1266,7 @@ app.post('/youtube/create-broadcast', async (req, res) => {
         body: JSON.stringify({
           snippet: {
             title: title || 'Castloop Live Stream',
-            description: description || 'Powered by Castloop',
+            description: description || '',
             scheduledStartTime: new Date().toISOString(),
           },
           status: { privacyStatus: privacy || 'public' },
