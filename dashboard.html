@@ -195,6 +195,14 @@
     .restart-info { display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 6px 10px; background: rgba(52,211,153,0.06); border: 1px solid rgba(52,211,153,0.2); border-radius: 8px; font-size: 11px; color: #34d399; }
     .restart-info .restart-cancel { background: none; border: none; color: #f87171; cursor: pointer; font-size: 12px; padding: 2px 6px; border-radius: 4px; }
     .restart-info .restart-cancel:hover { background: rgba(248,113,113,0.1); }
+    .notif-settings { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: rgba(52,211,153,0.06); border: 1px solid rgba(52,211,153,0.15); border-radius: 10px; margin-top: 10px; flex-wrap: wrap; }
+    .notif-settings label { color: var(--muted); font-size: 12px; }
+    .notif-settings input[type="tel"] { padding: 7px 12px; background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 8px; font-size: 13px; font-family: inherit; width: 180px; }
+    .notif-settings input[type="tel"]:focus { border-color: var(--accent); outline: none; }
+    .notif-settings .notif-toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); cursor: pointer; }
+    .notif-settings .notif-toggle input { accent-color: #34d399; width: 16px; height: 16px; }
+    .btn-notif-save { background: rgba(52,211,153,0.15); color: #34d399; border: 1px solid rgba(52,211,153,0.3); padding: 7px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; font-family: inherit; }
+    .btn-notif-save:hover { background: rgba(52,211,153,0.25); }
     .yt-connect { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: rgba(248,113,113,0.06); border: 1px solid rgba(248,113,113,0.2); border-radius: 10px; margin-top: 12px; }
     .yt-connect img { width: 32px; height: 32px; border-radius: 50%; }
     .yt-connect-info { flex: 1; font-size: 13px; }
@@ -338,6 +346,16 @@
       </div>
       <button class="btn-yt" id="ytBtn" onclick="connectYouTube()">▶ Connect YouTube</button>
       <button class="btn-yt" id="ytDisconnectBtn" onclick="disconnectYouTube()" style="display:none;background:#450a0a;color:#f87171;font-size:11px;padding:6px 12px;">Disconnect</button>
+    </div>
+
+    <div class="notif-settings" id="notifSettings">
+      <span style="font-size:13px;color:var(--text);font-weight:600;">📱 WhatsApp Alerts</span>
+      <input type="tel" id="phoneInput" placeholder="+905xxxxxxxxx">
+      <label class="notif-toggle">
+        <input type="checkbox" id="whatsappToggle" checked>
+        Enabled
+      </label>
+      <button class="btn-notif-save" onclick="saveNotifSettings()">Save</button>
     </div>
 
     <div class="section-header">
@@ -536,6 +554,7 @@
       await loadStreams();
       cleanupPastSchedules();
       checkYouTubeStatus();
+      loadNotifSettings();
 
       // Handle YouTube OAuth redirect
       if (new URLSearchParams(window.location.search).get('youtube') === 'connected') {
@@ -644,6 +663,35 @@
       } catch (e) {
         console.warn('YouTube status check failed:', e);
       }
+    }
+
+    // ── Notification Settings ──────────────────────
+    async function loadNotifSettings() {
+      const { data } = await client.from('profiles')
+        .select('phone, whatsapp_notifications')
+        .eq('id', currentUser.id)
+        .single();
+      if (data) {
+        document.getElementById('phoneInput').value = data.phone || '';
+        document.getElementById('whatsappToggle').checked = data.whatsapp_notifications !== false;
+      }
+    }
+
+    async function saveNotifSettings() {
+      const phone = document.getElementById('phoneInput').value.trim();
+      const whatsapp_notifications = document.getElementById('whatsappToggle').checked;
+
+      if (whatsapp_notifications && phone && !/^\+\d{7,15}$/.test(phone)) {
+        toast('Enter a valid phone number (e.g. +905xxxxxxxxx)', 'error');
+        return;
+      }
+
+      const { error } = await client.from('profiles')
+        .update({ phone: phone || null, whatsapp_notifications })
+        .eq('id', currentUser.id);
+
+      if (error) { toast('Failed to save: ' + error.message, 'error'); return; }
+      toast('Notification settings saved', 'success');
     }
 
     function connectYouTube() {
