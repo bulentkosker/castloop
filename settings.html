@@ -140,25 +140,31 @@
 
     // ── YouTube Accounts ──────────────────────────────
     async function loadYouTubeAccounts() {
-      const { data } = await client.from('youtube_accounts')
-        .select('*').eq('user_id', currentUser.id).order('created_at', { ascending: true });
-
       const container = document.getElementById('ytAccountsList');
-      if (!data || !data.length) {
-        container.innerHTML = '<p style="font-size:13px;color:var(--muted);padding:8px 0;">No YouTube channels connected yet.</p>';
-        return;
-      }
+      try {
+        const res = await fetch(`${SERVER_URL}/youtube/accounts`, {
+          headers: { 'x-api-key': API_KEY, 'x-user-id': currentUser.id }
+        });
+        const data = await res.json();
 
-      container.innerHTML = data.map(a => `
-        <div class="yt-account">
-          ${a.channel_thumb ? `<img src="${a.channel_thumb}" alt="">` : '<div style="width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;">▶</div>'}
-          <div class="yt-account-info">
-            <div class="yt-account-name">${a.channel_name || 'YouTube Channel'}</div>
-            <div class="yt-account-id">${a.channel_id || ''}</div>
+        if (!Array.isArray(data) || !data.length) {
+          container.innerHTML = '<p style="font-size:13px;color:var(--muted);padding:8px 0;">No YouTube channels connected yet.</p>';
+          return;
+        }
+
+        container.innerHTML = data.map(a => `
+          <div class="yt-account">
+            ${a.channel_thumb ? `<img src="${a.channel_thumb}" alt="">` : '<div style="width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;">▶</div>'}
+            <div class="yt-account-info">
+              <div class="yt-account-name">${a.channel_name || 'YouTube Channel'}</div>
+              <div class="yt-account-id">${a.channel_id || ''}</div>
+            </div>
+            <button class="btn-disconnect" onclick="disconnectYouTube('${a.id}')">Disconnect</button>
           </div>
-          <button class="btn-disconnect" onclick="disconnectYouTube('${a.id}')">Disconnect</button>
-        </div>
-      `).join('');
+        `).join('');
+      } catch (e) {
+        container.innerHTML = '<p style="font-size:13px;color:var(--red);">Failed to load YouTube accounts.</p>';
+      }
     }
 
     function connectYouTube() {
@@ -166,10 +172,21 @@
     }
 
     async function disconnectYouTube(accountId) {
-      const { error } = await client.from('youtube_accounts').delete().eq('id', accountId);
-      if (error) { toast('Failed to disconnect: ' + error.message, 'error'); return; }
-      toast('YouTube channel disconnected', 'success');
-      loadYouTubeAccounts();
+      try {
+        const res = await fetch(`${SERVER_URL}/youtube/accounts/${accountId}`, {
+          method: 'DELETE',
+          headers: { 'x-api-key': API_KEY, 'x-user-id': currentUser.id }
+        });
+        const data = await res.json();
+        if (data.success) {
+          toast('YouTube channel disconnected', 'success');
+          loadYouTubeAccounts();
+        } else {
+          toast('Failed to disconnect', 'error');
+        }
+      } catch (e) {
+        toast('Failed to disconnect', 'error');
+      }
     }
 
     // ── WhatsApp Notifications ────────────────────────

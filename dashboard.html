@@ -1023,9 +1023,11 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
     let ytAccounts = [];
     async function loadYtAccounts() {
       try {
-        const { data } = await client.from('youtube_accounts')
-          .select('*').eq('user_id', currentUser.id);
-        ytAccounts = data || [];
+        const res = await fetch(`${SERVER_URL}/youtube/accounts`, {
+          headers: { 'x-api-key': API_KEY, 'x-user-id': currentUser.id }
+        });
+        const data = await res.json();
+        ytAccounts = Array.isArray(data) ? data : [];
         const sel = document.getElementById('ytAccountSelect');
         const group = document.getElementById('ytAccountGroup');
         sel.innerHTML = '<option value="">Manual RTMP (don\'t use YouTube account)</option>' +

@@ -1221,26 +1221,32 @@ app.patch('/api/profile', async (req, res) => {
   res.json({ success: true });
 });
 
-app.get('/youtube/status', async (req, res) => {
+app.get('/youtube/accounts', async (req, res) => {
   const userId = req.headers['x-user-id'];
   if (!userId) return res.status(400).json({ error: 'x-user-id required' });
 
-  const { data } = await supabaseAdmin
-    .from('profiles')
-    .select('youtube_channel_id, youtube_channel_name, youtube_channel_thumb')
-    .eq('id', userId)
-    .single();
+  const { data, error } = await supabaseAdmin
+    .from('youtube_accounts')
+    .select('id, channel_id, channel_name, channel_thumb, created_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true });
 
-  if (data?.youtube_channel_id) {
-    res.json({
-      connected: true,
-      channel_id: data.youtube_channel_id,
-      channel_name: data.youtube_channel_name,
-      channel_thumb: data.youtube_channel_thumb,
-    });
-  } else {
-    res.json({ connected: false });
-  }
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+app.delete('/youtube/accounts/:id', async (req, res) => {
+  const userId = req.headers['x-user-id'];
+  if (!userId) return res.status(400).json({ error: 'x-user-id required' });
+
+  const { error } = await supabaseAdmin
+    .from('youtube_accounts')
+    .delete()
+    .eq('id', req.params.id)
+    .eq('user_id', userId);
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true });
 });
 
 // POST /youtube/create-broadcast — create live broadcast + stream
