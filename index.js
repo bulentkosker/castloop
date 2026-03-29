@@ -990,6 +990,14 @@ const LEMON_VARIANT_PLAN_MAP = {
 };
 
 app.post('/lemonsqueezy-webhook', async (req, res) => {
+  console.log('[lemon-webhook] ── REQUEST RECEIVED ──');
+  console.log('[lemon-webhook] Headers:', JSON.stringify({
+    'content-type': req.headers['content-type'],
+    'x-signature': req.headers['x-signature'] ? '(present)' : '(missing)',
+    'x-event-name': req.headers['x-event-name'] || 'none',
+  }));
+  console.log('[lemon-webhook] Body type:', typeof req.body, req.body instanceof Buffer ? 'Buffer' : 'other', 'length:', req.body?.length || 0);
+
   const secret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET;
   if (!secret) {
     console.error('[lemon-webhook] LEMONSQUEEZY_WEBHOOK_SECRET not set');
@@ -997,6 +1005,7 @@ app.post('/lemonsqueezy-webhook', async (req, res) => {
   }
 
   const rawBody = req.body instanceof Buffer ? req.body.toString('utf8') : JSON.stringify(req.body);
+  console.log('[lemon-webhook] Raw body (first 500 chars):', rawBody.slice(0, 500));
 
   // Verify HMAC signature
   const signature = req.headers['x-signature'];
