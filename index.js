@@ -427,7 +427,9 @@ function startFFmpeg(streamId) {
   });
 }
 
-app.post('/start', (req, res) => {
+const SERVER_PLAN_LIMITS = { free: 1, lite: 1, basic: 2, pro: 4, business: 8, enterprise: 12, '4k_starter': 1, '4k_plus': 4, '4k_pro': 8 };
+
+app.post('/start', async (req, res) => {
   const { streamId, rtmpUrl, streamKey, videoPaths, videoPath, maxDuration } = req.body;
   if (!streamId || !rtmpUrl || !streamKey)
     return res.status(400).json({ error: 'Missing parameters' });
@@ -439,6 +441,28 @@ app.post('/start', (req, res) => {
 
   if (activeStreams[streamId])
     return res.status(400).json({ error: 'Stream already running' });
+
+  // Server-side plan limit check
+  try {
+    const { data: stream } = await supabaseAdmin.from('streams').select('user_id').eq('id', streamId).single();
+    if (stream?.user_id) {
+      const { data: profile } = await supabaseAdmin.from('profiles').select('plan').eq('id', stream.user_id).single();
+      const plan = (profile?.plan || 'free').toLowerCase();
+      const limit = SERVER_PLAN_LIMITS[plan] || 1;
+
+      const { data: running } = await supabaseAdmin.from('streams')
+        .select('id', { count: 'exact', head: false })
+        .eq('user_id', stream.user_id)
+        .eq('status', 'running');
+
+      const runningCount = running?.length || 0;
+      if (runningCount >= limit) {
+        return res.status(403).json({ error: `Plan limit reached (${runningCount}/${limit}). Upgrade your plan.` });
+      }
+    }
+  } catch (e) {
+    console.warn('[start] Plan check failed, allowing start:', e.message);
+  }
 
   const parsedMaxDuration = Number(maxDuration);
   const safeMaxDuration = Number.isFinite(parsedMaxDuration) && parsedMaxDuration > 0
