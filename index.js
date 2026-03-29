@@ -933,20 +933,39 @@ app.post('/paddle-webhook', async (req, res) => {
 });
 
 async function updateUserPlan(email, plan) {
-  // Look up user ID from auth.users by email, then update profiles
-  const { data: users, error: lookupErr } = await supabaseAdmin.auth.admin.listUsers();
-  if (lookupErr) throw new Error('User lookup failed: ' + lookupErr.message);
+  // Look up user by email using Supabase Auth Admin API
+  const { data, error: lookupErr } = await supabaseAdmin.auth.admin.listUsers({
+    filter: { email: email },
+    page: 1,
+    perPage: 1,
+  });
 
-  const user = (users?.users || []).find(u => u.email === email);
-  if (!user) throw new Error(`No user found with email: ${email}`);
+  // Fallback: if filter not supported, search manually
+  let userId;
+  if (data?.users?.length) {
+    userId = data.users[0].id;
+  } else {
+    // Brute search fallback (paginated)
+    let page = 1;
+    while (!userId) {
+      const { data: batch, error: batchErr } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 100 });
+      if (batchErr || !batch?.users?.length) break;
+      const found = batch.users.find(u => u.email === email);
+      if (found) { userId = found.id; break; }
+      if (batch.users.length < 100) break;
+      page++;
+    }
+  }
 
+  if (!userId) throw new Error(`No user found with email: ${email}`);
+
+  // Upsert profile: update if exists, insert if not
   const { error } = await supabaseAdmin
     .from('profiles')
-    .update({ plan })
-    .eq('id', user.id);
+    .upsert({ id: userId, plan }, { onConflict: 'id' });
 
   if (error) throw new Error('Profile update failed: ' + error.message);
-  console.log(`[webhook] Updated user ${email} (${user.id}) to plan "${plan}"`);
+  console.log(`[webhook] Updated user ${email} (${userId}) to plan "${plan}"`);
 }
 
 // ── LemonSqueezy Webhook ────────────────────────────────────────────────────
@@ -1002,15 +1021,17 @@ app.post('/lemonsqueezy-webhook', async (req, res) => {
   const data = event.data?.attributes || {};
   const email = data.user_email || event.meta?.custom_data?.email;
 
-  console.log(`[lemon-webhook] Event: ${eventName}, email: ${email || 'unknown'}`);
+  console.log(`[lemon-webhook] Event: ${eventName}, email: ${email || 'unknown'}, variant_id: ${data.variant_id || 'none'}, product: ${data.product_name || 'none'}`);
 
   if (!email) {
-    console.log('[lemon-webhook] No email found, skipping');
+    console.log('[lemon-webhook] No email found. data keys:', Object.keys(data).join(', '));
+    console.log('[lemon-webhook] meta:', JSON.stringify(event.meta || {}));
     return res.json({ received: true });
   }
 
   if (eventName === 'subscription_created' || eventName === 'order_created') {
     const variantId = String(data.variant_id || data.first_subscription_item?.variant_id || data.first_order_item?.variant_id || '');
+    console.log(`[lemon-webhook] Looking up variant: ${variantId}`);
     let plan = LEMON_VARIANT_PLAN_MAP[variantId];
 
     // Fallback: extract plan from product_name if variant not mapped
