@@ -500,7 +500,7 @@
       userPlan = (profile?.plan || 'free').toLowerCase();
 
       // Trial kontrolü
-      const isPaidPlan = ['lite','basic','pro','business','enterprise'].includes(userPlan);
+      const isPaidPlan = ['lite','basic','pro','business','enterprise','4k_starter','4k_plus','4k_pro'].includes(userPlan);
       // Upgrade butonu: trial veya free kullanıcılara göster
       if (!isPaidPlan) document.getElementById('upgradeBtn').style.display = 'inline-block';
       if (!isPaidPlan && profile?.trial_started_at) {
@@ -758,7 +758,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       document.getElementById('totalStreams').textContent = streams.length;
       document.getElementById('runningStreams').textContent = `${running} / ${limit}`;
       // Plan label'ı sadece normal planda güncelle, trial'da init zaten ayarladı
-      const isPaidPlan = ['lite','basic','pro','business','enterprise'].includes(userPlan);
+      const isPaidPlan = ['lite','basic','pro','business','enterprise','4k_starter','4k_plus','4k_pro'].includes(userPlan);
       if (isPaidPlan) {
         document.getElementById('userPlan').textContent = userPlan.charAt(0).toUpperCase() + userPlan.slice(1);
       document.getElementById('dropPlan').textContent = userPlan.charAt(0).toUpperCase() + userPlan.slice(1) + ' Plan';
