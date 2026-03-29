@@ -918,16 +918,12 @@ app.post('/paddle-webhook', async (req, res) => {
     const plan = PRICE_PLAN_MAP[priceId];
 
     if (email) {
-      const { error } = await supabaseAdmin
-        .from('profiles')
-        .update({ plan })
-        .eq('email', email);
-
-      if (error) {
-        console.error('[paddle-webhook] Supabase update error:', error.message);
+      try {
+        await updateUserPlan(email, plan);
+      } catch (e) {
+        console.error('[paddle-webhook] ' + e.message);
         return res.status(500).json({ error: 'Failed to update profile' });
       }
-      console.log(`[paddle-webhook] Updated user ${email} to plan "${plan}" (price: ${priceId})`);
     } else {
       console.log('[paddle-webhook] No email in data.customer, skipping profile update');
     }
@@ -935,6 +931,23 @@ app.post('/paddle-webhook', async (req, res) => {
 
   res.json({ received: true });
 });
+
+async function updateUserPlan(email, plan) {
+  // Look up user ID from auth.users by email, then update profiles
+  const { data: users, error: lookupErr } = await supabaseAdmin.auth.admin.listUsers();
+  if (lookupErr) throw new Error('User lookup failed: ' + lookupErr.message);
+
+  const user = (users?.users || []).find(u => u.email === email);
+  if (!user) throw new Error(`No user found with email: ${email}`);
+
+  const { error } = await supabaseAdmin
+    .from('profiles')
+    .update({ plan })
+    .eq('id', user.id);
+
+  if (error) throw new Error('Profile update failed: ' + error.message);
+  console.log(`[webhook] Updated user ${email} (${user.id}) to plan "${plan}"`);
+}
 
 // ── LemonSqueezy Webhook ────────────────────────────────────────────────────
 
@@ -1018,28 +1031,20 @@ app.post('/lemonsqueezy-webhook', async (req, res) => {
       return res.json({ received: true });
     }
 
-    const { error } = await supabaseAdmin
-      .from('profiles')
-      .update({ plan })
-      .eq('email', email);
-
-    if (error) {
-      console.error('[lemon-webhook] Supabase update error:', error.message);
+    try {
+      await updateUserPlan(email, plan);
+    } catch (e) {
+      console.error('[lemon-webhook] ' + e.message);
       return res.status(500).json({ error: 'Failed to update profile' });
     }
-    console.log(`[lemon-webhook] Upgraded ${email} to "${plan}"`);
 
   } else if (eventName === 'subscription_cancelled') {
-    const { error } = await supabaseAdmin
-      .from('profiles')
-      .update({ plan: 'free' })
-      .eq('email', email);
-
-    if (error) {
-      console.error('[lemon-webhook] Supabase downgrade error:', error.message);
+    try {
+      await updateUserPlan(email, 'free');
+    } catch (e) {
+      console.error('[lemon-webhook] ' + e.message);
       return res.status(500).json({ error: 'Failed to downgrade profile' });
     }
-    console.log(`[lemon-webhook] Downgraded ${email} to "free"`);
   }
 
   res.json({ received: true });
