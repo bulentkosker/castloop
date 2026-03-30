@@ -721,8 +721,7 @@
     }
 
     function getThumbUrl(video) {
-      const thumbFilename = video.filename.replace(/\.[^.]+$/, '') + '_thumb.jpg';
-      return `${SERVER_URL}/stream/${encodeURIComponent(currentUser.id)}/${encodeURIComponent(thumbFilename)}?apiKey=${encodeURIComponent(API_KEY)}`;
+      return `${SERVER_URL}/thumbnail/${encodeURIComponent(currentUser.id)}/${encodeURIComponent(video.filename)}?apiKey=${encodeURIComponent(API_KEY)}`;
     }
 
     function getVideoSourceUrl(video) {

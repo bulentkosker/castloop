@@ -29,7 +29,7 @@ app.use((req, res, next) => {
   if (req.path.startsWith('/auth/youtube')) return next();
   if (req.path === '/upload-token/validate') return next();
   if (req.path === '/upload-by-token') return next();
-  const streamQueryKey = req.path.startsWith('/stream/') ? req.query.apiKey : null;
+  const streamQueryKey = (req.path.startsWith('/stream/') || req.path.startsWith('/thumbnail/')) ? req.query.apiKey : null;
   const key = req.headers['x-api-key'] || streamQueryKey;
   if (key !== API_KEY) return res.status(401).json({ error: 'Unauthorized' });
   next();
@@ -833,6 +833,23 @@ async function renameVideoDisplayName(req, res) {
 
 app.patch('/videos/:filename/rename', renameVideoDisplayName);
 app.post('/videos/rename', renameVideoDisplayName);
+
+app.get('/thumbnail/:userId/:filename', (req, res) => {
+  const userId = req.params.userId;
+  const rawFilename = req.params.filename;
+  if (!userId || !rawFilename) return res.status(400).json({ error: 'Missing parameters' });
+
+  const filename = path.basename(rawFilename);
+  if (filename !== rawFilename) return res.status(400).json({ error: 'Invalid filename' });
+
+  const thumbName = filename.replace(/\.[^.]+$/, '') + '_thumb.jpg';
+  const thumbPath = `/var/castloop/videos/${userId}/${thumbName}`;
+  if (!fs.existsSync(thumbPath)) return res.status(404).json({ error: 'Thumbnail not found' });
+
+  res.setHeader('Content-Type', 'image/jpeg');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  fs.createReadStream(thumbPath).pipe(res);
+});
 
 app.get('/stream/:userId/:filename', (req, res) => {
   const userId = req.params.userId;

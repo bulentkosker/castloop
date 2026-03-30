@@ -624,7 +624,8 @@
       const input = document.getElementById(inputId);
       const p = input.value.trim();
       if (!p) return;
-      const name = p.split('/').pop() || p;
+      const match = availableVideos.find(v => v.path === p);
+      const name = match ? (match.originalName || match.filename) : (p.split('/').pop() || p);
       if (inputId === 'editManualPathInput') {
         editPlaylist.push({ path: p, name });
         renderEditPlaylist();
