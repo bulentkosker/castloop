@@ -93,7 +93,7 @@
     .videos-list { display: flex; flex-direction: column; gap: 10px; }
     .video-row {
       display: grid;
-      grid-template-columns: 84px minmax(180px, 2fr) minmax(180px, 1.4fr) 86px auto auto;
+      grid-template-columns: 84px minmax(180px, 2fr) minmax(220px, 1.6fr) auto;
       align-items: center;
       gap: 12px;
       background: var(--bg2);
@@ -169,8 +169,7 @@
       font-size: 13px;
       outline: none;
     }
-    .video-meta { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .video-size { font-size: 12px; color: #818cf8; font-weight: 600; text-align: right; }
+    .video-meta { font-size: 12px; color: var(--muted); line-height: 1.6; }
     .video-actions { display: flex; gap: 8px; justify-content: flex-end; }
     .btn-delete { background: transparent; color: #f87171; border: 1px solid #f87171; padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; }
     .btn-copy { background: #6366f1; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600; }
@@ -227,15 +226,13 @@
         grid-template-columns: 72px 1fr auto;
         grid-template-areas:
           'thumb name actions'
-          'thumb meta meta'
-          'thumb size size';
+          'thumb meta meta';
         row-gap: 6px;
       }
       .video-thumb, .video-thumb-fallback { width: 64px; height: 40px; }
       .video-row .thumb-col { grid-area: thumb; }
       .video-row .video-name-wrap { grid-area: name; }
       .video-row .video-meta { grid-area: meta; }
-      .video-row .video-size { grid-area: size; text-align: left; }
       .video-row .video-actions { grid-area: actions; }
       .video-row .btn-copy, .video-row .btn-delete { padding: 6px 8px; font-size: 11px; }
     }
@@ -641,10 +638,14 @@
 
       if (width > 0 && height > 0) parts.push(`${width}x${height}`);
       if (Number.isFinite(resolvedFps) && resolvedFps > 0) parts.push(`${Math.round(resolvedFps)}fps`);
-      if (video.bitrate_mbps) parts.push(`${video.bitrate_mbps.toFixed(1)} Mbps`);
       if (Number.isFinite(resolvedDuration) && resolvedDuration >= 0) parts.push(formatDuration(resolvedDuration));
 
-      return parts.join(' • ');
+      const line2 = [];
+      if (video.size) line2.push(formatSize(video.size));
+      if (video.bitrate_mbps) line2.push(`${video.bitrate_mbps.toFixed(1)} Mbps`);
+      if (video.codec) line2.push(video.codec.toUpperCase());
+
+      return parts.join(' \u2022 ') + (line2.length ? '<br>' + '<span style="color:var(--muted);opacity:0.7;">' + line2.join(' \u2022 ') + '</span>' : '');
     }
 
     function getFileExtension(name) {
@@ -799,7 +800,7 @@
         el.onloadedmetadata = () => {
           const duration = Number.isFinite(el.duration) ? el.duration : getServerDuration(video);
           const fps = readApproxFps(el);
-          target.textContent = getMetaLine(video, fps, duration);
+          target.innerHTML = getMetaLine(video, fps, duration);
           el.removeAttribute('src');
           el.load();
         };
@@ -833,10 +834,9 @@
             ${isEditing
               ? `<input class="video-name-input" data-filename="${v.filename}" value="${escapeHtml(displayName)}" />`
               : `<div class="video-name-line">${v.low_quality ? '<span title="Low video quality — bitrate or resolution below recommended" style="cursor:help;margin-right:4px;">&#9888;&#65039;</span>' : ''}<button class="video-name-btn video-original-name" data-preview="${v.filename}" title="Play video">${escapeHtml(displayName)}</button><button class="video-edit-btn" data-edit="${v.filename}" title="Rename">✏️</button></div>`}
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;">${formatUploadDate(v.filename)}</div>
           </div>
-          <div class="video-date" style="font-size:11px;color:var(--muted);">${formatUploadDate(v.filename)}</div>
           <div class="video-meta" id="${metaId}">${getMetaLine(v, getServerFps(v), getServerDuration(v))}</div>
-          <div class="video-size">${v.size ? formatSize(v.size) : ''}</div>
           <div class="video-actions">
             <button class="btn-copy" onclick="copyPath('${v.path}', this)">📋 Copy Path</button>
             <button class="btn-delete" onclick="deleteVideo('${v.filename}')">Delete</button>
