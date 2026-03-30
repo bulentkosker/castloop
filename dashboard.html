@@ -377,6 +377,16 @@
         <label>Broadcast Description</label>
         <textarea id="streamDescription" rows="3" placeholder="Optional description for YouTube broadcast" style="width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;"></textarea>
       </div>
+      <div class="form-group" id="ytBadgeGroup" style="display:none">
+        <label>Thumbnail Badge</label>
+        <select id="thumbnailBadge" style="width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;">
+          <option value="none">None</option>
+          <option value="24/7 LIVE">24/7 LIVE</option>
+          <option value="4K UHD">4K UHD</option>
+          <option value="FULL HD">FULL HD</option>
+        </select>
+        <div class="hint">Auto-generated from your first video's frame at 30s</div>
+      </div>
       <div class="form-group">
         <label>Playlist</label>
         <div class="playlist-builder">
@@ -791,6 +801,8 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       if (ytAccountId) {
         insertData.youtube_account_id = ytAccountId;
         if (description) insertData.youtube_description = description;
+        const badge = document.getElementById('thumbnailBadge')?.value || 'none';
+        if (badge !== 'none') insertData.thumbnail_badge = badge;
       }
 
       const { error } = await client.from('streams').insert(insertData);
@@ -956,6 +968,10 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
 
         if (streamData?.youtube_account_id && (rtmpUrl === 'youtube-auto' || !rtmpUrl)) {
           if (btn) btn.textContent = 'Creating broadcast...';
+          // Extract first video path for thumbnail generation
+          const firstVideoPath = Array.isArray(videoPaths) && videoPaths.length
+            ? (typeof videoPaths[0] === 'object' ? videoPaths[0].path : videoPaths[0])
+            : null;
           const ytRes = await fetch(`${SERVER_URL}/youtube/create-broadcast`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY, 'x-user-id': currentUser.id },
@@ -963,6 +979,8 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
               title: streamData.name || 'Castloop Live Stream',
               description: streamData.youtube_description || '',
               account_id: streamData.youtube_account_id,
+              video_path: firstVideoPath,
+              thumbnail_badge: streamData.thumbnail_badge || 'none',
             })
           });
           const ytData = await ytRes.json();
@@ -1093,6 +1111,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       document.getElementById('manualRtmpFields').style.display = val ? 'none' : '';
       document.getElementById('ytAutoMessage').style.display = val ? '' : 'none';
       document.getElementById('ytDescGroup').style.display = val ? '' : 'none';
+      document.getElementById('ytBadgeGroup').style.display = val ? '' : 'none';
     }
 
     async function openModal() {

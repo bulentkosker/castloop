@@ -8,6 +8,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { createClient } = require('@supabase/supabase-js');
+const sharp = require('sharp');
 
 const app = express();
 const API_KEY = 'castloop-secret-2024';
@@ -1157,6 +1158,97 @@ async function ytApi(userId, url, options = {}, accountId) {
   return resp.json();
 }
 
+// Generate thumbnail from video frame + optional badge overlay
+async function generateThumbnail(videoPath, badge) {
+  const tmpFrame = `/tmp/thumb_frame_${Date.now()}.jpg`;
+  const tmpOut = `/tmp/thumb_final_${Date.now()}.jpg`;
+
+  // Extract frame at 30s with FFmpeg
+  await new Promise((resolve, reject) => {
+    const ff = spawn('ffmpeg', [
+      '-y', '-i', videoPath, '-ss', '30', '-vframes', '1',
+      '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2',
+      tmpFrame,
+    ]);
+    ff.on('close', code => code === 0 ? resolve() : reject(new Error(`FFmpeg thumbnail exit ${code}`)));
+    ff.on('error', reject);
+  });
+
+  let image = sharp(tmpFrame);
+
+  if (badge && badge !== 'none') {
+    const badgeConfig = {
+      '24/7 LIVE': { bg: '#e53e3e', text: '24/7 LIVE', icon: '&#9679;' },
+      '4K UHD':    { bg: '#d69e2e', text: '4K UHD', icon: '' },
+      'FULL HD':   { bg: '#3182ce', text: 'FULL HD', icon: '' },
+    };
+    const cfg = badgeConfig[badge];
+    if (cfg) {
+      const textWidth = cfg.text.length * 16 + 40;
+      const svgBadge = `<svg width="${textWidth}" height="40">
+        <rect x="0" y="0" width="${textWidth}" height="40" rx="6" fill="${cfg.bg}"/>
+        ${cfg.icon ? `<text x="14" y="27" fill="white" font-size="18">${cfg.icon}</text>` : ''}
+        <text x="${cfg.icon ? 30 : 14}" y="27" fill="white" font-family="Arial,Helvetica,sans-serif" font-weight="bold" font-size="20">${cfg.text}</text>
+      </svg>`;
+      image = image.composite([{
+        input: Buffer.from(svgBadge),
+        top: 20,
+        left: 20,
+      }]);
+    }
+  }
+
+  await image.jpeg({ quality: 90 }).toFile(tmpOut);
+  // Clean up frame
+  fs.unlink(tmpFrame, () => {});
+  return tmpOut;
+}
+
+// Upload thumbnail to YouTube broadcast via thumbnails.set API
+async function uploadYouTubeThumbnail(userId, accountId, broadcastId, imagePath) {
+  const account = await getYtAccount(userId, accountId);
+  if (!account) throw new Error('No YouTube account found');
+
+  let token = account.access_token;
+  const imageBuffer = fs.readFileSync(imagePath);
+  const url = `https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=${broadcastId}&uploadType=media`;
+
+  let resp = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'image/jpeg',
+      'Content-Length': imageBuffer.length,
+    },
+    body: imageBuffer,
+  });
+
+  // Token expired — refresh and retry
+  if (resp.status === 401) {
+    token = await refreshYouTubeToken(account.id);
+    if (!token) throw new Error('YouTube token refresh failed');
+    resp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'image/jpeg',
+        'Content-Length': imageBuffer.length,
+      },
+      body: imageBuffer,
+    });
+  }
+
+  // Clean up thumbnail file
+  fs.unlink(imagePath, () => {});
+
+  if (!resp.ok) {
+    const err = await resp.text();
+    throw new Error(`Thumbnail upload failed (${resp.status}): ${err}`);
+  }
+
+  return resp.json();
+}
+
 // GET /auth/youtube — returns OAuth URL
 app.get('/auth/youtube', (req, res) => {
   const userId = req.query.user_id;
@@ -1311,7 +1403,7 @@ app.delete('/youtube/accounts/:id', async (req, res) => {
 // POST /youtube/create-broadcast — create live broadcast + stream
 app.post('/youtube/create-broadcast', async (req, res) => {
   const userId = req.headers['x-user-id'];
-  const { title, description, privacy, account_id } = req.body;
+  const { title, description, privacy, account_id, video_path, thumbnail_badge } = req.body;
 
   if (!userId) return res.status(400).json({ error: 'x-user-id required' });
 
@@ -1383,6 +1475,30 @@ app.post('/youtube/create-broadcast', async (req, res) => {
     });
 
     console.log(`[youtube] Broadcast created: ${broadcast.id} for user ${userId}`);
+
+    // 4. Generate and upload thumbnail (non-blocking, after response)
+    if (video_path && thumbnail_badge && thumbnail_badge !== 'none') {
+      (async () => {
+        try {
+          const thumbPath = await generateThumbnail(video_path, thumbnail_badge);
+          await uploadYouTubeThumbnail(userId, account_id, broadcast.id, thumbPath);
+          console.log(`[youtube] Thumbnail set for broadcast ${broadcast.id} (badge: ${thumbnail_badge})`);
+        } catch (err) {
+          console.error(`[youtube] Thumbnail generation/upload failed for ${broadcast.id}:`, err.message);
+        }
+      })();
+    } else if (video_path) {
+      // No badge selected but video exists — still generate a clean thumbnail
+      (async () => {
+        try {
+          const thumbPath = await generateThumbnail(video_path, null);
+          await uploadYouTubeThumbnail(userId, account_id, broadcast.id, thumbPath);
+          console.log(`[youtube] Clean thumbnail set for broadcast ${broadcast.id}`);
+        } catch (err) {
+          console.error(`[youtube] Thumbnail generation/upload failed for ${broadcast.id}:`, err.message);
+        }
+      })();
+    }
   } catch (e) {
     console.error('[youtube] Create broadcast error:', e.message);
     res.status(500).json({ error: e.message });
