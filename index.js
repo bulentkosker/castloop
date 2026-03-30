@@ -1158,8 +1158,20 @@ async function ytApi(userId, url, options = {}, accountId) {
   return resp.json();
 }
 
+// Badge config: PNG file → position on thumbnail
+const BADGE_DIR = path.join(__dirname, 'badges');
+const BADGE_CONFIG = {
+  'live':           { file: 'badge_live.png',           position: 'right' },
+  'live_streaming': { file: 'badge_live_streaming.png', position: 'right' },
+  '247_live':       { file: 'badge_247_live.png',       position: 'right' },
+  'nonstop':        { file: 'badge_nonstop.png',        position: 'right' },
+  'inf_247':        { file: 'badge_inf_247.png',        position: 'right' },
+  '4k_uhd':        { file: 'badge_4k_uhd.png',         position: 'left' },
+  'full_hd':       { file: 'badge_full_hd.png',        position: 'left' },
+};
+
 // Generate thumbnail from video frame + optional badge overlays
-// badges: array of badge names, e.g. ['24/7 LIVE', '4K UHD']
+// badges: array of badge keys, e.g. ['4k_uhd', '247_live']
 async function generateThumbnail(videoPath, badges) {
   const ts = Date.now();
   const tmpFrame = `/tmp/thumb_frame_${ts}.jpg`;
@@ -1205,31 +1217,32 @@ async function generateThumbnail(videoPath, badges) {
 
   let image = sharp(tmpFrame);
 
-  const badgeList = Array.isArray(badges) ? badges : (badges && badges !== 'none' ? [badges] : []);
+  const badgeList = Array.isArray(badges) ? badges : (badges ? [badges] : []);
   console.log(`[thumbnail] Badge list to render: ${JSON.stringify(badgeList)}`);
 
   if (badgeList.length) {
-    const badgeConfig = {
-      '24/7 LIVE': { bg: '#e53e3e', text: '24/7 LIVE', icon: '&#9679;', position: 'left' },
-      '4K UHD':    { bg: '#d69e2e', text: '4K UHD',    icon: '',         position: 'right' },
-      'FULL HD':   { bg: '#3182ce', text: 'FULL HD',    icon: '',         position: 'right' },
-    };
-
     const composites = [];
     for (const badge of badgeList) {
-      const cfg = badgeConfig[badge];
+      const cfg = BADGE_CONFIG[badge];
       if (!cfg) { console.warn(`[thumbnail] Unknown badge: "${badge}"`); continue; }
-      const textWidth = cfg.text.length * 16 + 40;
-      const svgBadge = `<svg width="${textWidth}" height="40" xmlns="http://www.w3.org/2000/svg">
-        <rect x="0" y="0" width="${textWidth}" height="40" rx="6" fill="${cfg.bg}"/>
-        ${cfg.icon ? `<text x="14" y="27" fill="white" font-size="18">${cfg.icon}</text>` : ''}
-        <text x="${cfg.icon ? 30 : 14}" y="27" fill="white" font-family="Arial,Helvetica,sans-serif" font-weight="bold" font-size="20">${cfg.text}</text>
-      </svg>`;
-      console.log(`[thumbnail] Adding badge "${badge}" at ${cfg.position}, width=${textWidth}`);
+
+      const badgePath = path.join(BADGE_DIR, cfg.file);
+      if (!fs.existsSync(badgePath)) {
+        console.warn(`[thumbnail] Badge file missing: ${badgePath}`);
+        continue;
+      }
+
+      // Resize badge to 30% of original
+      const badgeMeta = await sharp(badgePath).metadata();
+      const badgeW = Math.round(badgeMeta.width * 0.3);
+      const badgeH = Math.round(badgeMeta.height * 0.3);
+      const resizedBadge = await sharp(badgePath).resize(badgeW, badgeH).png().toBuffer();
+
+      console.log(`[thumbnail] Adding badge "${badge}" (${cfg.file}) at ${cfg.position}, ${badgeW}x${badgeH}`);
       composites.push({
-        input: Buffer.from(svgBadge),
+        input: resizedBadge,
         top: 20,
-        left: cfg.position === 'right' ? 1280 - textWidth - 20 : 20,
+        left: cfg.position === 'right' ? 1280 - badgeW - 20 : 20,
       });
     }
     if (composites.length) {
