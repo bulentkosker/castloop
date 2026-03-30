@@ -158,9 +158,19 @@
       progressWrap.classList.remove('active');
       progressFill.style.width = '0%';
       if (xhr.status === 200) {
+        let data = {};
+        try { data = JSON.parse(xhr.responseText); } catch {}
         statusMsg.textContent = '✅ Upload complete: ' + file.name;
         statusMsg.className = 'status-msg success';
         toast('Upload successful!', 'success');
+        if (data.quality_warning) {
+          const bitrateStr = data.bitrate_mbps ? data.bitrate_mbps.toFixed(1) + ' Mbps' : 'unknown';
+          let warn = 'Low video quality detected.';
+          if (data.quality_warning === 'unsupported_resolution') warn = 'Resolution is below 1080p — not recommended for streaming.';
+          else if (data.quality_warning === 'low_bitrate_4k') warn = 'Bitrate ' + bitrateStr + ' is below 15 Mbps minimum for 4K.';
+          else if (data.quality_warning === 'low_bitrate_1080p') warn = 'Bitrate ' + bitrateStr + ' is below 6 Mbps minimum for 1080p.';
+          statusMsg.textContent += '\n⚠️ ' + warn;
+        }
       } else {
         let msg = 'Upload failed.';
         try { msg = JSON.parse(xhr.responseText).error || msg; } catch {}

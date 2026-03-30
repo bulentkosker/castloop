@@ -120,8 +120,8 @@ function getVideoMetadata(filePath) {
     const ff = spawn('ffprobe', [
       '-v', 'error',
       '-select_streams', 'v:0',
-      '-show_entries', 'format=duration',
-      '-show_entries', 'stream=r_frame_rate',
+      '-show_entries', 'format=duration,bit_rate',
+      '-show_entries', 'stream=r_frame_rate,bit_rate',
       '-of', 'json',
       filePath
     ]);
@@ -140,12 +140,35 @@ function getVideoMetadata(filePath) {
           fps = den ? Math.round(num / den) : num;
         }
         const duration = format.duration ? Math.round(parseFloat(format.duration)) : null;
-        resolve({ duration, fps });
+        // Bitrate: prefer stream-level, fall back to format-level (bits/sec)
+        const bitrate = parseInt(stream?.bit_rate, 10) || parseInt(format.bit_rate, 10) || null;
+        resolve({ duration, fps, bitrate });
       } catch (e) {
-        resolve({ duration: null, fps: null });
+        resolve({ duration: null, fps: null, bitrate: null });
       }
     });
   });
+}
+
+// Check video quality and return warning if below recommended thresholds
+function checkVideoQuality(width, height, bitrateBps) {
+  const bitrateMbps = bitrateBps ? bitrateBps / 1_000_000 : null;
+  const w = width || 0;
+  const h = height || 0;
+
+  // 720p and below: unsupported
+  if (h > 0 && h < 1080) {
+    return { low_quality: true, quality_warning: 'unsupported_resolution', bitrate_mbps: bitrateMbps };
+  }
+  // 4K: minimum 15 Mbps
+  if (w >= 3840 && h >= 2160 && bitrateMbps !== null && bitrateMbps < 15) {
+    return { low_quality: true, quality_warning: 'low_bitrate_4k', bitrate_mbps: bitrateMbps };
+  }
+  // 1080p: minimum 6 Mbps
+  if (w >= 1920 && h >= 1080 && bitrateMbps !== null && bitrateMbps < 6) {
+    return { low_quality: true, quality_warning: 'low_bitrate_1080p', bitrate_mbps: bitrateMbps };
+  }
+  return { low_quality: false, quality_warning: null, bitrate_mbps: bitrateMbps };
 }
 
 const activeStreams = {};
@@ -544,13 +567,21 @@ app.post('/upload', upload.single('video'), async (req, res) => {
   let meta = {};
   if (fs.existsSync(metaFile)) meta = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
   const resolution = await getVideoResolution(req.file.path);
+  const metadata = await getVideoMetadata(req.file.path);
+  const quality = checkVideoQuality(resolution.width, resolution.height, metadata.bitrate);
   meta[req.file.filename] = {
     originalName: req.body.originalName || req.file.originalname,
     width: resolution.width,
-    height: resolution.height
+    height: resolution.height,
+    bitrate: metadata.bitrate,
+    low_quality: quality.low_quality
   };
   fs.writeFileSync(metaFile, JSON.stringify(meta));
-  res.json({ success: true, videoPath: req.file.path, filename: req.file.filename, width: resolution.width, height: resolution.height });
+  res.json({
+    success: true, videoPath: req.file.path, filename: req.file.filename,
+    width: resolution.width, height: resolution.height,
+    bitrate_mbps: quality.bitrate_mbps, low_quality: quality.low_quality, quality_warning: quality.quality_warning,
+  });
 });
 
 app.get('/videos', async (req, res) => {
@@ -577,9 +608,15 @@ app.get('/videos', async (req, res) => {
     const metadata = await getVideoMetadata(filePath);
     item.duration = metadata.duration;
     item.fps = metadata.fps;
+    item.bitrate = metadata.bitrate;
+    const quality = checkVideoQuality(item.width, item.height, metadata.bitrate);
+    item.bitrate_mbps = quality.bitrate_mbps;
+    item.low_quality = quality.low_quality;
     if (typeof meta[f] !== 'object') meta[f] = {};
     meta[f].duration = metadata.duration;
     meta[f].fps = metadata.fps;
+    meta[f].bitrate = metadata.bitrate;
+    meta[f].low_quality = quality.low_quality;
     return item;
   }));
   try { fs.writeFileSync(metaFile, JSON.stringify(meta, null, 2)); } catch (e) {}
@@ -836,6 +873,8 @@ app.post('/upload-by-token', tokenUpload.single('video'), async (req, res) => {
   }
 
   const resolution = await getVideoResolution(destPath);
+  const metadata = await getVideoMetadata(destPath);
+  const quality = checkVideoQuality(resolution.width, resolution.height, metadata.bitrate);
   const metaFile = path.join(dir, '_meta.json');
   let meta = {};
   if (fs.existsSync(metaFile)) {
@@ -844,11 +883,16 @@ app.post('/upload-by-token', tokenUpload.single('video'), async (req, res) => {
   meta[filename] = {
     originalName: req.body.originalName || req.file.originalname,
     width: resolution.width,
-    height: resolution.height
+    height: resolution.height,
+    bitrate: metadata.bitrate,
+    low_quality: quality.low_quality
   };
   fs.writeFileSync(metaFile, JSON.stringify(meta));
 
-  res.json({ success: true, filename, width: resolution.width, height: resolution.height });
+  res.json({
+    success: true, filename, width: resolution.width, height: resolution.height,
+    bitrate_mbps: quality.bitrate_mbps, low_quality: quality.low_quality, quality_warning: quality.quality_warning,
+  });
 });
 
 app.post('/paddle-webhook', async (req, res) => {

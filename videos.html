@@ -208,6 +208,7 @@
     .toast.active{transform:translateY(0);opacity:1;}
     .toast.success{border-color:#34d399;color:#34d399;}
     .toast.error{border-color:#f87171;color:#f87171;}
+    .toast.warning{border-color:#f59e0b;color:#f59e0b;max-width:480px;text-align:left;line-height:1.5;}
 
     /* Player modal */
     .player-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:1200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;}
@@ -413,10 +414,11 @@
       document.getElementById('modalOverlay').onclick = (e) => { if (e.target.id === 'modalOverlay') hideModal(); };
     }
     function hideModal() { document.getElementById('modalOverlay').classList.remove('active'); }
-    function toast(msg, type) {
+    function toast(msg, type, duration) {
       const t = document.getElementById('toast');
+      t.style.whiteSpace = type === 'warning' ? 'pre-line' : '';
       t.textContent = msg; t.className = 'toast active ' + (type||'');
-      setTimeout(() => t.className = 'toast', 3000);
+      setTimeout(() => t.className = 'toast', duration || 3000);
     }
 
     function openUploadLinkModal() {
@@ -631,6 +633,7 @@
 
       if (width > 0 && height > 0) parts.push(`${width}x${height}`);
       if (Number.isFinite(resolvedFps) && resolvedFps > 0) parts.push(`${Math.round(resolvedFps)}fps`);
+      if (video.bitrate_mbps) parts.push(`${video.bitrate_mbps.toFixed(1)} Mbps`);
       if (Number.isFinite(resolvedDuration) && resolvedDuration >= 0) parts.push(formatDuration(resolvedDuration));
 
       return parts.join(' • ');
@@ -821,7 +824,7 @@
           <div class="video-name-wrap">
             ${isEditing
               ? `<input class="video-name-input" data-filename="${v.filename}" value="${escapeHtml(displayName)}" />`
-              : `<div class="video-name-line"><button class="video-name-btn video-original-name" data-preview="${v.filename}" title="Play video">${escapeHtml(displayName)}</button><button class="video-edit-btn" data-edit="${v.filename}" title="Rename">✏️</button></div>`}
+              : `<div class="video-name-line">${v.low_quality ? '<span title="Low video quality — bitrate or resolution below recommended" style="cursor:help;margin-right:4px;">&#9888;&#65039;</span>' : ''}<button class="video-name-btn video-original-name" data-preview="${v.filename}" title="Play video">${escapeHtml(displayName)}</button><button class="video-edit-btn" data-edit="${v.filename}" title="Rename">✏️</button></div>`}
           </div>
           <div class="video-meta" id="${metaId}">${getMetaLine(v, getServerFps(v), getServerDuration(v))}</div>
           <div class="video-size">${v.size ? formatSize(v.size) : ''}</div>
@@ -954,7 +957,12 @@
         progressFill.style.width = '0%';
         progressPercent.textContent = '0%';
         if (xhr.status === 200) {
-          toast('✅ Video uploaded: ' + file.name, 'success');
+          let data = {};
+          try { data = JSON.parse(xhr.responseText); } catch {}
+          toast('Video uploaded: ' + file.name, 'success');
+          if (data.quality_warning) {
+            showQualityWarning(data.quality_warning, data.bitrate_mbps, file.name);
+          }
           await loadVideos();
         } else {
           toast('Upload failed. Try again.', 'error');
@@ -984,6 +992,19 @@
 
     function cancelUpload() {
       if (currentUploadXhr) currentUploadXhr.abort();
+    }
+
+    function showQualityWarning(type, bitrateMbps, filename) {
+      const bitrateStr = bitrateMbps !== null ? bitrateMbps.toFixed(1) + ' Mbps' : 'unknown';
+      let msg = '';
+      if (type === 'unsupported_resolution') {
+        msg = `Low video quality detected for "${filename}".\nResolution is below 1080p — not recommended for streaming.\n\nFor best streaming results:\n- 4K (3840×2160): minimum 15 Mbps bitrate\n- 1080p (1920×1080): minimum 6 Mbps bitrate\n\nRecommended export settings:\n- Format: H.264 or H.265\n- Bitrate: VBR, Target 15 Mbps / Max 20 Mbps (4K), Target 8 Mbps / Max 10 Mbps (1080p)\n- Frame rate: 24 or 30 fps`;
+      } else if (type === 'low_bitrate_4k') {
+        msg = `Low video quality detected for "${filename}".\nCurrent bitrate: ${bitrateStr} (4K needs minimum 15 Mbps)\n\nFor best streaming results:\n- 4K (3840×2160): minimum 15 Mbps bitrate\n- 1080p (1920×1080): minimum 6 Mbps bitrate\n\nRecommended export settings:\n- Format: H.264 or H.265\n- Bitrate: VBR, Target 15 Mbps / Max 20 Mbps (4K)\n- Frame rate: 24 or 30 fps`;
+      } else if (type === 'low_bitrate_1080p') {
+        msg = `Low video quality detected for "${filename}".\nCurrent bitrate: ${bitrateStr} (1080p needs minimum 6 Mbps)\n\nFor best streaming results:\n- 4K (3840×2160): minimum 15 Mbps bitrate\n- 1080p (1920×1080): minimum 6 Mbps bitrate\n\nRecommended export settings:\n- Format: H.264 or H.265\n- Bitrate: VBR, Target 8 Mbps / Max 10 Mbps (1080p)\n- Frame rate: 24 or 30 fps`;
+      }
+      if (msg) toast(msg, 'warning', 15000);
     }
 
     async function deleteVideo(filename) {
