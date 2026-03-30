@@ -1161,23 +1161,53 @@ async function ytApi(userId, url, options = {}, accountId) {
 // Generate thumbnail from video frame + optional badge overlays
 // badges: array of badge names, e.g. ['24/7 LIVE', '4K UHD']
 async function generateThumbnail(videoPath, badges) {
-  const tmpFrame = `/tmp/thumb_frame_${Date.now()}.jpg`;
-  const tmpOut = `/tmp/thumb_final_${Date.now()}.jpg`;
+  const ts = Date.now();
+  const tmpFrame = `/tmp/thumb_frame_${ts}.jpg`;
+  const tmpOut = `/tmp/thumb_final_${ts}.jpg`;
+
+  console.log(`[thumbnail] Starting generation: video=${videoPath}, badges=${JSON.stringify(badges)}`);
+
+  // Check video file exists
+  if (!fs.existsSync(videoPath)) {
+    throw new Error(`Video file not found: ${videoPath}`);
+  }
+  console.log(`[thumbnail] Video file exists, size=${fs.statSync(videoPath).size} bytes`);
 
   // Extract frame at 30s with FFmpeg
   await new Promise((resolve, reject) => {
     const ff = spawn('ffmpeg', [
-      '-y', '-i', videoPath, '-ss', '30', '-vframes', '1',
+      '-y', '-ss', '30', '-i', videoPath, '-vframes', '1',
       '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2',
       tmpFrame,
     ]);
-    ff.on('close', code => code === 0 ? resolve() : reject(new Error(`FFmpeg thumbnail exit ${code}`)));
-    ff.on('error', reject);
+    let stderr = '';
+    ff.stderr.on('data', d => { stderr += d.toString(); });
+    ff.on('close', code => {
+      if (code === 0) {
+        console.log(`[thumbnail] FFmpeg frame extracted: ${tmpFrame}`);
+        resolve();
+      } else {
+        console.error(`[thumbnail] FFmpeg failed (code ${code}): ${stderr.slice(-500)}`);
+        reject(new Error(`FFmpeg thumbnail exit ${code}`));
+      }
+    });
+    ff.on('error', err => {
+      console.error(`[thumbnail] FFmpeg spawn error:`, err.message);
+      reject(err);
+    });
   });
+
+  // Verify frame was created
+  if (!fs.existsSync(tmpFrame)) {
+    throw new Error(`FFmpeg did not produce frame file: ${tmpFrame}`);
+  }
+  console.log(`[thumbnail] Frame file size=${fs.statSync(tmpFrame).size} bytes`);
 
   let image = sharp(tmpFrame);
 
   const badgeList = Array.isArray(badges) ? badges : (badges && badges !== 'none' ? [badges] : []);
+  console.log(`[thumbnail] Badge list to render: ${JSON.stringify(badgeList)}`);
+
   if (badgeList.length) {
     const badgeConfig = {
       '24/7 LIVE': { bg: '#e53e3e', text: '24/7 LIVE', icon: '&#9679;', position: 'left' },
@@ -1188,13 +1218,14 @@ async function generateThumbnail(videoPath, badges) {
     const composites = [];
     for (const badge of badgeList) {
       const cfg = badgeConfig[badge];
-      if (!cfg) continue;
+      if (!cfg) { console.warn(`[thumbnail] Unknown badge: "${badge}"`); continue; }
       const textWidth = cfg.text.length * 16 + 40;
-      const svgBadge = `<svg width="${textWidth}" height="40">
+      const svgBadge = `<svg width="${textWidth}" height="40" xmlns="http://www.w3.org/2000/svg">
         <rect x="0" y="0" width="${textWidth}" height="40" rx="6" fill="${cfg.bg}"/>
         ${cfg.icon ? `<text x="14" y="27" fill="white" font-size="18">${cfg.icon}</text>` : ''}
         <text x="${cfg.icon ? 30 : 14}" y="27" fill="white" font-family="Arial,Helvetica,sans-serif" font-weight="bold" font-size="20">${cfg.text}</text>
       </svg>`;
+      console.log(`[thumbnail] Adding badge "${badge}" at ${cfg.position}, width=${textWidth}`);
       composites.push({
         input: Buffer.from(svgBadge),
         top: 20,
@@ -1203,10 +1234,13 @@ async function generateThumbnail(videoPath, badges) {
     }
     if (composites.length) {
       image = image.composite(composites);
+      console.log(`[thumbnail] Compositing ${composites.length} badge(s)`);
     }
   }
 
   await image.jpeg({ quality: 90 }).toFile(tmpOut);
+  console.log(`[thumbnail] Final thumbnail: ${tmpOut}, size=${fs.statSync(tmpOut).size} bytes`);
+
   // Clean up frame
   fs.unlink(tmpFrame, () => {});
   return tmpOut;
@@ -1214,11 +1248,15 @@ async function generateThumbnail(videoPath, badges) {
 
 // Upload thumbnail to YouTube broadcast via thumbnails.set API
 async function uploadYouTubeThumbnail(userId, accountId, broadcastId, imagePath) {
+  console.log(`[thumbnail] Uploading to YouTube: broadcast=${broadcastId}, file=${imagePath}`);
+
   const account = await getYtAccount(userId, accountId);
   if (!account) throw new Error('No YouTube account found');
 
   let token = account.access_token;
   const imageBuffer = fs.readFileSync(imagePath);
+  console.log(`[thumbnail] Image buffer size=${imageBuffer.length} bytes`);
+
   const url = `https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=${broadcastId}&uploadType=media`;
 
   let resp = await fetch(url, {
@@ -1231,8 +1269,11 @@ async function uploadYouTubeThumbnail(userId, accountId, broadcastId, imagePath)
     body: imageBuffer,
   });
 
+  console.log(`[thumbnail] YouTube API response: ${resp.status} ${resp.statusText}`);
+
   // Token expired — refresh and retry
   if (resp.status === 401) {
+    console.log(`[thumbnail] Token expired, refreshing...`);
     token = await refreshYouTubeToken(account.id);
     if (!token) throw new Error('YouTube token refresh failed');
     resp = await fetch(url, {
@@ -1244,6 +1285,7 @@ async function uploadYouTubeThumbnail(userId, accountId, broadcastId, imagePath)
       },
       body: imageBuffer,
     });
+    console.log(`[thumbnail] Retry response: ${resp.status} ${resp.statusText}`);
   }
 
   // Clean up thumbnail file
@@ -1251,10 +1293,13 @@ async function uploadYouTubeThumbnail(userId, accountId, broadcastId, imagePath)
 
   if (!resp.ok) {
     const err = await resp.text();
+    console.error(`[thumbnail] Upload failed: ${resp.status} — ${err}`);
     throw new Error(`Thumbnail upload failed (${resp.status}): ${err}`);
   }
 
-  return resp.json();
+  const result = await resp.json();
+  console.log(`[thumbnail] Upload success:`, JSON.stringify(result));
+  return result;
 }
 
 // GET /auth/youtube — returns OAuth URL
@@ -1483,19 +1528,23 @@ app.post('/youtube/create-broadcast', async (req, res) => {
     });
 
     console.log(`[youtube] Broadcast created: ${broadcast.id} for user ${userId}`);
+    console.log(`[youtube] Thumbnail params: video_path=${video_path}, thumbnail_badges=${JSON.stringify(thumbnail_badges)}`);
 
     // 4. Generate and upload thumbnail (non-blocking, after response)
     if (video_path) {
       const badges = Array.isArray(thumbnail_badges) ? thumbnail_badges : [];
+      console.log(`[youtube] Starting thumbnail pipeline for broadcast ${broadcast.id}, badges=${JSON.stringify(badges)}`);
       (async () => {
         try {
           const thumbPath = await generateThumbnail(video_path, badges);
           await uploadYouTubeThumbnail(userId, account_id, broadcast.id, thumbPath);
-          console.log(`[youtube] Thumbnail set for broadcast ${broadcast.id} (badges: ${badges.join(', ') || 'none'})`);
+          console.log(`[youtube] Thumbnail pipeline complete for ${broadcast.id}`);
         } catch (err) {
-          console.error(`[youtube] Thumbnail generation/upload failed for ${broadcast.id}:`, err.message);
+          console.error(`[youtube] Thumbnail pipeline failed for ${broadcast.id}:`, err.message);
         }
       })();
+    } else {
+      console.warn(`[youtube] No video_path provided, skipping thumbnail generation`);
     }
   } catch (e) {
     console.error('[youtube] Create broadcast error:', e.message);
