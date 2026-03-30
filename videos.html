@@ -571,6 +571,14 @@
       renderVideos(currentVideos);
     }
 
+    function formatUploadDate(filename) {
+      const ts = parseInt(filename, 10);
+      if (!ts || ts < 1e12) return '';
+      const d = new Date(ts);
+      if (isNaN(d.getTime())) return '';
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
     function formatSize(bytes) {
       if (!bytes) return '';
       if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
@@ -826,6 +834,7 @@
               ? `<input class="video-name-input" data-filename="${v.filename}" value="${escapeHtml(displayName)}" />`
               : `<div class="video-name-line">${v.low_quality ? '<span title="Low video quality — bitrate or resolution below recommended" style="cursor:help;margin-right:4px;">&#9888;&#65039;</span>' : ''}<button class="video-name-btn video-original-name" data-preview="${v.filename}" title="Play video">${escapeHtml(displayName)}</button><button class="video-edit-btn" data-edit="${v.filename}" title="Rename">✏️</button></div>`}
           </div>
+          <div class="video-date" style="font-size:11px;color:var(--muted);">${formatUploadDate(v.filename)}</div>
           <div class="video-meta" id="${metaId}">${getMetaLine(v, getServerFps(v), getServerDuration(v))}</div>
           <div class="video-size">${v.size ? formatSize(v.size) : ''}</div>
           <div class="video-actions">
