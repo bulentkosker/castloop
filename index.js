@@ -1499,7 +1499,7 @@ app.post('/youtube/create-broadcast', async (req, res) => {
           cdn: {
             frameRate: 'variable',
             ingestionType: 'rtmp',
-            resolution: resolution === '2160p' ? '2160p' : '1080p',
+            resolution: 'variable',
           },
         }),
       },
