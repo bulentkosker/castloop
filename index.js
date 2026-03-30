@@ -151,6 +151,98 @@ function getVideoMetadata(filePath) {
   });
 }
 
+// --- Bitrate normalization queue ---
+const normalizeQueue = [];
+let normalizeRunning = false;
+
+function enqueueNormalize(filePath, width, height, bitrateBps, metaFile, filename) {
+  const bitrateMbps = bitrateBps ? bitrateBps / 1_000_000 : 0;
+  if (bitrateMbps <= 30) {
+    console.log(`[normalize] Skip ${filename}: bitrate ${bitrateMbps.toFixed(1)} Mbps <= 30 Mbps`);
+    return;
+  }
+
+  // Determine target bitrate based on resolution
+  let targetKbps;
+  if (width >= 3840 && height >= 2160) {
+    targetKbps = 22000; // 4K → 22 Mbps
+  } else {
+    targetKbps = 8000;  // 1080p and below → 8 Mbps
+  }
+
+  console.log(`[normalize] Queued ${filename}: ${bitrateMbps.toFixed(1)} Mbps → target ${targetKbps / 1000} Mbps`);
+  normalizeQueue.push({ filePath, targetKbps, metaFile, filename });
+  processNormalizeQueue();
+}
+
+async function processNormalizeQueue() {
+  if (normalizeRunning || normalizeQueue.length === 0) return;
+  normalizeRunning = true;
+
+  const job = normalizeQueue.shift();
+  const { filePath, targetKbps, metaFile, filename } = job;
+  const tmpOut = filePath + '.normalizing.mp4';
+
+  console.log(`[normalize] Starting ${filename} (target ${targetKbps}k, queue: ${normalizeQueue.length} remaining)`);
+
+  try {
+    await new Promise((resolve, reject) => {
+      const ff = spawn('ffmpeg', [
+        '-y', '-i', filePath,
+        '-c:v', 'libx264', '-preset', 'veryfast',
+        '-b:v', `${targetKbps}k`, '-maxrate', `${Math.round(targetKbps * 1.2)}k`, '-bufsize', `${targetKbps * 2}k`,
+        '-c:a', 'aac', '-b:a', '128k',
+        '-movflags', '+faststart',
+        tmpOut,
+      ]);
+      let stderr = '';
+      ff.stderr.on('data', d => { stderr += d.toString(); });
+      ff.on('close', code => {
+        if (code === 0) resolve();
+        else reject(new Error(`FFmpeg exit ${code}: ${stderr.slice(-300)}`));
+      });
+      ff.on('error', reject);
+    });
+
+    // Verify output exists and is valid
+    if (!fs.existsSync(tmpOut) || fs.statSync(tmpOut).size < 1000) {
+      throw new Error('Output file missing or too small');
+    }
+
+    // Replace original with normalized version
+    fs.renameSync(tmpOut, filePath);
+    console.log(`[normalize] Replaced ${filename} with normalized version`);
+
+    // Update _meta.json
+    const newMeta = await getVideoMetadata(filePath);
+    const resolution = await getVideoResolution(filePath);
+    try {
+      let meta = {};
+      if (fs.existsSync(metaFile)) meta = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
+      if (meta[filename]) {
+        meta[filename].bitrate = newMeta.bitrate;
+        meta[filename].width = resolution.width;
+        meta[filename].height = resolution.height;
+        meta[filename].normalized = true;
+        const quality = checkVideoQuality(resolution.width, resolution.height, newMeta.bitrate);
+        meta[filename].low_quality = quality.low_quality;
+        fs.writeFileSync(metaFile, JSON.stringify(meta));
+      }
+    } catch (e) {
+      console.error(`[normalize] Failed to update meta for ${filename}:`, e.message);
+    }
+
+    console.log(`[normalize] Done ${filename}: new bitrate ${newMeta.bitrate ? (newMeta.bitrate / 1_000_000).toFixed(1) : '?'} Mbps`);
+  } catch (err) {
+    console.error(`[normalize] Failed ${filename}:`, err.message);
+    // Clean up temp file, original is preserved
+    if (fs.existsSync(tmpOut)) fs.unlinkSync(tmpOut);
+  }
+
+  normalizeRunning = false;
+  processNormalizeQueue();
+}
+
 // Check video quality and return warning if below recommended thresholds
 function checkVideoQuality(width, height, bitrateBps) {
   const bitrateMbps = bitrateBps ? bitrateBps / 1_000_000 : null;
@@ -584,6 +676,9 @@ app.post('/upload', upload.single('video'), async (req, res) => {
     width: resolution.width, height: resolution.height, codec: metadata.codec,
     bitrate_mbps: quality.bitrate_mbps, low_quality: quality.low_quality, quality_warning: quality.quality_warning,
   });
+
+  // Enqueue normalization if bitrate > 30 Mbps (non-blocking)
+  enqueueNormalize(req.file.path, resolution.width, resolution.height, metadata.bitrate, metaFile, req.file.filename);
 });
 
 app.get('/videos', async (req, res) => {
@@ -898,6 +993,9 @@ app.post('/upload-by-token', tokenUpload.single('video'), async (req, res) => {
     success: true, filename, width: resolution.width, height: resolution.height, codec: metadata.codec,
     bitrate_mbps: quality.bitrate_mbps, low_quality: quality.low_quality, quality_warning: quality.quality_warning,
   });
+
+  // Enqueue normalization if bitrate > 30 Mbps (non-blocking)
+  enqueueNormalize(destPath, resolution.width, resolution.height, metadata.bitrate, metaFile, filename);
 });
 
 app.post('/paddle-webhook', async (req, res) => {
