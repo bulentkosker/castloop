@@ -410,9 +410,14 @@
       <div class="form-group">
         <label>Playlist</label>
         <div class="playlist-builder">
+          <input type="text" id="videoSearch" placeholder="Search videos..." oninput="filterVideoSelect('videoSearch','videoSelect')" style="width:100%;padding:8px 12px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;margin-bottom:6px;">
           <div class="playlist-add">
             <select id="videoSelect"><option value="">Loading videos...</option></select>
             <button class="btn-add" onclick="addToPlaylist()">+ Add</button>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:6px;align-items:center;">
+            <input type="text" id="manualPathInput" placeholder="Or paste video path manually..." style="flex:1;padding:8px 12px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:12px;">
+            <button class="btn-add" onclick="addManualPath('manualPathInput')" style="white-space:nowrap;">+ Add Path</button>
           </div>
           <div class="playlist-items" id="playlistItems">
             <div class="playlist-empty">No videos added yet</div>
@@ -447,9 +452,14 @@
       <div class="form-group">
         <label>Playlist</label>
         <div class="playlist-builder">
+          <input type="text" id="editVideoSearch" placeholder="Search videos..." oninput="filterVideoSelect('editVideoSearch','editVideoSelect')" style="width:100%;padding:8px 12px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;margin-bottom:6px;">
           <div class="playlist-add">
             <select id="editVideoSelect"><option value="">Loading...</option></select>
             <button class="btn-add" onclick="addToEditPlaylist()">+ Add</button>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:6px;align-items:center;">
+            <input type="text" id="editManualPathInput" placeholder="Or paste video path manually..." style="flex:1;padding:8px 12px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:12px;">
+            <button class="btn-add" onclick="addManualPath('editManualPathInput')" style="white-space:nowrap;">+ Add Path</button>
           </div>
           <div class="playlist-items" id="editPlaylistItems"><div class="playlist-empty">No videos added yet</div></div>
         </div>
@@ -599,6 +609,30 @@
       } catch (e) {
         select.innerHTML = '<option value="">Could not load videos</option>';
       }
+    }
+
+    function filterVideoSelect(searchId, selectId) {
+      const q = document.getElementById(searchId).value.toLowerCase();
+      const select = document.getElementById(selectId);
+      select.innerHTML = '<option value="">Select a video...</option>' +
+        availableVideos
+          .filter(v => !q || (v.originalName || v.filename).toLowerCase().includes(q))
+          .map(v => `<option value="${v.path}">${v.originalName || v.filename}</option>`).join('');
+    }
+
+    function addManualPath(inputId) {
+      const input = document.getElementById(inputId);
+      const p = input.value.trim();
+      if (!p) return;
+      const name = p.split('/').pop() || p;
+      if (inputId === 'editManualPathInput') {
+        editPlaylist.push({ path: p, name });
+        renderEditPlaylist();
+      } else {
+        playlist.push({ path: p, name });
+        renderPlaylist();
+      }
+      input.value = '';
     }
 
     function checkMixedCodecs(paths) {
