@@ -986,6 +986,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
               account_id: streamData.youtube_account_id,
               video_path: firstVideoPath,
               thumbnail_badges: streamData.thumbnail_badge ? JSON.parse(streamData.thumbnail_badge) : [],
+              resolution: requiredServerType === '4k' ? '2160p' : '1080p',
             })
           });
           const ytData = await ytRes.json();

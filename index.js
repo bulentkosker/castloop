@@ -1411,7 +1411,7 @@ app.delete('/youtube/accounts/:id', async (req, res) => {
 // POST /youtube/create-broadcast — create live broadcast + stream
 app.post('/youtube/create-broadcast', async (req, res) => {
   const userId = req.headers['x-user-id'];
-  const { title, description, privacy, account_id, video_path, thumbnail_badges } = req.body;
+  const { title, description, privacy, account_id, video_path, thumbnail_badges, resolution } = req.body;
 
   if (!userId) return res.status(400).json({ error: 'x-user-id required' });
 
@@ -1454,7 +1454,7 @@ app.post('/youtube/create-broadcast', async (req, res) => {
           cdn: {
             frameRate: 'variable',
             ingestionType: 'rtmp',
-            resolution: 'variable',
+            resolution: resolution === '2160p' ? '2160p' : '1080p',
           },
         }),
       },
