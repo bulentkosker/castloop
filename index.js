@@ -1158,8 +1158,9 @@ async function ytApi(userId, url, options = {}, accountId) {
   return resp.json();
 }
 
-// Generate thumbnail from video frame + optional badge overlay
-async function generateThumbnail(videoPath, badge) {
+// Generate thumbnail from video frame + optional badge overlays
+// badges: array of badge names, e.g. ['24/7 LIVE', '4K UHD']
+async function generateThumbnail(videoPath, badges) {
   const tmpFrame = `/tmp/thumb_frame_${Date.now()}.jpg`;
   const tmpOut = `/tmp/thumb_final_${Date.now()}.jpg`;
 
@@ -1176,25 +1177,32 @@ async function generateThumbnail(videoPath, badge) {
 
   let image = sharp(tmpFrame);
 
-  if (badge && badge !== 'none') {
+  const badgeList = Array.isArray(badges) ? badges : (badges && badges !== 'none' ? [badges] : []);
+  if (badgeList.length) {
     const badgeConfig = {
-      '24/7 LIVE': { bg: '#e53e3e', text: '24/7 LIVE', icon: '&#9679;' },
-      '4K UHD':    { bg: '#d69e2e', text: '4K UHD', icon: '' },
-      'FULL HD':   { bg: '#3182ce', text: 'FULL HD', icon: '' },
+      '24/7 LIVE': { bg: '#e53e3e', text: '24/7 LIVE', icon: '&#9679;', position: 'left' },
+      '4K UHD':    { bg: '#d69e2e', text: '4K UHD',    icon: '',         position: 'right' },
+      'FULL HD':   { bg: '#3182ce', text: 'FULL HD',    icon: '',         position: 'right' },
     };
-    const cfg = badgeConfig[badge];
-    if (cfg) {
+
+    const composites = [];
+    for (const badge of badgeList) {
+      const cfg = badgeConfig[badge];
+      if (!cfg) continue;
       const textWidth = cfg.text.length * 16 + 40;
       const svgBadge = `<svg width="${textWidth}" height="40">
         <rect x="0" y="0" width="${textWidth}" height="40" rx="6" fill="${cfg.bg}"/>
         ${cfg.icon ? `<text x="14" y="27" fill="white" font-size="18">${cfg.icon}</text>` : ''}
         <text x="${cfg.icon ? 30 : 14}" y="27" fill="white" font-family="Arial,Helvetica,sans-serif" font-weight="bold" font-size="20">${cfg.text}</text>
       </svg>`;
-      image = image.composite([{
+      composites.push({
         input: Buffer.from(svgBadge),
         top: 20,
-        left: 20,
-      }]);
+        left: cfg.position === 'right' ? 1280 - textWidth - 20 : 20,
+      });
+    }
+    if (composites.length) {
+      image = image.composite(composites);
     }
   }
 
@@ -1403,7 +1411,7 @@ app.delete('/youtube/accounts/:id', async (req, res) => {
 // POST /youtube/create-broadcast — create live broadcast + stream
 app.post('/youtube/create-broadcast', async (req, res) => {
   const userId = req.headers['x-user-id'];
-  const { title, description, privacy, account_id, video_path, thumbnail_badge } = req.body;
+  const { title, description, privacy, account_id, video_path, thumbnail_badges } = req.body;
 
   if (!userId) return res.status(400).json({ error: 'x-user-id required' });
 
@@ -1477,23 +1485,13 @@ app.post('/youtube/create-broadcast', async (req, res) => {
     console.log(`[youtube] Broadcast created: ${broadcast.id} for user ${userId}`);
 
     // 4. Generate and upload thumbnail (non-blocking, after response)
-    if (video_path && thumbnail_badge && thumbnail_badge !== 'none') {
+    if (video_path) {
+      const badges = Array.isArray(thumbnail_badges) ? thumbnail_badges : [];
       (async () => {
         try {
-          const thumbPath = await generateThumbnail(video_path, thumbnail_badge);
+          const thumbPath = await generateThumbnail(video_path, badges);
           await uploadYouTubeThumbnail(userId, account_id, broadcast.id, thumbPath);
-          console.log(`[youtube] Thumbnail set for broadcast ${broadcast.id} (badge: ${thumbnail_badge})`);
-        } catch (err) {
-          console.error(`[youtube] Thumbnail generation/upload failed for ${broadcast.id}:`, err.message);
-        }
-      })();
-    } else if (video_path) {
-      // No badge selected but video exists — still generate a clean thumbnail
-      (async () => {
-        try {
-          const thumbPath = await generateThumbnail(video_path, null);
-          await uploadYouTubeThumbnail(userId, account_id, broadcast.id, thumbPath);
-          console.log(`[youtube] Clean thumbnail set for broadcast ${broadcast.id}`);
+          console.log(`[youtube] Thumbnail set for broadcast ${broadcast.id} (badges: ${badges.join(', ') || 'none'})`);
         } catch (err) {
           console.error(`[youtube] Thumbnail generation/upload failed for ${broadcast.id}:`, err.message);
         }

@@ -378,13 +378,18 @@
         <textarea id="streamDescription" rows="3" placeholder="Optional description for YouTube broadcast" style="width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;"></textarea>
       </div>
       <div class="form-group" id="ytBadgeGroup" style="display:none">
-        <label>Thumbnail Badge</label>
-        <select id="thumbnailBadge" style="width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;">
-          <option value="none">None</option>
-          <option value="24/7 LIVE">24/7 LIVE</option>
-          <option value="4K UHD">4K UHD</option>
-          <option value="FULL HD">FULL HD</option>
-        </select>
+        <label>Thumbnail Badges</label>
+        <div style="display:flex;flex-direction:column;gap:8px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;">
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+            <input type="checkbox" value="24/7 LIVE" class="badge-checkbox"> <span style="background:#e53e3e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:12px;">24/7 LIVE</span> <span style="color:var(--muted);font-size:12px;">sol üst</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+            <input type="checkbox" value="4K UHD" class="badge-checkbox"> <span style="background:#d69e2e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:12px;">4K UHD</span> <span style="color:var(--muted);font-size:12px;">sağ üst</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+            <input type="checkbox" value="FULL HD" class="badge-checkbox"> <span style="background:#3182ce;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:12px;">FULL HD</span> <span style="color:var(--muted);font-size:12px;">sağ üst</span>
+          </label>
+        </div>
         <div class="hint">Auto-generated from your first video's frame at 30s</div>
       </div>
       <div class="form-group">
@@ -801,8 +806,8 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       if (ytAccountId) {
         insertData.youtube_account_id = ytAccountId;
         if (description) insertData.youtube_description = description;
-        const badge = document.getElementById('thumbnailBadge')?.value || 'none';
-        if (badge !== 'none') insertData.thumbnail_badge = badge;
+        const badges = [...document.querySelectorAll('.badge-checkbox:checked')].map(c => c.value);
+        if (badges.length) insertData.thumbnail_badge = JSON.stringify(badges);
       }
 
       const { error } = await client.from('streams').insert(insertData);
@@ -980,7 +985,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
               description: streamData.youtube_description || '',
               account_id: streamData.youtube_account_id,
               video_path: firstVideoPath,
-              thumbnail_badge: streamData.thumbnail_badge || 'none',
+              thumbnail_badges: streamData.thumbnail_badge ? JSON.parse(streamData.thumbnail_badge) : [],
             })
           });
           const ytData = await ytRes.json();
