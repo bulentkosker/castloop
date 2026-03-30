@@ -720,6 +720,11 @@
       return `video-meta-${base}-${index}`;
     }
 
+    function getThumbUrl(video) {
+      const thumbFilename = video.filename.replace(/\.[^.]+$/, '') + '_thumb.jpg';
+      return `${SERVER_URL}/stream/${encodeURIComponent(currentUser.id)}/${encodeURIComponent(thumbFilename)}?apiKey=${encodeURIComponent(API_KEY)}`;
+    }
+
     function getVideoSourceUrl(video) {
       if (video.url) return video.url;
       if (video.publicUrl) return video.publicUrl;
@@ -826,9 +831,11 @@
         return `
         <div class="video-row" draggable="true" data-filename="${v.filename}">
           <div class="thumb-col">
-            ${sourceUrl
-              ? `<video class="video-thumb video-thumb-preview" preload="metadata" muted playsinline data-source="${escapeHtml(sourceUrl)}"></video>`
-              : `<div class="video-thumb-fallback">🎬</div>`}
+            ${v.thumbnail_path
+              ? `<img class="video-thumb" src="${getThumbUrl(v)}" alt="" loading="lazy">`
+              : sourceUrl
+                ? `<video class="video-thumb video-thumb-preview" preload="metadata" muted playsinline data-source="${escapeHtml(sourceUrl)}"></video>`
+                : `<div class="video-thumb-fallback">🎬</div>`}
           </div>
           <div class="video-name-wrap">
             ${isEditing

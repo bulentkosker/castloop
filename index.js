@@ -243,6 +243,41 @@ async function processNormalizeQueue() {
   processNormalizeQueue();
 }
 
+// Generate a thumbnail for an uploaded video and update _meta.json
+function generateUploadThumbnail(videoPath, metaFile, filename) {
+  const thumbName = filename.replace(/\.[^.]+$/, '') + '_thumb.jpg';
+  const thumbPath = path.join(path.dirname(videoPath), thumbName);
+
+  const ff = spawn('ffmpeg', [
+    '-y', '-ss', '1', '-i', videoPath, '-vframes', '1',
+    '-vf', 'scale=160:90:force_original_aspect_ratio=decrease,pad=160:90:(ow-iw)/2:(oh-ih)/2',
+    thumbPath,
+  ]);
+  let stderr = '';
+  ff.stderr.on('data', d => { stderr += d.toString(); });
+  ff.on('close', code => {
+    if (code !== 0) {
+      console.error(`[thumbnail] Failed for ${filename}: ${stderr.slice(-200)}`);
+      return;
+    }
+    // Update _meta.json with thumbnail_path
+    try {
+      let meta = {};
+      if (fs.existsSync(metaFile)) meta = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
+      if (meta[filename]) {
+        meta[filename].thumbnail_path = thumbPath;
+        fs.writeFileSync(metaFile, JSON.stringify(meta));
+      }
+    } catch (e) {
+      console.error(`[thumbnail] Meta update failed for ${filename}:`, e.message);
+    }
+    console.log(`[thumbnail] Generated ${thumbName}`);
+  });
+  ff.on('error', err => {
+    console.error(`[thumbnail] Spawn error for ${filename}:`, err.message);
+  });
+}
+
 // Check video quality and return warning if below recommended thresholds
 function checkVideoQuality(width, height, bitrateBps) {
   const bitrateMbps = bitrateBps ? bitrateBps / 1_000_000 : null;
@@ -677,7 +712,8 @@ app.post('/upload', upload.single('video'), async (req, res) => {
     bitrate_mbps: quality.bitrate_mbps, low_quality: quality.low_quality, quality_warning: quality.quality_warning,
   });
 
-  // Enqueue normalization if bitrate > 30 Mbps (non-blocking)
+  // Non-blocking post-upload tasks
+  generateUploadThumbnail(req.file.path, metaFile, req.file.filename);
   enqueueNormalize(req.file.path, resolution.width, resolution.height, metadata.bitrate, metaFile, req.file.filename);
 });
 
@@ -691,7 +727,7 @@ app.get('/videos', async (req, res) => {
   if (fs.existsSync(metaFile)) {
     try { meta = JSON.parse(fs.readFileSync(metaFile, 'utf8')); } catch (e) {}
   }
-  const fileNames = fs.readdirSync(dir).filter(f => f !== '_meta.json');
+  const fileNames = fs.readdirSync(dir).filter(f => f !== '_meta.json' && !f.endsWith('_thumb.jpg'));
   const files = await Promise.all(fileNames.map(async (f) => {
     const filePath = dir + f;
     const item = {
@@ -710,6 +746,15 @@ app.get('/videos', async (req, res) => {
     const quality = checkVideoQuality(item.width, item.height, metadata.bitrate);
     item.bitrate_mbps = quality.bitrate_mbps;
     item.low_quality = quality.low_quality;
+    // Thumbnail: check if exists on disk
+    const thumbName = f.replace(/\.[^.]+$/, '') + '_thumb.jpg';
+    const thumbPath = dir + thumbName;
+    if (fs.existsSync(thumbPath)) {
+      item.thumbnail_path = thumbPath;
+    } else {
+      // Generate missing thumbnail in background
+      generateUploadThumbnail(filePath, metaFile, f);
+    }
     if (typeof meta[f] !== 'object') meta[f] = {};
     meta[f].duration = metadata.duration;
     meta[f].fps = metadata.fps;
@@ -994,7 +1039,8 @@ app.post('/upload-by-token', tokenUpload.single('video'), async (req, res) => {
     bitrate_mbps: quality.bitrate_mbps, low_quality: quality.low_quality, quality_warning: quality.quality_warning,
   });
 
-  // Enqueue normalization if bitrate > 30 Mbps (non-blocking)
+  // Non-blocking post-upload tasks
+  generateUploadThumbnail(destPath, metaFile, filename);
   enqueueNormalize(destPath, resolution.width, resolution.height, metadata.bitrate, metaFile, filename);
 });
 
