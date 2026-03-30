@@ -225,6 +225,7 @@
     .toast.active { transform: translateY(0); opacity: 1; }
     .toast.success { border-color: var(--green); color: var(--green); }
     .toast.error { border-color: var(--red); color: var(--red); }
+    .toast.warning { border-color: #f59e0b; color: #f59e0b; }
 
     /* Modals */
     .modal { background: var(--bg2); border: 1px solid var(--border); }
@@ -600,6 +601,17 @@
       }
     }
 
+    function checkMixedCodecs(paths) {
+      const codecs = new Set();
+      for (const p of paths) {
+        const v = availableVideos.find(v => v.path === (typeof p === 'object' ? p.path : p));
+        if (v?.codec) codecs.add(v.codec);
+      }
+      const hasH264 = codecs.has('h264');
+      const hasHEVC = codecs.has('hevc') || codecs.has('h265');
+      return hasH264 && hasHEVC;
+    }
+
     function addToPlaylist() {
       const select = document.getElementById('videoSelect');
       const path = select.value;
@@ -608,6 +620,11 @@
       if (!video) return;
       playlist.push({ path: video.path, name: video.originalName });
       renderPlaylist();
+      if (playlist.length > 1 && checkMixedCodecs(playlist)) {
+        const msg = document.getElementById('modalMessage');
+        msg.style.color = '#f59e0b';
+        msg.textContent = 'Mixed video formats detected in your playlist. Mixing HEVC (H.265) and H.264 videos may cause stream interruptions. We recommend using videos in the same format.';
+      }
     }
 
     function removeFromPlaylist(index) {
@@ -967,6 +984,11 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
         return;
       }
 
+      // Codec mix kontrolü — uyarı ver ama engelleme
+      if (videoPaths.length > 1 && checkMixedCodecs(videoPaths)) {
+        showStreamError(id, 'Mixed video formats detected. Mixing HEVC (H.265) and H.264 may cause stream interruptions. We recommend using videos in the same format.');
+      }
+
       // Video çözünürlüğüne göre sunucu tipini belirle (4K => 4k, diğerleri => 1080p)
       const requiredServerType = await getRequiredServerType(videoPaths);
 
@@ -1207,7 +1229,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
     }
 
     function closeEditModal() { document.getElementById('editModalOverlay').classList.remove('active'); editPlaylist = []; }
-    function addToEditPlaylist() { const s = document.getElementById('editVideoSelect'); const v = availableVideos.find(v => v.path === s.value); if (!v) return; editPlaylist.push({ path: v.path, name: v.originalName }); renderEditPlaylist(); }
+    function addToEditPlaylist() { const s = document.getElementById('editVideoSelect'); const v = availableVideos.find(v => v.path === s.value); if (!v) return; editPlaylist.push({ path: v.path, name: v.originalName }); renderEditPlaylist(); if (editPlaylist.length > 1 && checkMixedCodecs(editPlaylist)) toast('Mixed video formats detected. Mixing HEVC (H.265) and H.264 may cause stream interruptions.', 'warning'); }
     function removeFromEditPlaylist(i) { editPlaylist.splice(i, 1); renderEditPlaylist(); }
     function moveEditUp(i) { if (i===0) return; [editPlaylist[i-1],editPlaylist[i]]=[editPlaylist[i],editPlaylist[i-1]]; renderEditPlaylist(); }
     function moveEditDown(i) { if (i===editPlaylist.length-1) return; [editPlaylist[i],editPlaylist[i+1]]=[editPlaylist[i+1],editPlaylist[i]]; renderEditPlaylist(); }

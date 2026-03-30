@@ -121,7 +121,7 @@ function getVideoMetadata(filePath) {
       '-v', 'error',
       '-select_streams', 'v:0',
       '-show_entries', 'format=duration,bit_rate',
-      '-show_entries', 'stream=r_frame_rate,bit_rate',
+      '-show_entries', 'stream=r_frame_rate,bit_rate,codec_name',
       '-of', 'json',
       filePath
     ]);
@@ -142,9 +142,10 @@ function getVideoMetadata(filePath) {
         const duration = format.duration ? Math.round(parseFloat(format.duration)) : null;
         // Bitrate: prefer stream-level, fall back to format-level (bits/sec)
         const bitrate = parseInt(stream?.bit_rate, 10) || parseInt(format.bit_rate, 10) || null;
-        resolve({ duration, fps, bitrate });
+        const codec = stream?.codec_name || null;
+        resolve({ duration, fps, bitrate, codec });
       } catch (e) {
-        resolve({ duration: null, fps: null, bitrate: null });
+        resolve({ duration: null, fps: null, bitrate: null, codec: null });
       }
     });
   });
@@ -574,12 +575,13 @@ app.post('/upload', upload.single('video'), async (req, res) => {
     width: resolution.width,
     height: resolution.height,
     bitrate: metadata.bitrate,
+    codec: metadata.codec,
     low_quality: quality.low_quality
   };
   fs.writeFileSync(metaFile, JSON.stringify(meta));
   res.json({
     success: true, videoPath: req.file.path, filename: req.file.filename,
-    width: resolution.width, height: resolution.height,
+    width: resolution.width, height: resolution.height, codec: metadata.codec,
     bitrate_mbps: quality.bitrate_mbps, low_quality: quality.low_quality, quality_warning: quality.quality_warning,
   });
 });
@@ -609,6 +611,7 @@ app.get('/videos', async (req, res) => {
     item.duration = metadata.duration;
     item.fps = metadata.fps;
     item.bitrate = metadata.bitrate;
+    item.codec = metadata.codec;
     const quality = checkVideoQuality(item.width, item.height, metadata.bitrate);
     item.bitrate_mbps = quality.bitrate_mbps;
     item.low_quality = quality.low_quality;
@@ -616,6 +619,7 @@ app.get('/videos', async (req, res) => {
     meta[f].duration = metadata.duration;
     meta[f].fps = metadata.fps;
     meta[f].bitrate = metadata.bitrate;
+    meta[f].codec = metadata.codec;
     meta[f].low_quality = quality.low_quality;
     return item;
   }));
@@ -885,12 +889,13 @@ app.post('/upload-by-token', tokenUpload.single('video'), async (req, res) => {
     width: resolution.width,
     height: resolution.height,
     bitrate: metadata.bitrate,
+    codec: metadata.codec,
     low_quality: quality.low_quality
   };
   fs.writeFileSync(metaFile, JSON.stringify(meta));
 
   res.json({
-    success: true, filename, width: resolution.width, height: resolution.height,
+    success: true, filename, width: resolution.width, height: resolution.height, codec: metadata.codec,
     bitrate_mbps: quality.bitrate_mbps, low_quality: quality.low_quality, quality_warning: quality.quality_warning,
   });
 });
