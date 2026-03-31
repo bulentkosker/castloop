@@ -1442,10 +1442,10 @@ async function generateThumbnail(videoPath, badges) {
         continue;
       }
 
-      // Resize badge to 30% of original
+      // Resize badge to 22% of thumbnail width (1280 * 0.22 ≈ 282px)
       const badgeMeta = await sharp(badgePath).metadata();
-      const badgeW = Math.round(badgeMeta.width * 0.3);
-      const badgeH = Math.round(badgeMeta.height * 0.3);
+      const badgeW = Math.round(1280 * 0.22);
+      const badgeH = Math.round(badgeW * (badgeMeta.height / badgeMeta.width));
       const resizedBadge = await sharp(badgePath).resize(badgeW, badgeH).png().toBuffer();
 
       console.log(`[thumbnail] Adding badge "${badge}" (${cfg.file}) at ${cfg.position}, ${badgeW}x${badgeH}`);
