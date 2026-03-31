@@ -155,6 +155,7 @@ function getVideoMetadata(filePath) {
 // --- Bitrate normalization queue ---
 const normalizeQueue = [];
 let normalizeRunning = false;
+const normalizeProgress = {}; // { filename: { status, percent } }
 
 function enqueueNormalize(filePath, width, height, bitrateBps, metaFile, filename) {
   const bitrateMbps = bitrateBps ? bitrateBps / 1_000_000 : 0;
@@ -172,6 +173,7 @@ function enqueueNormalize(filePath, width, height, bitrateBps, metaFile, filenam
   }
 
   console.log(`[normalize] Queued ${filename}: ${bitrateMbps.toFixed(1)} Mbps → target ${targetKbps / 1000} Mbps`);
+  normalizeProgress[filename] = { status: 'running', percent: 0 };
   normalizeQueue.push({ filePath, targetKbps, metaFile, filename });
   processNormalizeQueue();
 }
@@ -186,6 +188,11 @@ async function processNormalizeQueue() {
 
   console.log(`[normalize] Starting ${filename} (target ${targetKbps}k, queue: ${normalizeQueue.length} remaining)`);
 
+  // Get duration for progress calculation
+  const preMeta = await getVideoMetadata(filePath);
+  const totalDuration = preMeta.duration || 0;
+  normalizeProgress[filename] = { status: 'running', percent: 0 };
+
   try {
     await new Promise((resolve, reject) => {
       const ff = spawn('ffmpeg', [
@@ -197,7 +204,17 @@ async function processNormalizeQueue() {
         tmpOut,
       ]);
       let stderr = '';
-      ff.stderr.on('data', d => { stderr += d.toString(); });
+      ff.stderr.on('data', d => {
+        stderr += d.toString();
+        // Parse time= from FFmpeg stderr for progress
+        if (totalDuration > 0) {
+          const m = d.toString().match(/time=(\d+):(\d+):(\d+)\.(\d+)/);
+          if (m) {
+            const secs = parseInt(m[1]) * 3600 + parseInt(m[2]) * 60 + parseInt(m[3]) + parseInt(m[4]) / 100;
+            normalizeProgress[filename].percent = Math.min(99, Math.round(secs / totalDuration * 100));
+          }
+        }
+      });
       ff.on('close', code => {
         if (code === 0) resolve();
         else reject(new Error(`FFmpeg exit ${code}: ${stderr.slice(-300)}`));
@@ -233,9 +250,11 @@ async function processNormalizeQueue() {
       console.error(`[normalize] Failed to update meta for ${filename}:`, e.message);
     }
 
+    normalizeProgress[filename] = { status: 'done', percent: 100 };
     console.log(`[normalize] Done ${filename}: new bitrate ${newMeta.bitrate ? (newMeta.bitrate / 1_000_000).toFixed(1) : '?'} Mbps`);
   } catch (err) {
     console.error(`[normalize] Failed ${filename}:`, err.message);
+    normalizeProgress[filename] = { status: 'idle', percent: 0 };
     // Clean up temp file, original is preserved
     if (fs.existsSync(tmpOut)) fs.unlinkSync(tmpOut);
   }
@@ -728,7 +747,7 @@ app.get('/videos', async (req, res) => {
   if (fs.existsSync(metaFile)) {
     try { meta = JSON.parse(fs.readFileSync(metaFile, 'utf8')); } catch (e) {}
   }
-  const fileNames = fs.readdirSync(dir).filter(f => f !== '_meta.json' && !f.endsWith('_thumb.jpg'));
+  const fileNames = fs.readdirSync(dir).filter(f => f !== '_meta.json' && !f.endsWith('_thumb.jpg') && !f.includes('.normalizing.'));
   const files = await Promise.all(fileNames.map(async (f) => {
     const filePath = dir + f;
     const item = {
@@ -762,10 +781,23 @@ app.get('/videos', async (req, res) => {
     meta[f].bitrate = metadata.bitrate;
     meta[f].codec = metadata.codec;
     meta[f].low_quality = quality.low_quality;
+    // Include normalize status
+    const np = normalizeProgress[f];
+    if (np && np.status === 'running') {
+      item.normalizing = true;
+      item.normalize_percent = np.percent;
+    }
     return item;
   }));
   try { fs.writeFileSync(metaFile, JSON.stringify(meta, null, 2)); } catch (e) {}
   res.json(files);
+});
+
+app.get('/normalize-progress/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const np = normalizeProgress[filename];
+  if (np) return res.json(np);
+  res.json({ status: 'idle', percent: 0 });
 });
 
 async function renameVideoDisplayName(req, res) {

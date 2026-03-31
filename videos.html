@@ -843,6 +843,10 @@
             <div style="font-size:11px;color:var(--muted);margin-top:2px;">${formatUploadDate(v.filename)}</div>
           </div>
           <div class="video-meta" id="${metaId}">${getMetaLine(v, getServerFps(v), getServerDuration(v))}</div>
+          ${v.normalizing ? `<div class="normalize-bar" data-nf="${v.filename}" style="margin-top:4px;">
+            <div style="font-size:11px;color:#60a5fa;margin-bottom:3px;">Optimizing... ${v.normalize_percent || 0}%</div>
+            <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${v.normalize_percent || 0}%;background:#3b82f6;border-radius:2px;transition:width 0.3s;"></div></div>
+          </div>` : ''}
           <div class="video-actions">
             <button class="btn-copy" onclick="copyPath('${v.path}', this)">📋 Copy Path</button>
             <button class="btn-delete" onclick="deleteVideo('${v.filename}')">Delete</button>
@@ -853,6 +857,40 @@
 
       bindVideoRowInteractions();
       hydrateVideoMeta(videos);
+      startNormalizePolling(videos);
+    }
+
+    let normalizeInterval = null;
+    function startNormalizePolling(videos) {
+      if (normalizeInterval) clearInterval(normalizeInterval);
+      const normalizing = videos.filter(v => v.normalizing);
+      if (!normalizing.length) return;
+      normalizeInterval = setInterval(async () => {
+        let allDone = true;
+        for (const v of normalizing) {
+          try {
+            const res = await fetch(`${SERVER_URL}/normalize-progress/${encodeURIComponent(v.filename)}`, {
+              headers: { 'x-api-key': API_KEY }
+            });
+            const data = await res.json();
+            const bar = document.querySelector(`.normalize-bar[data-nf="${CSS.escape(v.filename)}"]`);
+            if (!bar) continue;
+            if (data.status === 'done') {
+              bar.innerHTML = '<div style="font-size:11px;color:#34d399;">Optimization complete</div>';
+            } else if (data.status === 'running') {
+              allDone = false;
+              bar.innerHTML = `<div style="font-size:11px;color:#60a5fa;margin-bottom:3px;">Optimizing... ${data.percent}%</div><div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${data.percent}%;background:#3b82f6;border-radius:2px;transition:width 0.3s;"></div></div>`;
+            } else {
+              bar.innerHTML = '';
+            }
+          } catch {}
+        }
+        if (allDone) {
+          clearInterval(normalizeInterval);
+          normalizeInterval = null;
+          setTimeout(() => loadVideos(), 1500);
+        }
+      }, 3000);
     }
 
     function bindVideoRowInteractions() {
