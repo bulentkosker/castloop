@@ -410,9 +410,10 @@
     <div class="modal" style="max-width:520px;">
       <h3>Thumbnail Settings</h3>
       <div style="margin-bottom:16px;">
-        <div id="thumbPreview" style="width:100%;aspect-ratio:16/9;background:var(--bg);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
-          <span style="color:var(--muted);font-size:13px;" id="thumbPreviewText">Add a video to playlist, then generate preview</span>
+        <div id="thumbPreview" style="position:relative;width:100%;aspect-ratio:16/9;background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:hidden;user-select:none;">
+          <span style="color:var(--muted);font-size:13px;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;" id="thumbPreviewText">Add a video to playlist, then generate preview</span>
           <img id="thumbPreviewImg" style="width:100%;height:100%;object-fit:cover;display:none;" alt="">
+          <div id="badgeOverlayContainer" style="position:absolute;inset:0;"></div>
         </div>
       </div>
       <div class="form-group">
@@ -430,15 +431,7 @@
           </select>
           <button class="btn-add" onclick="addBadgeToList()">+ Add</button>
         </div>
-        <div id="badgeListContainer" style="margin-top:8px;display:flex;flex-direction:column;gap:6px;"></div>
-      </div>
-      <div class="form-group">
-        <label>Badge Size</label>
-        <div style="display:flex;gap:8px;">
-          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="radio" name="badgeSize" value="small"> Small</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="radio" name="badgeSize" value="medium" checked> Medium</label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="radio" name="badgeSize" value="large"> Large</label>
-        </div>
+        <div class="hint" style="margin-top:4px;">Drag badges on the preview to position. Drag corner handle to resize.</div>
       </div>
       <div class="form-group">
         <label>Broadcast Description</label>
@@ -1223,50 +1216,121 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
     let thumbConfigured = false;
     let selectedBadges = []; // { key, position, size }
 
-    const BADGE_LABELS = {
-      '4k_uhd': '4K UHD', 'full_hd': 'FULL HD', 'live': 'LIVE',
-      'live_streaming': 'LIVE STREAMING', '247_live': '24/7 LIVE',
-      'nonstop': 'NONSTOP', 'inf_247': '∞ 24/7',
+    const BADGE_FILES = {
+      '4k_uhd': 'badge_4k_uhd.png', 'full_hd': 'badge_full_hd.png', 'live': 'badge_live.png',
+      'live_streaming': 'badge_live_streaming.png', '247_live': 'badge_247_live.png',
+      'nonstop': 'badge_nonstop.png', 'inf_247': 'badge_inf_247.png',
     };
-    const BADGE_DEFAULTS = {
-      '4k_uhd': 'top-left', 'full_hd': 'top-left',
-      'live': 'top-right', 'live_streaming': 'top-right', '247_live': 'top-right',
-      'nonstop': 'top-right', 'inf_247': 'top-right',
+    const BADGE_DEFAULT_POS = {
+      '4k_uhd': { x: 2, y: 3 }, 'full_hd': { x: 2, y: 3 },
+      'live': { x: 76, y: 3 }, 'live_streaming': { x: 76, y: 3 }, '247_live': { x: 76, y: 3 },
+      'nonstop': { x: 76, y: 3 }, 'inf_247': { x: 76, y: 3 },
     };
 
     function addBadgeToList() {
       const sel = document.getElementById('badgeSelect');
       const key = sel.value;
       if (!key || selectedBadges.find(b => b.key === key)) return;
-      const size = document.querySelector('input[name="badgeSize"]:checked')?.value || 'medium';
-      selectedBadges.push({ key, position: BADGE_DEFAULTS[key] || 'top-left', size });
+      const def = BADGE_DEFAULT_POS[key] || { x: 2, y: 3 };
+      // Stack: offset y for each existing badge in same x region
+      const sameRegion = selectedBadges.filter(b => Math.abs(b.x_pct - def.x) < 30);
+      const yOff = sameRegion.length * 18;
+      selectedBadges.push({ key, x_pct: def.x, y_pct: def.y + yOff, w_pct: 22 });
       sel.value = '';
-      renderBadgeList();
+      renderBadgeOverlays();
     }
 
-    function removeBadge(i) { selectedBadges.splice(i, 1); renderBadgeList(); }
-
-    function updateBadgePosition(i, pos) { selectedBadges[i].position = pos; }
-
-    function renderBadgeList() {
-      const c = document.getElementById('badgeListContainer');
-      if (!selectedBadges.length) { c.innerHTML = ''; return; }
-      c.innerHTML = selectedBadges.map((b, i) => `
-        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;">
-          <span style="font-size:13px;font-weight:600;flex:1;">${BADGE_LABELS[b.key] || b.key}</span>
-          <select onchange="updateBadgePosition(${i}, this.value)" style="padding:4px 8px;background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:6px;font-size:12px;">
-            <option value="top-left" ${b.position==='top-left'?'selected':''}>Top Left</option>
-            <option value="top-right" ${b.position==='top-right'?'selected':''}>Top Right</option>
-            <option value="bottom-left" ${b.position==='bottom-left'?'selected':''}>Bottom Left</option>
-            <option value="bottom-right" ${b.position==='bottom-right'?'selected':''}>Bottom Right</option>
-          </select>
-          <button onclick="removeBadge(${i})" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:16px;">✕</button>
-        </div>`).join('');
+    function removeBadge(i) {
+      selectedBadges.splice(i, 1);
+      renderBadgeOverlays();
     }
+
+    function renderBadgeOverlays() {
+      const c = document.getElementById('badgeOverlayContainer');
+      c.innerHTML = '';
+      selectedBadges.forEach((b, i) => {
+        const div = document.createElement('div');
+        div.style.cssText = `position:absolute;left:${b.x_pct}%;top:${b.y_pct}%;width:${b.w_pct}%;cursor:move;user-select:none;`;
+        div.dataset.idx = i;
+        const img = document.createElement('img');
+        img.src = `${SERVER_URL}/badges/${BADGE_FILES[b.key]}`;
+        img.style.cssText = 'width:100%;height:auto;display:block;pointer-events:none;border-radius:3px;';
+        img.draggable = false;
+        div.appendChild(img);
+        // Resize handle
+        const handle = document.createElement('div');
+        handle.style.cssText = 'position:absolute;right:-3px;bottom:-3px;width:10px;height:10px;background:#6366f1;border-radius:2px;cursor:nwse-resize;';
+        handle.dataset.resize = i;
+        div.appendChild(handle);
+        // Delete button
+        const del = document.createElement('button');
+        del.textContent = '✕';
+        del.style.cssText = 'position:absolute;top:-6px;right:-6px;width:16px;height:16px;background:#f87171;color:#fff;border:none;border-radius:50%;font-size:10px;line-height:16px;text-align:center;cursor:pointer;padding:0;';
+        del.onclick = (e) => { e.stopPropagation(); removeBadge(i); };
+        div.appendChild(del);
+        c.appendChild(div);
+      });
+    }
+
+    // Drag & resize logic on the badge overlay container
+    (function() {
+      let dragIdx = null, dragMode = null; // 'move' or 'resize'
+      let startX, startY, startLeft, startTop, startW;
+
+      document.addEventListener('mousedown', (e) => {
+        const container = document.getElementById('badgeOverlayContainer');
+        if (!container || !container.contains(e.target)) return;
+        const rect = container.getBoundingClientRect();
+
+        if (e.target.dataset.resize != null) {
+          dragIdx = parseInt(e.target.dataset.resize);
+          dragMode = 'resize';
+        } else {
+          const div = e.target.closest('[data-idx]');
+          if (!div) return;
+          dragIdx = parseInt(div.dataset.idx);
+          dragMode = 'move';
+        }
+        const b = selectedBadges[dragIdx];
+        if (!b) return;
+        e.preventDefault();
+        startX = e.clientX;
+        startY = e.clientY;
+        startLeft = b.x_pct;
+        startTop = b.y_pct;
+        startW = b.w_pct;
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (dragIdx == null) return;
+        const container = document.getElementById('badgeOverlayContainer');
+        if (!container) return;
+        const rect = container.getBoundingClientRect();
+        const dx = (e.clientX - startX) / rect.width * 100;
+        const dy = (e.clientY - startY) / rect.height * 100;
+        const b = selectedBadges[dragIdx];
+        if (!b) return;
+
+        if (dragMode === 'move') {
+          b.x_pct = Math.max(0, Math.min(100 - b.w_pct, startLeft + dx));
+          b.y_pct = Math.max(0, Math.min(95, startTop + dy));
+        } else {
+          b.w_pct = Math.max(8, Math.min(60, startW + dx));
+        }
+        // Update DOM directly for smooth movement
+        const div = container.children[dragIdx];
+        if (div) {
+          div.style.left = b.x_pct + '%';
+          div.style.top = b.y_pct + '%';
+          div.style.width = b.w_pct + '%';
+        }
+      });
+
+      document.addEventListener('mouseup', () => { dragIdx = null; dragMode = null; });
+    })();
 
     function getSelectedBadgesPayload() {
-      const size = document.querySelector('input[name="badgeSize"]:checked')?.value || 'medium';
-      return selectedBadges.map(b => ({ key: b.key, position: b.position, size }));
+      return selectedBadges.map(b => ({ key: b.key, x_pct: Math.round(b.x_pct * 10) / 10, y_pct: Math.round(b.y_pct * 10) / 10, w_pct: Math.round(b.w_pct * 10) / 10 }));
     }
 
     function openThumbModal() {
@@ -1276,7 +1340,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       if (playlist.length) {
         document.getElementById('thumbPreviewText').textContent = 'Click "Generate Preview" to see thumbnail';
       }
-      renderBadgeList();
+      renderBadgeOverlays();
     }
 
     function saveThumbModal() {
@@ -1328,6 +1392,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       document.getElementById('thumbModalOverlay').style.display = 'none';
       thumbConfigured = false;
       selectedBadges = [];
+      document.getElementById('badgeOverlayContainer').innerHTML = '';
       document.getElementById('thumbBtnLabel').textContent = 'Customize Thumbnail';
       document.getElementById('streamDescription').value = '';
       document.getElementById('streamName').value = '';
