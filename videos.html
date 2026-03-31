@@ -842,11 +842,7 @@
               : `<div class="video-name-line">${v.low_quality ? '<span title="Low video quality — bitrate or resolution below recommended" style="cursor:help;margin-right:4px;">&#9888;&#65039;</span>' : ''}<button class="video-name-btn video-original-name" data-preview="${v.filename}" title="Play video">${escapeHtml(displayName)}</button><button class="video-edit-btn" data-edit="${v.filename}" title="Rename">✏️</button></div>`}
             <div style="font-size:11px;color:var(--muted);margin-top:2px;">${formatUploadDate(v.filename)}</div>
           </div>
-          <div class="video-meta" id="${metaId}">${getMetaLine(v, getServerFps(v), getServerDuration(v))}</div>
-          ${v.normalizing ? `<div class="normalize-bar" data-nf="${v.filename}" style="margin-top:4px;">
-            <div style="font-size:11px;color:#60a5fa;margin-bottom:3px;">Optimizing... ${v.normalize_percent || 0}%</div>
-            <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${v.normalize_percent || 0}%;background:#3b82f6;border-radius:2px;transition:width 0.3s;"></div></div>
-          </div>` : ''}
+          <div class="video-meta" id="${metaId}">${getMetaLine(v, getServerFps(v), getServerDuration(v))}${v.normalizing ? `<div class="normalize-bar" data-nf="${v.filename}" style="margin-top:4px;"><div style="font-size:11px;color:#60a5fa;margin-bottom:3px;">Optimizing... ${v.normalize_percent || 0}%</div><div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${v.normalize_percent || 0}%;background:#3b82f6;border-radius:2px;transition:width 0.3s;"></div></div></div>` : ''}</div>
           <div class="video-actions">
             <button class="btn-copy" onclick="copyPath('${v.path}', this)">📋 Copy Path</button>
             <button class="btn-delete" onclick="deleteVideo('${v.filename}')">Delete</button>
