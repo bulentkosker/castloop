@@ -1370,6 +1370,13 @@ async function ytApi(userId, url, options = {}, accountId) {
 
 // Badge config: PNG file → position on thumbnail
 const BADGE_DIR = path.join(__dirname, 'badges');
+// Startup check: verify badge directory exists
+if (fs.existsSync(BADGE_DIR)) {
+  const badgeFiles = fs.readdirSync(BADGE_DIR).filter(f => f.endsWith('.png'));
+  console.log(`[badges] Directory found: ${BADGE_DIR} (${badgeFiles.length} PNG files: ${badgeFiles.join(', ')})`);
+} else {
+  console.error(`[badges] WARNING: Badge directory missing: ${BADGE_DIR} — run: cd /root/castloop && git pull`);
+}
 const BADGE_CONFIG = {
   'live':           { file: 'badge_live.png',           position: 'right' },
   'live_streaming': { file: 'badge_live_streaming.png', position: 'right' },
@@ -1530,7 +1537,7 @@ app.post('/youtube/preview-thumbnail', async (req, res) => {
   const { video_path, badges } = req.body;
   if (!video_path) return res.status(400).json({ error: 'video_path required' });
 
-  console.log(`[preview-thumbnail] Generating: video=${video_path}, badges=${JSON.stringify(badges)}`);
+  console.log(`[preview-thumbnail] Request: video_path=${video_path}, badges=${JSON.stringify(badges)}, badge_dir=${BADGE_DIR}, badge_dir_exists=${fs.existsSync(BADGE_DIR)}`);
 
   try {
     const thumbPath = await generateThumbnail(video_path, badges || []);
@@ -1540,7 +1547,7 @@ app.post('/youtube/preview-thumbnail', async (req, res) => {
     console.log(`[preview-thumbnail] Done, size=${buffer.length} bytes`);
     res.json({ preview: `data:image/jpeg;base64,${base64}` });
   } catch (e) {
-    console.error('[preview-thumbnail]', e.message);
+    console.error(`[preview-thumbnail] Error: ${e.message}`);
     res.status(500).json({ error: e.message });
   }
 });
