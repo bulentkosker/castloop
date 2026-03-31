@@ -1258,11 +1258,10 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
           headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY, 'x-user-id': currentUser.id },
           body: JSON.stringify({ video_path: firstPath, badges }),
         });
-        if (!res.ok) throw new Error('Preview generation failed');
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
+        const data = await res.json();
+        if (!res.ok || !data.preview) throw new Error(data.error || 'Preview generation failed');
         const img = document.getElementById('thumbPreviewImg');
-        img.src = url;
+        img.src = data.preview;
         img.style.display = '';
         document.getElementById('thumbPreviewText').style.display = 'none';
       } catch (e) {

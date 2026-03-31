@@ -1525,18 +1525,20 @@ async function uploadYouTubeThumbnail(userId, accountId, broadcastId, imagePath)
   return result;
 }
 
-// POST /youtube/preview-thumbnail — generate preview and return JPEG
+// POST /youtube/preview-thumbnail — generate preview and return base64 JPEG
 app.post('/youtube/preview-thumbnail', async (req, res) => {
   const { video_path, badges } = req.body;
   if (!video_path) return res.status(400).json({ error: 'video_path required' });
 
+  console.log(`[preview-thumbnail] Generating: video=${video_path}, badges=${JSON.stringify(badges)}`);
+
   try {
     const thumbPath = await generateThumbnail(video_path, badges || []);
-    res.setHeader('Content-Type', 'image/jpeg');
-    res.setHeader('Cache-Control', 'no-cache');
-    const stream = fs.createReadStream(thumbPath);
-    stream.pipe(res);
-    stream.on('end', () => fs.unlink(thumbPath, () => {}));
+    const buffer = fs.readFileSync(thumbPath);
+    fs.unlink(thumbPath, () => {});
+    const base64 = buffer.toString('base64');
+    console.log(`[preview-thumbnail] Done, size=${buffer.length} bytes`);
+    res.json({ preview: `data:image/jpeg;base64,${base64}` });
   } catch (e) {
     console.error('[preview-thumbnail]', e.message);
     res.status(500).json({ error: e.message });
