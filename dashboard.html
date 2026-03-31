@@ -416,31 +416,28 @@
         </div>
       </div>
       <div class="form-group">
-        <label>Badges</label>
-        <div style="display:flex;flex-direction:column;gap:8px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;">
-          <div style="font-size:11px;color:var(--muted);margin-bottom:2px;">Resolution</div>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-            <input type="checkbox" value="4k_uhd" class="badge-checkbox"> <span style="background:#d69e2e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:12px;">4K UHD</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-            <input type="checkbox" value="full_hd" class="badge-checkbox"> <span style="background:#e5a200;color:#333;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:12px;">FULL HD</span>
-          </label>
-          <div style="font-size:11px;color:var(--muted);margin-top:4px;margin-bottom:2px;">Live Status</div>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-            <input type="checkbox" value="live" class="badge-checkbox"> <span style="background:#c53030;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:12px;">LIVE</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-            <input type="checkbox" value="live_streaming" class="badge-checkbox"> <span style="background:#c53030;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:12px;">LIVE STREAMING</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-            <input type="checkbox" value="247_live" class="badge-checkbox"> <span style="background:#c53030;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:12px;">24/7 LIVE</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-            <input type="checkbox" value="nonstop" class="badge-checkbox"> <span style="background:#4a5568;color:#ecc94b;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:12px;">NONSTOP</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-            <input type="checkbox" value="inf_247" class="badge-checkbox"> <span style="background:#4a5568;color:#ecc94b;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:12px;">&#8734; 24/7</span>
-          </label>
+        <label>Add Badge</label>
+        <div style="display:flex;gap:6px;">
+          <select id="badgeSelect" style="flex:1;padding:8px 12px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;">
+            <option value="">Select a badge...</option>
+            <option value="4k_uhd">4K UHD</option>
+            <option value="full_hd">FULL HD</option>
+            <option value="live">LIVE</option>
+            <option value="live_streaming">LIVE STREAMING</option>
+            <option value="247_live">24/7 LIVE</option>
+            <option value="nonstop">NONSTOP</option>
+            <option value="inf_247">&#8734; 24/7</option>
+          </select>
+          <button class="btn-add" onclick="addBadgeToList()">+ Add</button>
+        </div>
+        <div id="badgeListContainer" style="margin-top:8px;display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
+      <div class="form-group">
+        <label>Badge Size</label>
+        <div style="display:flex;gap:8px;">
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="radio" name="badgeSize" value="small"> Small</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="radio" name="badgeSize" value="medium" checked> Medium</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="radio" name="badgeSize" value="large"> Large</label>
         </div>
       </div>
       <div class="form-group">
@@ -893,7 +890,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       if (ytAccountId) {
         insertData.youtube_account_id = ytAccountId;
         if (description) insertData.youtube_description = description;
-        const badges = [...document.querySelectorAll('#thumbModalOverlay .badge-checkbox:checked')].map(c => c.value);
+        const badges = getSelectedBadgesPayload();
         if (badges.length) insertData.thumbnail_badge = JSON.stringify(badges);
         console.log('[createStream] thumbnail badges:', badges);
       }
@@ -1224,21 +1221,67 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
     }
 
     let thumbConfigured = false;
+    let selectedBadges = []; // { key, position, size }
+
+    const BADGE_LABELS = {
+      '4k_uhd': '4K UHD', 'full_hd': 'FULL HD', 'live': 'LIVE',
+      'live_streaming': 'LIVE STREAMING', '247_live': '24/7 LIVE',
+      'nonstop': 'NONSTOP', 'inf_247': '∞ 24/7',
+    };
+    const BADGE_DEFAULTS = {
+      '4k_uhd': 'top-left', 'full_hd': 'top-left',
+      'live': 'top-right', 'live_streaming': 'top-right', '247_live': 'top-right',
+      'nonstop': 'top-right', 'inf_247': 'top-right',
+    };
+
+    function addBadgeToList() {
+      const sel = document.getElementById('badgeSelect');
+      const key = sel.value;
+      if (!key || selectedBadges.find(b => b.key === key)) return;
+      const size = document.querySelector('input[name="badgeSize"]:checked')?.value || 'medium';
+      selectedBadges.push({ key, position: BADGE_DEFAULTS[key] || 'top-left', size });
+      sel.value = '';
+      renderBadgeList();
+    }
+
+    function removeBadge(i) { selectedBadges.splice(i, 1); renderBadgeList(); }
+
+    function updateBadgePosition(i, pos) { selectedBadges[i].position = pos; }
+
+    function renderBadgeList() {
+      const c = document.getElementById('badgeListContainer');
+      if (!selectedBadges.length) { c.innerHTML = ''; return; }
+      c.innerHTML = selectedBadges.map((b, i) => `
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;">
+          <span style="font-size:13px;font-weight:600;flex:1;">${BADGE_LABELS[b.key] || b.key}</span>
+          <select onchange="updateBadgePosition(${i}, this.value)" style="padding:4px 8px;background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:6px;font-size:12px;">
+            <option value="top-left" ${b.position==='top-left'?'selected':''}>Top Left</option>
+            <option value="top-right" ${b.position==='top-right'?'selected':''}>Top Right</option>
+            <option value="bottom-left" ${b.position==='bottom-left'?'selected':''}>Bottom Left</option>
+            <option value="bottom-right" ${b.position==='bottom-right'?'selected':''}>Bottom Right</option>
+          </select>
+          <button onclick="removeBadge(${i})" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:16px;">✕</button>
+        </div>`).join('');
+    }
+
+    function getSelectedBadgesPayload() {
+      const size = document.querySelector('input[name="badgeSize"]:checked')?.value || 'medium';
+      return selectedBadges.map(b => ({ key: b.key, position: b.position, size }));
+    }
 
     function openThumbModal() {
       document.getElementById('thumbModalOverlay').style.display = 'flex';
-      // Reset preview
       document.getElementById('thumbPreviewImg').style.display = 'none';
       document.getElementById('thumbPreviewText').style.display = '';
       if (playlist.length) {
         document.getElementById('thumbPreviewText').textContent = 'Click "Generate Preview" to see thumbnail';
       }
+      renderBadgeList();
     }
 
     function saveThumbModal() {
-      const badges = [...document.querySelectorAll('#thumbModalOverlay .badge-checkbox:checked')].map(c => c.value);
       const desc = document.getElementById('streamDescription').value.trim();
-      thumbConfigured = badges.length > 0 || desc.length > 0;
+      thumbConfigured = selectedBadges.length > 0 || desc.length > 0;
       document.getElementById('thumbBtnLabel').textContent = thumbConfigured
         ? 'Thumbnail configured'
         : 'Customize Thumbnail';
@@ -1248,7 +1291,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
     async function generateThumbPreview() {
       if (!playlist.length) { toast('Add a video to playlist first', 'error'); return; }
       const firstPath = playlist[0].path;
-      const badges = [...document.querySelectorAll('#thumbModalOverlay .badge-checkbox:checked')].map(c => c.value);
+      const badges = getSelectedBadgesPayload();
       const btn = document.getElementById('thumbPreviewBtn');
       btn.disabled = true;
       btn.textContent = 'Generating...';
@@ -1284,8 +1327,8 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       document.getElementById('modalOverlay').classList.remove('active');
       document.getElementById('thumbModalOverlay').style.display = 'none';
       thumbConfigured = false;
+      selectedBadges = [];
       document.getElementById('thumbBtnLabel').textContent = 'Customize Thumbnail';
-      document.querySelectorAll('#thumbModalOverlay .badge-checkbox').forEach(c => c.checked = false);
       document.getElementById('streamDescription').value = '';
       document.getElementById('streamName').value = '';
       document.getElementById('rtmpUrl').value = '';

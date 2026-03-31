@@ -1434,14 +1434,27 @@ async function generateThumbnail(videoPath, badges) {
 
   let image = sharp(tmpFrame);
 
-  const badgeList = Array.isArray(badges) ? badges : (badges ? [badges] : []);
+  const rawBadges = Array.isArray(badges) ? badges : (badges ? [badges] : []);
+  // Normalize: accept strings (legacy) or objects { key, position, size }
+  const badgeList = rawBadges.map(b => {
+    if (typeof b === 'string') {
+      const cfg = BADGE_CONFIG[b];
+      return { key: b, position: cfg?.position === 'right' ? 'top-right' : 'top-left', size: 'medium' };
+    }
+    return b;
+  });
   console.log(`[thumbnail] Badge list to render: ${JSON.stringify(badgeList)}`);
 
   if (badgeList.length) {
+    const THUMB_W = 1280, THUMB_H = 720, PAD = 20;
+    const SIZE_MAP = { small: 0.15, medium: 0.22, large: 0.30 };
+    // Track vertical offset per corner for stacking
+    const cornerOffsets = { 'top-left': PAD, 'top-right': PAD, 'bottom-left': PAD, 'bottom-right': PAD };
     const composites = [];
+
     for (const badge of badgeList) {
-      const cfg = BADGE_CONFIG[badge];
-      if (!cfg) { console.warn(`[thumbnail] Unknown badge: "${badge}"`); continue; }
+      const cfg = BADGE_CONFIG[badge.key];
+      if (!cfg) { console.warn(`[thumbnail] Unknown badge: "${badge.key}"`); continue; }
 
       const badgePath = path.join(BADGE_DIR, cfg.file);
       if (!fs.existsSync(badgePath)) {
@@ -1449,18 +1462,25 @@ async function generateThumbnail(videoPath, badges) {
         continue;
       }
 
-      // Resize badge to 22% of thumbnail width (1280 * 0.22 ≈ 282px)
+      const sizeRatio = SIZE_MAP[badge.size] || SIZE_MAP.medium;
       const badgeMeta = await sharp(badgePath).metadata();
-      const badgeW = Math.round(1280 * 0.22);
+      const badgeW = Math.round(THUMB_W * sizeRatio);
       const badgeH = Math.round(badgeW * (badgeMeta.height / badgeMeta.width));
       const resizedBadge = await sharp(badgePath).resize(badgeW, badgeH).png().toBuffer();
 
-      console.log(`[thumbnail] Adding badge "${badge}" (${cfg.file}) at ${cfg.position}, ${badgeW}x${badgeH}`);
-      composites.push({
-        input: resizedBadge,
-        top: 20,
-        left: cfg.position === 'right' ? 1280 - badgeW - 20 : 20,
-      });
+      const pos = badge.position || 'top-left';
+      const isRight = pos.includes('right');
+      const isBottom = pos.includes('bottom');
+      const left = isRight ? THUMB_W - badgeW - PAD : PAD;
+      const top = isBottom
+        ? THUMB_H - cornerOffsets[pos] - badgeH
+        : cornerOffsets[pos];
+
+      console.log(`[thumbnail] Badge "${badge.key}" at ${pos}, size=${badge.size}, ${badgeW}x${badgeH}, top=${top}, left=${left}`);
+      composites.push({ input: resizedBadge, top, left });
+
+      // Advance offset for stacking
+      cornerOffsets[pos] += badgeH + 10;
     }
     if (composites.length) {
       image = image.composite(composites);
