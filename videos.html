@@ -873,11 +873,11 @@
             if (!bar) continue;
             if (data.status === 'done') {
               bar.innerHTML = '<div style="font-size:11px;color:#34d399;">Optimization complete</div>';
-            } else if (data.status === 'running') {
-              allDone = false;
-              bar.innerHTML = `<div style="font-size:11px;color:#60a5fa;margin-bottom:3px;">Optimizing... ${data.percent}%</div><div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${data.percent}%;background:#3b82f6;border-radius:2px;transition:width 0.3s;"></div></div>`;
             } else {
-              bar.innerHTML = '';
+              // Keep showing progress for running or idle (idle = transient state during queue processing)
+              allDone = false;
+              const pct = data.percent || 0;
+              bar.innerHTML = `<div style="font-size:11px;color:#60a5fa;margin-bottom:3px;">Optimizing... ${pct}%</div><div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:#3b82f6;border-radius:2px;transition:width 0.3s;"></div></div>`;
             }
           } catch {}
         }
