@@ -1525,6 +1525,24 @@ async function uploadYouTubeThumbnail(userId, accountId, broadcastId, imagePath)
   return result;
 }
 
+// POST /youtube/preview-thumbnail — generate preview and return JPEG
+app.post('/youtube/preview-thumbnail', async (req, res) => {
+  const { video_path, badges } = req.body;
+  if (!video_path) return res.status(400).json({ error: 'video_path required' });
+
+  try {
+    const thumbPath = await generateThumbnail(video_path, badges || []);
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.setHeader('Cache-Control', 'no-cache');
+    const stream = fs.createReadStream(thumbPath);
+    stream.pipe(res);
+    stream.on('end', () => fs.unlink(thumbPath, () => {}));
+  } catch (e) {
+    console.error('[preview-thumbnail]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // GET /auth/youtube — returns OAuth URL
 app.get('/auth/youtube', (req, res) => {
   const userId = req.query.user_id;

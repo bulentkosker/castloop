@@ -374,38 +374,10 @@
       <div id="ytAutoMessage" style="display:none;padding:12px;background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);border-radius:8px;margin-bottom:16px;font-size:13px;color:#34d399;">
         ▶ YouTube will create broadcast and manage stream key automatically when you start this stream.
       </div>
-      <div class="form-group" id="ytDescGroup" style="display:none">
-        <label>Broadcast Description</label>
-        <textarea id="streamDescription" rows="3" placeholder="Optional description for YouTube broadcast" style="width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;"></textarea>
-      </div>
-      <div class="form-group" id="ytBadgeGroup" style="display:none">
-        <label>Thumbnail Badges</label>
-        <div style="display:flex;flex-direction:column;gap:8px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;">
-          <div style="font-size:11px;color:var(--muted);margin-bottom:2px;">Resolution</div>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-            <input type="checkbox" value="4k_uhd" class="badge-checkbox"> <span style="background:#d69e2e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:12px;">4K UHD</span> <span style="color:var(--muted);font-size:11px;">sol üst</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-            <input type="checkbox" value="full_hd" class="badge-checkbox"> <span style="background:#e5a200;color:#333;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:12px;">FULL HD</span> <span style="color:var(--muted);font-size:11px;">sol üst</span>
-          </label>
-          <div style="font-size:11px;color:var(--muted);margin-top:4px;margin-bottom:2px;">Live Status</div>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-            <input type="checkbox" value="live" class="badge-checkbox"> <span style="background:#c53030;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:12px;">LIVE</span> <span style="color:var(--muted);font-size:11px;">sag üst</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-            <input type="checkbox" value="live_streaming" class="badge-checkbox"> <span style="background:#c53030;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:12px;">LIVE STREAMING</span> <span style="color:var(--muted);font-size:11px;">sag üst</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-            <input type="checkbox" value="247_live" class="badge-checkbox"> <span style="background:#c53030;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:12px;">24/7 LIVE</span> <span style="color:var(--muted);font-size:11px;">sag üst</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-            <input type="checkbox" value="nonstop" class="badge-checkbox"> <span style="background:#4a5568;color:#ecc94b;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:12px;">NONSTOP</span> <span style="color:var(--muted);font-size:11px;">sag üst</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-            <input type="checkbox" value="inf_247" class="badge-checkbox"> <span style="background:#4a5568;color:#ecc94b;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:12px;">&#8734; 24/7</span> <span style="color:var(--muted);font-size:11px;">sag üst</span>
-          </label>
-        </div>
-        <div class="hint">Auto-generated from your first video's frame at 30s</div>
+      <div id="ytThumbBtnGroup" style="display:none;margin-bottom:16px;">
+        <button type="button" onclick="openThumbModal()" style="width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;cursor:pointer;text-align:left;">
+          <span id="thumbBtnLabel">Customize Thumbnail</span>
+        </button>
       </div>
       <div class="form-group">
         <label>Playlist</label>
@@ -429,6 +401,55 @@
       <div class="modal-actions">
         <button class="btn-cancel" onclick="closeModal()">Cancel</button>
         <button class="btn-primary" style="flex:2" onclick="createStream()">Create Stream</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Thumbnail Modal -->
+  <div class="modal-overlay" id="thumbModalOverlay" style="display:none;">
+    <div class="modal" style="max-width:520px;">
+      <h3>Thumbnail Settings</h3>
+      <div style="margin-bottom:16px;">
+        <div id="thumbPreview" style="width:100%;aspect-ratio:16/9;background:var(--bg);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+          <span style="color:var(--muted);font-size:13px;" id="thumbPreviewText">Add a video to playlist, then generate preview</span>
+          <img id="thumbPreviewImg" style="width:100%;height:100%;object-fit:cover;display:none;" alt="">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Badges</label>
+        <div style="display:flex;flex-direction:column;gap:8px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:2px;">Resolution</div>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+            <input type="checkbox" value="4k_uhd" class="badge-checkbox"> <span style="background:#d69e2e;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:12px;">4K UHD</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+            <input type="checkbox" value="full_hd" class="badge-checkbox"> <span style="background:#e5a200;color:#333;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:12px;">FULL HD</span>
+          </label>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;margin-bottom:2px;">Live Status</div>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+            <input type="checkbox" value="live" class="badge-checkbox"> <span style="background:#c53030;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:12px;">LIVE</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+            <input type="checkbox" value="live_streaming" class="badge-checkbox"> <span style="background:#c53030;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:12px;">LIVE STREAMING</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+            <input type="checkbox" value="247_live" class="badge-checkbox"> <span style="background:#c53030;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:12px;">24/7 LIVE</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+            <input type="checkbox" value="nonstop" class="badge-checkbox"> <span style="background:#4a5568;color:#ecc94b;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:12px;">NONSTOP</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+            <input type="checkbox" value="inf_247" class="badge-checkbox"> <span style="background:#4a5568;color:#ecc94b;padding:2px 8px;border-radius:4px;font-weight:bold;font-size:12px;">&#8734; 24/7</span>
+          </label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Broadcast Description</label>
+        <textarea id="streamDescription" rows="3" placeholder="Optional description for YouTube broadcast" style="width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="generateThumbPreview()" id="thumbPreviewBtn">Generate Preview</button>
+        <button class="btn-primary" style="flex:2" onclick="saveThumbModal()">Save & Close</button>
       </div>
     </div>
   </div>
@@ -872,7 +893,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       if (ytAccountId) {
         insertData.youtube_account_id = ytAccountId;
         if (description) insertData.youtube_description = description;
-        const badges = [...document.querySelectorAll('.badge-checkbox:checked')].map(c => c.value);
+        const badges = [...document.querySelectorAll('#thumbModalOverlay .badge-checkbox:checked')].map(c => c.value);
         if (badges.length) insertData.thumbnail_badge = JSON.stringify(badges);
         console.log('[createStream] thumbnail badges:', badges);
       }
@@ -1194,8 +1215,61 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       const val = document.getElementById('ytAccountSelect').value;
       document.getElementById('manualRtmpFields').style.display = val ? 'none' : '';
       document.getElementById('ytAutoMessage').style.display = val ? '' : 'none';
-      document.getElementById('ytDescGroup').style.display = val ? '' : 'none';
-      document.getElementById('ytBadgeGroup').style.display = val ? '' : 'none';
+      document.getElementById('ytThumbBtnGroup').style.display = val ? '' : 'none';
+      // Reset thumb state when switching accounts
+      if (!val) {
+        thumbConfigured = false;
+        document.getElementById('thumbBtnLabel').textContent = 'Customize Thumbnail';
+      }
+    }
+
+    let thumbConfigured = false;
+
+    function openThumbModal() {
+      document.getElementById('thumbModalOverlay').style.display = 'flex';
+      // Reset preview
+      document.getElementById('thumbPreviewImg').style.display = 'none';
+      document.getElementById('thumbPreviewText').style.display = '';
+      if (playlist.length) {
+        document.getElementById('thumbPreviewText').textContent = 'Click "Generate Preview" to see thumbnail';
+      }
+    }
+
+    function saveThumbModal() {
+      const badges = [...document.querySelectorAll('#thumbModalOverlay .badge-checkbox:checked')].map(c => c.value);
+      const desc = document.getElementById('streamDescription').value.trim();
+      thumbConfigured = badges.length > 0 || desc.length > 0;
+      document.getElementById('thumbBtnLabel').textContent = thumbConfigured
+        ? 'Thumbnail configured'
+        : 'Customize Thumbnail';
+      document.getElementById('thumbModalOverlay').style.display = 'none';
+    }
+
+    async function generateThumbPreview() {
+      if (!playlist.length) { toast('Add a video to playlist first', 'error'); return; }
+      const firstPath = playlist[0].path;
+      const badges = [...document.querySelectorAll('#thumbModalOverlay .badge-checkbox:checked')].map(c => c.value);
+      const btn = document.getElementById('thumbPreviewBtn');
+      btn.disabled = true;
+      btn.textContent = 'Generating...';
+      try {
+        const res = await fetch(`${SERVER_URL}/youtube/preview-thumbnail`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY, 'x-user-id': currentUser.id },
+          body: JSON.stringify({ video_path: firstPath, badges }),
+        });
+        if (!res.ok) throw new Error('Preview generation failed');
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const img = document.getElementById('thumbPreviewImg');
+        img.src = url;
+        img.style.display = '';
+        document.getElementById('thumbPreviewText').style.display = 'none';
+      } catch (e) {
+        toast('Preview generation failed: ' + e.message, 'error');
+      }
+      btn.disabled = false;
+      btn.textContent = 'Generate Preview';
     }
 
     async function openModal() {
@@ -1209,6 +1283,11 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
 
     function closeModal() {
       document.getElementById('modalOverlay').classList.remove('active');
+      document.getElementById('thumbModalOverlay').style.display = 'none';
+      thumbConfigured = false;
+      document.getElementById('thumbBtnLabel').textContent = 'Customize Thumbnail';
+      document.querySelectorAll('#thumbModalOverlay .badge-checkbox').forEach(c => c.checked = false);
+      document.getElementById('streamDescription').value = '';
       document.getElementById('streamName').value = '';
       document.getElementById('rtmpUrl').value = '';
       document.getElementById('streamKey').value = '';
