@@ -16,6 +16,9 @@ Three servers run the same `index.js` (FFmpeg streaming API):
 
 ## Important Rules
 
+### Workflow
+- Always proceed without asking for confirmation. Apply all changes directly without waiting for approval.
+
 ### Supabase Keys
 - **NEVER** hardcode Supabase keys in source code
 - Always use `process.env.SUPABASE_SERVICE_KEY`
