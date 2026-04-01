@@ -156,6 +156,8 @@ function getVideoMetadata(filePath) {
 const normalizeQueue = [];
 let normalizeRunning = false;
 const normalizeProgress = {}; // { filename: { status, percent } }
+let normalizeCurrentFile = null; // filename currently being normalized
+let normalizeCurrentProcess = null; // active FFmpeg child process
 
 function enqueueNormalize(filePath, width, height, bitrateBps, metaFile, filename) {
   const bitrateMbps = bitrateBps ? bitrateBps / 1_000_000 : 0;
@@ -193,6 +195,8 @@ async function processNormalizeQueue() {
   const totalDuration = preMeta.duration || 0;
   normalizeProgress[filename] = { status: 'running', percent: 0 };
 
+  normalizeCurrentFile = filename;
+
   try {
     await new Promise((resolve, reject) => {
       const ff = spawn('ffmpeg', [
@@ -203,6 +207,7 @@ async function processNormalizeQueue() {
         '-movflags', '+faststart',
         tmpOut,
       ]);
+      normalizeCurrentProcess = ff;
       let stderr = '';
       ff.stderr.on('data', d => {
         stderr += d.toString();
@@ -259,6 +264,8 @@ async function processNormalizeQueue() {
     if (fs.existsSync(tmpOut)) fs.unlinkSync(tmpOut);
   }
 
+  normalizeCurrentFile = null;
+  normalizeCurrentProcess = null;
   normalizeRunning = false;
   processNormalizeQueue();
 }
@@ -947,10 +954,51 @@ app.get('/stream/:userId/:filename', (req, res) => {
 
 app.delete('/videos/:filename', (req, res) => {
   const userId = req.headers['x-user-id'];
-  const filePath = `/var/castloop/videos/${userId}/${req.params.filename}`;
+  const filename = req.params.filename;
+  const dir = `/var/castloop/videos/${userId}`;
+  const filePath = `${dir}/${filename}`;
   if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'File not found' });
+
+  // Kill normalize FFmpeg if this file is being normalized
+  if (normalizeCurrentFile === filename && normalizeCurrentProcess) {
+    console.log(`[normalize] Killing FFmpeg for deleted file: ${filename}`);
+    normalizeCurrentProcess.kill('SIGTERM');
+    normalizeCurrentFile = null;
+    normalizeCurrentProcess = null;
+    normalizeRunning = false;
+  }
+  // Remove from normalize queue if queued
+  const qIdx = normalizeQueue.findIndex(j => j.filename === filename);
+  if (qIdx !== -1) normalizeQueue.splice(qIdx, 1);
+  delete normalizeProgress[filename];
+
+  // Delete main video file
   fs.unlinkSync(filePath);
+
+  // Delete .normalizing.mp4 temp file
+  const tmpFile = filePath + '.normalizing.mp4';
+  if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
+
+  // Delete thumbnail
+  const thumbName = filename.replace(/\.[^.]+$/, '') + '_thumb.jpg';
+  const thumbPath = `${dir}/${thumbName}`;
+  if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath);
+
+  // Remove from _meta.json
+  const metaFile = `${dir}/_meta.json`;
+  try {
+    if (fs.existsSync(metaFile)) {
+      const meta = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
+      delete meta[filename];
+      fs.writeFileSync(metaFile, JSON.stringify(meta));
+    }
+  } catch {}
+
+  console.log(`[delete] Cleaned up ${filename} (video + thumb + meta + normalize)`);
   res.json({ success: true });
+
+  // Resume queue if we killed the active job
+  processNormalizeQueue();
 });
 
 
