@@ -176,6 +176,12 @@ function enqueueNormalize(filePath, width, height, bitrateBps, metaFile, filenam
 
   console.log(`[normalize] Queued ${filename}: ${bitrateMbps.toFixed(1)} Mbps → target ${targetKbps / 1000} Mbps`);
   normalizeProgress[filename] = { status: 'running', percent: 0 };
+  // Write normalizing flag to _meta.json
+  try {
+    let meta = {};
+    if (fs.existsSync(metaFile)) meta = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
+    if (meta[filename]) { meta[filename].normalizing = true; fs.writeFileSync(metaFile, JSON.stringify(meta)); }
+  } catch {}
   normalizeQueue.push({ filePath, targetKbps, metaFile, filename });
   processNormalizeQueue();
 }
@@ -247,6 +253,7 @@ async function processNormalizeQueue() {
         meta[filename].width = resolution.width;
         meta[filename].height = resolution.height;
         meta[filename].normalized = true;
+        delete meta[filename].normalizing;
         const quality = checkVideoQuality(resolution.width, resolution.height, newMeta.bitrate);
         meta[filename].low_quality = quality.low_quality;
         fs.writeFileSync(metaFile, JSON.stringify(meta));
@@ -262,6 +269,12 @@ async function processNormalizeQueue() {
     normalizeProgress[filename] = { status: 'idle', percent: 0 };
     // Clean up temp file, original is preserved
     if (fs.existsSync(tmpOut)) fs.unlinkSync(tmpOut);
+    // Clear normalizing flag in meta
+    try {
+      let meta = {};
+      if (fs.existsSync(metaFile)) meta = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
+      if (meta[filename]) { delete meta[filename].normalizing; fs.writeFileSync(metaFile, JSON.stringify(meta)); }
+    } catch {}
   }
 
   normalizeCurrentFile = null;
@@ -788,11 +801,11 @@ app.get('/videos', async (req, res) => {
     meta[f].bitrate = metadata.bitrate;
     meta[f].codec = metadata.codec;
     meta[f].low_quality = quality.low_quality;
-    // Include normalize status
-    const np = normalizeProgress[f];
-    if (np && np.status === 'running') {
+    // Include normalize status from meta (persistent) + in-memory progress
+    if (meta[f]?.normalizing) {
       item.normalizing = true;
-      item.normalize_percent = np.percent;
+      const np = normalizeProgress[f];
+      item.normalize_percent = np ? np.percent : 0;
     }
     return item;
   }));

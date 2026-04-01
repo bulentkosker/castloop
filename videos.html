@@ -536,8 +536,16 @@
       document.getElementById('dropEmail').textContent = user.email;
       document.getElementById('userAvatar').textContent = (user.email || '?')[0].toUpperCase();
       // Plan al
-      const { data: profile } = await client.from('profiles').select('plan').eq('id', user.id).single();
+      const { data: profile } = await client.from('profiles').select('plan, trial_started_at').eq('id', user.id).single();
       userPlan = (profile?.plan || 'free').toLowerCase();
+      const isPaidPlan = ['lite','basic','pro','business','enterprise','4k_starter','4k_plus','4k_pro'].includes(userPlan);
+      if (!isPaidPlan && profile?.trial_started_at) {
+        const daysLeft = 7 - Math.floor((new Date() - new Date(profile.trial_started_at)) / 86400000);
+        document.getElementById('dropPlan').textContent = daysLeft <= 0 ? 'Trial Expired' : 'Trial (' + daysLeft + 'd left)';
+        if (daysLeft <= 0) document.getElementById('dropPlan').style.color = '#f87171';
+      } else {
+        document.getElementById('dropPlan').textContent = userPlan.charAt(0).toUpperCase() + userPlan.slice(1) + ' Plan';
+      }
       await loadVideos();
       await loadStorage();
     }
@@ -853,59 +861,17 @@
 
       bindVideoRowInteractions();
       hydrateVideoMeta(videos);
-      startNormalizePolling(videos);
+      // Auto-refresh while any video is normalizing
+      const hasNormalizing = videos.some(v => v.normalizing);
+      if (hasNormalizing && !normalizeRefreshTimer) {
+        normalizeRefreshTimer = setInterval(() => loadVideos(), 5000);
+      } else if (!hasNormalizing && normalizeRefreshTimer) {
+        clearInterval(normalizeRefreshTimer);
+        normalizeRefreshTimer = null;
+      }
     }
 
-    const normalizingSet = new Set();
-    let normalizeInterval = null;
-
-    function startNormalizePolling(videos) {
-      // Add newly normalizing videos to the persistent set
-      videos.filter(v => v.normalizing).forEach(v => normalizingSet.add(v.filename));
-
-      // Nothing to poll
-      if (!normalizingSet.size) return;
-
-      // Already polling
-      if (normalizeInterval) return;
-
-      normalizeInterval = setInterval(async () => {
-        if (!normalizingSet.size) {
-          clearInterval(normalizeInterval);
-          normalizeInterval = null;
-          return;
-        }
-        let anyDone = false;
-        for (const filename of [...normalizingSet]) {
-          try {
-            const res = await fetch(`${SERVER_URL}/normalize-progress/${encodeURIComponent(filename)}`, {
-              headers: { 'x-api-key': API_KEY }
-            });
-            const data = await res.json();
-            const bar = document.querySelector(`.normalize-bar[data-nf="${CSS.escape(filename)}"]`);
-            if (data.status === 'done') {
-              normalizingSet.delete(filename);
-              anyDone = true;
-              if (bar) bar.innerHTML = '<div style="font-size:11px;color:#34d399;">Optimization complete</div>';
-            } else if (bar) {
-              // Keep showing for running/idle — never remove until done
-              const pct = data.percent || 0;
-              bar.innerHTML = `<div style="font-size:11px;color:#60a5fa;margin-bottom:3px;">Optimizing... ${pct}%</div><div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:#3b82f6;border-radius:2px;transition:width 0.3s;"></div></div>`;
-            }
-          } catch {
-            // Network error — keep in set, retry next tick
-          }
-        }
-        if (anyDone && !normalizingSet.size) {
-          clearInterval(normalizeInterval);
-          normalizeInterval = null;
-          setTimeout(() => loadVideos(), 1500);
-        } else if (anyDone) {
-          // Some done but others still running — refresh to update meta of completed ones
-          setTimeout(() => loadVideos(), 1500);
-        }
-      }, 3000);
-    }
+    let normalizeRefreshTimer = null;
 
     function bindVideoRowInteractions() {
       document.querySelectorAll('[data-edit]').forEach((btn) => {
