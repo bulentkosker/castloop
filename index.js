@@ -2284,8 +2284,47 @@ async function reconcile() {
   }
 }
 
+// Clean up interrupted normalize jobs from previous run
+function cleanupStaleNormalize() {
+  const videosRoot = '/var/castloop/videos';
+  if (!fs.existsSync(videosRoot)) return;
+  let cleaned = 0;
+  for (const userId of fs.readdirSync(videosRoot)) {
+    const dir = path.join(videosRoot, userId);
+    if (!fs.statSync(dir).isDirectory()) continue;
+
+    // Delete orphaned .normalizing.mp4 temp files
+    for (const f of fs.readdirSync(dir)) {
+      if (f.includes('.normalizing.')) {
+        fs.unlinkSync(path.join(dir, f));
+        console.log(`[normalize-cleanup] Deleted orphaned temp file: ${userId}/${f}`);
+        cleaned++;
+      }
+    }
+
+    // Clear stale normalizing flags in _meta.json
+    const metaFile = path.join(dir, '_meta.json');
+    if (!fs.existsSync(metaFile)) continue;
+    try {
+      const meta = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
+      let changed = false;
+      for (const [filename, entry] of Object.entries(meta)) {
+        if (entry && entry.normalizing) {
+          delete entry.normalizing;
+          changed = true;
+          console.log(`[normalize-cleanup] Cleared stale normalizing flag: ${userId}/${filename}`);
+        }
+      }
+      if (changed) fs.writeFileSync(metaFile, JSON.stringify(meta));
+    } catch {}
+  }
+  if (cleaned) console.log(`[normalize-cleanup] Cleaned ${cleaned} orphaned temp files`);
+  else console.log('[normalize-cleanup] No stale normalize artifacts found');
+}
+
 app.listen(3000, () => {
   console.log('Castloop Stream API running on port 3000');
+  cleanupStaleNormalize();
   recoverRunningStreamsOnStartup();
 
   // Start reconciler after 30s, then every 2 min
