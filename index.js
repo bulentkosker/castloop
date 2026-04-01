@@ -180,8 +180,13 @@ function enqueueNormalize(filePath, width, height, bitrateBps, metaFile, filenam
   try {
     let meta = {};
     if (fs.existsSync(metaFile)) meta = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
-    if (meta[filename]) { meta[filename].normalizing = true; fs.writeFileSync(metaFile, JSON.stringify(meta)); }
-  } catch {}
+    if (!meta[filename]) meta[filename] = {};
+    meta[filename].normalizing = true;
+    fs.writeFileSync(metaFile, JSON.stringify(meta));
+    console.log(`[normalize] Set normalizing=true in meta for ${filename}`);
+  } catch (e) {
+    console.error(`[normalize] Failed to write normalizing flag for ${filename}:`, e.message);
+  }
   normalizeQueue.push({ filePath, targetKbps, metaFile, filename });
   processNormalizeQueue();
 }
@@ -248,16 +253,16 @@ async function processNormalizeQueue() {
     try {
       let meta = {};
       if (fs.existsSync(metaFile)) meta = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
-      if (meta[filename]) {
-        meta[filename].bitrate = newMeta.bitrate;
-        meta[filename].width = resolution.width;
-        meta[filename].height = resolution.height;
-        meta[filename].normalized = true;
-        delete meta[filename].normalizing;
-        const quality = checkVideoQuality(resolution.width, resolution.height, newMeta.bitrate);
-        meta[filename].low_quality = quality.low_quality;
-        fs.writeFileSync(metaFile, JSON.stringify(meta));
-      }
+      if (!meta[filename]) meta[filename] = {};
+      meta[filename].bitrate = newMeta.bitrate;
+      meta[filename].width = resolution.width;
+      meta[filename].height = resolution.height;
+      meta[filename].normalized = true;
+      delete meta[filename].normalizing;
+      const quality = checkVideoQuality(resolution.width, resolution.height, newMeta.bitrate);
+      meta[filename].low_quality = quality.low_quality;
+      fs.writeFileSync(metaFile, JSON.stringify(meta));
+      console.log(`[normalize] Cleared normalizing flag, set normalized=true for ${filename}`);
     } catch (e) {
       console.error(`[normalize] Failed to update meta for ${filename}:`, e.message);
     }
@@ -274,7 +279,10 @@ async function processNormalizeQueue() {
       let meta = {};
       if (fs.existsSync(metaFile)) meta = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
       if (meta[filename]) { delete meta[filename].normalizing; fs.writeFileSync(metaFile, JSON.stringify(meta)); }
-    } catch {}
+      console.log(`[normalize] Cleared normalizing flag after error for ${filename}`);
+    } catch (e2) {
+      console.error(`[normalize] Failed to clear normalizing flag for ${filename}:`, e2.message);
+    }
   }
 
   normalizeCurrentFile = null;
@@ -801,11 +809,17 @@ app.get('/videos', async (req, res) => {
     meta[f].bitrate = metadata.bitrate;
     meta[f].codec = metadata.codec;
     meta[f].low_quality = quality.low_quality;
-    // Include normalize status from meta (persistent) + in-memory progress
-    if (meta[f]?.normalizing) {
+    // Include normalize status: check both meta (persistent) and in-memory progress
+    const np = normalizeProgress[f];
+    const metaNormalizing = meta[f]?.normalizing === true;
+    const memNormalizing = np && (np.status === 'running');
+    if (metaNormalizing || memNormalizing) {
       item.normalizing = true;
-      const np = normalizeProgress[f];
       item.normalize_percent = np ? np.percent : 0;
+      // Ensure meta flag stays in sync
+      if (!metaNormalizing && memNormalizing) {
+        meta[f].normalizing = true;
+      }
     }
     return item;
   }));
