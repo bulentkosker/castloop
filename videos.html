@@ -856,34 +856,52 @@
       startNormalizePolling(videos);
     }
 
+    const normalizingSet = new Set();
     let normalizeInterval = null;
+
     function startNormalizePolling(videos) {
-      if (normalizeInterval) clearInterval(normalizeInterval);
-      const normalizing = videos.filter(v => v.normalizing);
-      if (!normalizing.length) return;
+      // Add newly normalizing videos to the persistent set
+      videos.filter(v => v.normalizing).forEach(v => normalizingSet.add(v.filename));
+
+      // Nothing to poll
+      if (!normalizingSet.size) return;
+
+      // Already polling
+      if (normalizeInterval) return;
+
       normalizeInterval = setInterval(async () => {
-        let allDone = true;
-        for (const v of normalizing) {
+        if (!normalizingSet.size) {
+          clearInterval(normalizeInterval);
+          normalizeInterval = null;
+          return;
+        }
+        let anyDone = false;
+        for (const filename of [...normalizingSet]) {
           try {
-            const res = await fetch(`${SERVER_URL}/normalize-progress/${encodeURIComponent(v.filename)}`, {
+            const res = await fetch(`${SERVER_URL}/normalize-progress/${encodeURIComponent(filename)}`, {
               headers: { 'x-api-key': API_KEY }
             });
             const data = await res.json();
-            const bar = document.querySelector(`.normalize-bar[data-nf="${CSS.escape(v.filename)}"]`);
-            if (!bar) continue;
+            const bar = document.querySelector(`.normalize-bar[data-nf="${CSS.escape(filename)}"]`);
             if (data.status === 'done') {
-              bar.innerHTML = '<div style="font-size:11px;color:#34d399;">Optimization complete</div>';
-            } else {
-              // Keep showing progress for running or idle (idle = transient state during queue processing)
-              allDone = false;
+              normalizingSet.delete(filename);
+              anyDone = true;
+              if (bar) bar.innerHTML = '<div style="font-size:11px;color:#34d399;">Optimization complete</div>';
+            } else if (bar) {
+              // Keep showing for running/idle — never remove until done
               const pct = data.percent || 0;
               bar.innerHTML = `<div style="font-size:11px;color:#60a5fa;margin-bottom:3px;">Optimizing... ${pct}%</div><div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:#3b82f6;border-radius:2px;transition:width 0.3s;"></div></div>`;
             }
-          } catch {}
+          } catch {
+            // Network error — keep in set, retry next tick
+          }
         }
-        if (allDone) {
+        if (anyDone && !normalizingSet.size) {
           clearInterval(normalizeInterval);
           normalizeInterval = null;
+          setTimeout(() => loadVideos(), 1500);
+        } else if (anyDone) {
+          // Some done but others still running — refresh to update meta of completed ones
           setTimeout(() => loadVideos(), 1500);
         }
       }, 3000);
