@@ -823,47 +823,60 @@
       });
     }
 
+    // --- Normalize tracking via localStorage (no backend race conditions) ---
+    const NORMALIZE_KEY = 'castloop_normalizing';
+    const NORMALIZE_TTL = 10 * 60 * 1000; // 10 minutes max
+
+    function getNormalizeMap() {
+      try { return JSON.parse(localStorage.getItem(NORMALIZE_KEY) || '{}'); } catch { return {}; }
+    }
+    function setNormalizeMap(map) {
+      localStorage.setItem(NORMALIZE_KEY, JSON.stringify(map));
+    }
+    function markNormalizing(filename) {
+      const map = getNormalizeMap();
+      map[filename] = Date.now();
+      setNormalizeMap(map);
+    }
+    function clearNormalizing(filename) {
+      const map = getNormalizeMap();
+      delete map[filename];
+      setNormalizeMap(map);
+    }
+    function isNormalizing(video) {
+      // Already done on server
+      if (video.normalized) { clearNormalizing(video.filename); return false; }
+      // Backend says normalizing
+      if (video.normalizing) return true;
+      // Check localStorage
+      const map = getNormalizeMap();
+      const ts = map[video.filename];
+      if (!ts) return false;
+      // Expired (>10 min)
+      if (Date.now() - ts > NORMALIZE_TTL) { clearNormalizing(video.filename); return false; }
+      return true;
+    }
+
     let normalizeRefreshTimer = null;
-    let lastRenderedFilenames = null; // track structural changes
 
     function renderVideos(videos) {
       const container = document.getElementById('videosContainer');
       if (!videos.length) {
         container.innerHTML = `<div class="empty-state"><div class="icon">🎬</div><p>No videos yet. Upload your first video!</p></div>`;
-        lastRenderedFilenames = null;
         return;
       }
 
-      const currentFilenames = videos.map(v => v.filename).join(',');
-      const isStructuralChange = lastRenderedFilenames !== currentFilenames;
+      // Clean up localStorage for videos that finished normalizing
+      videos.forEach(v => { if (v.normalized) clearNormalizing(v.filename); });
 
-      if (!isStructuralChange) {
-        // Lightweight update: patch existing cards without rebuilding DOM
-        patchVideoCards(videos);
-      } else {
-        // Full rebuild
-        lastRenderedFilenames = currentFilenames;
-        fullRenderVideos(videos);
-      }
-
-      // Auto-refresh while any video is normalizing
-      const hasNormalizing = videos.some(v => v.normalizing);
-      if (hasNormalizing && !normalizeRefreshTimer) {
-        normalizeRefreshTimer = setInterval(() => loadVideos(), 5000);
-      } else if (!hasNormalizing && normalizeRefreshTimer) {
-        clearInterval(normalizeRefreshTimer);
-        normalizeRefreshTimer = null;
-      }
-    }
-
-    function fullRenderVideos(videos) {
-      const container = document.getElementById('videosContainer');
       const nameOverrides = loadNameOverrides();
       container.innerHTML = `<div class="videos-list">${videos.map((v, i) => {
         const metaId = makeMetaId(v, i);
         const displayName = nameOverrides[v.filename] || v.originalName || v.filename;
         const isEditing = editingVideoFilename === v.filename;
         const sourceUrl = getVideoSourceUrl(v);
+        const normalizing = isNormalizing(v);
+        const pct = v.normalize_percent || 0;
         return `
         <div class="video-row" draggable="true" data-filename="${v.filename}">
           <div class="thumb-col">
@@ -879,7 +892,7 @@
               : `<div class="video-name-line">${v.low_quality ? '<span title="Low video quality — bitrate or resolution below recommended" style="cursor:help;margin-right:4px;">&#9888;&#65039;</span>' : ''}<button class="video-name-btn video-original-name" data-preview="${v.filename}" title="Play video">${escapeHtml(displayName)}</button><button class="video-edit-btn" data-edit="${v.filename}" title="Rename">✏️</button></div>`}
             <div style="font-size:11px;color:var(--muted);margin-top:2px;">${formatUploadDate(v.filename)}</div>
           </div>
-          <div class="video-meta" id="${metaId}">${getMetaLine(v, getServerFps(v), getServerDuration(v))}<div class="normalize-bar" data-nf="${v.filename}" style="margin-top:4px;${v.normalizing ? '' : 'display:none;'}">${v.normalizing ? renderNormalizeBar(v.normalize_percent || 0) : ''}</div></div>
+          <div class="video-meta" id="${metaId}">${getMetaLine(v, getServerFps(v), getServerDuration(v))}${normalizing ? `<div style="margin-top:4px;"><div style="font-size:11px;color:#60a5fa;margin-bottom:3px;">Optimizing...${pct ? ' ' + pct + '%' : ''}</div><div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${pct || 5}%;background:#3b82f6;border-radius:2px;transition:width 0.3s;"></div></div></div>` : ''}</div>
           <div class="video-actions">
             <button class="btn-copy" onclick="copyPath('${v.path}', this)">📋 Copy Path</button>
             <button class="btn-delete" onclick="deleteVideo('${v.filename}')">Delete</button>
@@ -890,34 +903,15 @@
 
       bindVideoRowInteractions();
       hydrateVideoMeta(videos);
-    }
 
-    function patchVideoCards(videos) {
-      for (const v of videos) {
-        // Update normalize bar without touching the rest of the card
-        const bar = document.querySelector(`.normalize-bar[data-nf="${CSS.escape(v.filename)}"]`);
-        if (!bar) continue;
-        if (v.normalizing) {
-          bar.style.display = '';
-          bar.innerHTML = renderNormalizeBar(v.normalize_percent || 0);
-        } else if (bar.innerHTML) {
-          // Was normalizing, now done
-          bar.innerHTML = '<div style="font-size:11px;color:#34d399;">Optimization complete</div>';
-          // Clear after 3s, then trigger full refresh
-          setTimeout(() => { bar.style.display = 'none'; bar.innerHTML = ''; loadVideos(); }, 3000);
-        }
-
-        // Update meta line (bitrate may change after normalize)
-        const metaEl = document.getElementById(makeMetaId(v, videos.indexOf(v)));
-        if (metaEl) {
-          const newMeta = getMetaLine(v, getServerFps(v), getServerDuration(v));
-          if (metaEl.innerHTML !== newMeta) metaEl.innerHTML = newMeta;
-        }
+      // Auto-refresh while any video is normalizing
+      const anyNormalizing = videos.some(v => isNormalizing(v));
+      if (anyNormalizing && !normalizeRefreshTimer) {
+        normalizeRefreshTimer = setInterval(() => loadVideos(), 5000);
+      } else if (!anyNormalizing && normalizeRefreshTimer) {
+        clearInterval(normalizeRefreshTimer);
+        normalizeRefreshTimer = null;
       }
-    }
-
-    function renderNormalizeBar(pct) {
-      return `<div style="font-size:11px;color:#60a5fa;margin-bottom:3px;">Optimizing... ${pct}%</div><div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:#3b82f6;border-radius:2px;transition:width 0.3s;"></div></div>`;
     }
 
     function bindVideoRowInteractions() {
@@ -1042,6 +1036,10 @@
           toast('Video uploaded: ' + file.name, 'success');
           if (data.quality_warning) {
             showQualityWarning(data.quality_warning, data.bitrate_mbps, file.name);
+          }
+          // Track normalize candidate in localStorage (bitrate > 30 Mbps)
+          if (data.filename && data.bitrate_mbps && data.bitrate_mbps > 30) {
+            markNormalizing(data.filename);
           }
           await loadVideos();
         } else {
