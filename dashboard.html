@@ -1613,6 +1613,12 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
     }
 
     // ── Toast ─────────────────────────────────────────────────────────────────
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.appendChild(document.createTextNode(text));
+      return div.innerHTML;
+    }
+
     function toast(msg, type) {
       const t = document.getElementById('toast');
       if (!t) return;
