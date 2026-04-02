@@ -394,7 +394,7 @@
             <input type="text" id="manualPathInput" placeholder="Paste video path..." style="flex:1;padding:8px 12px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:12px;">
             <button class="btn-add" onclick="addManualPath('manualPathInput'); togglePathPopup();">Add</button>
           </div>
-          <input type="text" id="videoSearch" placeholder="Search videos..." oninput="filterVideoSelect('videoSearch','videoSelect')" style="width:100%;padding:7px 12px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:12px;margin-top:6px;">
+          <input type="text" id="videoSearch" placeholder="Search videos..." oninput="console.log('[search] oninput fired:', this.value); filterVideoSelect('videoSearch','videoSelect')" style="width:100%;padding:7px 12px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:12px;margin-top:6px;">
           <div class="playlist-items" id="playlistItems">
             <div class="playlist-empty">No videos added yet</div>
           </div>
@@ -634,17 +634,21 @@
     }
 
     function filterVideoSelect(searchId, selectId) {
-      const q = document.getElementById(searchId).value.toLowerCase();
-      const folderId = document.getElementById('folderFilter')?.value || '';
+      const searchEl = document.getElementById(searchId);
       const select = document.getElementById(selectId);
+      if (!searchEl) { console.error('[filter] searchEl not found:', searchId); return; }
+      if (!select) { console.error('[filter] select not found:', selectId); return; }
+      const q = searchEl.value.toLowerCase();
+      const folderId = document.getElementById('folderFilter')?.value || '';
+      console.log(`[filter] query="${q}", folder="${folderId}", total=${availableVideos?.length || 0}`);
+      const filtered = (availableVideos || []).filter(v => {
+        if (q && !(v.originalName || v.filename).toLowerCase().includes(q)) return false;
+        if (folderId && v.folder_id !== folderId) return false;
+        return true;
+      });
+      console.log(`[filter] matched=${filtered.length}`);
       select.innerHTML = '<option value="">Select a video...</option>' +
-        availableVideos
-          .filter(v => {
-            if (q && !(v.originalName || v.filename).toLowerCase().includes(q)) return false;
-            if (folderId && v.folder_id !== folderId) return false;
-            return true;
-          })
-          .map(v => `<option value="${v.path}">${v.originalName || v.filename}</option>`).join('');
+        filtered.map(v => `<option value="${v.path}">${v.originalName || v.filename}</option>`).join('');
     }
 
     function togglePathPopup() {
