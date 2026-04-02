@@ -390,7 +390,7 @@
             <button class="btn-add" onclick="addToPlaylist()">+ Add</button>
             <button class="btn-add" onclick="togglePathPopup()" title="Paste video path" style="padding:6px 10px;">📋</button>
           </div>
-          <div id="pathPopup" style="display:none;margin-top:6px;display:none;flex-direction:row;gap:6px;align-items:center;">
+          <div id="pathPopup" style="display:none;margin-top:6px;gap:6px;align-items:center;">
             <input type="text" id="manualPathInput" placeholder="Paste video path..." style="flex:1;padding:8px 12px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:12px;">
             <button class="btn-add" onclick="addManualPath('manualPathInput'); togglePathPopup();">Add</button>
           </div>
@@ -627,8 +627,7 @@
           select.innerHTML = '<option value="">No videos uploaded yet</option>';
           return;
         }
-        select.innerHTML = '<option value="">Select a video...</option>' +
-          availableVideos.map(v => `<option value="${v.path}">${v.originalName}</option>`).join('');
+        filterVideoSelect('videoSearch', 'videoSelect');
       } catch (e) {
         select.innerHTML = '<option value="">Could not load videos</option>';
       }
@@ -1405,6 +1404,9 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       renderPlaylist();
       document.getElementById('modalOverlay').classList.add('active');
       document.getElementById('modalMessage').textContent = '';
+      document.getElementById('videoSearch').value = '';
+      document.getElementById('folderFilter').value = '';
+      document.getElementById('pathPopup').style.display = 'none';
       await loadVideos();
       await loadYtAccounts();
     }
