@@ -90,33 +90,33 @@
     .progress-actions { margin-top: 12px; display: flex; justify-content: flex-end; }
     .btn-cancel-upload { background: transparent; color: var(--red); border: 1px solid rgba(248,113,113,0.3); padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
     .btn-cancel-upload:hover { background: rgba(248,113,113,0.1); }
-    .videos-list { display: flex; flex-direction: column; gap: 10px; }
+    .videos-list { display: flex; flex-direction: column; gap: 6px; }
     .video-row {
       display: grid;
-      grid-template-columns: 84px minmax(180px, 2fr) minmax(220px, 1.6fr) auto;
+      grid-template-columns: 88px minmax(180px, 2fr) minmax(220px, 1.6fr) auto;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       background: var(--bg2);
       border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 12px 14px;
+      border-radius: 10px;
+      padding: 6px 12px;
       transition: all 0.2s;
     }
-    .video-row:hover { border-color: rgba(99,102,241,0.25); background: rgba(99,102,241,0.03); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+    .video-row:hover { border-color: rgba(99,102,241,0.25); background: rgba(99,102,241,0.03); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
     .video-row.dragging { opacity: 0.55; }
     .video-row.drag-over { border-color: var(--accent2); background: rgba(99,102,241,0.06); }
     .video-thumb {
-      width: 72px;
-      height: 42px;
-      border-radius: 8px;
+      width: 80px;
+      height: 45px;
+      border-radius: 6px;
       object-fit: cover;
       background: var(--bg);
       border: 1px solid var(--border);
     }
     .video-thumb-fallback {
-      width: 72px;
-      height: 42px;
-      border-radius: 7px;
+      width: 80px;
+      height: 45px;
+      border-radius: 6px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -227,9 +227,10 @@
         grid-template-areas:
           'thumb name actions'
           'thumb meta meta';
-        row-gap: 6px;
+        row-gap: 4px;
+        padding: 5px 8px;
       }
-      .video-thumb, .video-thumb-fallback { width: 64px; height: 40px; }
+      .video-thumb, .video-thumb-fallback { width: 64px; height: 36px; }
       .video-row .thumb-col { grid-area: thumb; }
       .video-row .video-name-wrap { grid-area: name; }
       .video-row .video-meta { grid-area: meta; }
