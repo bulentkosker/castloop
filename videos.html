@@ -170,6 +170,13 @@
       outline: none;
     }
     .video-meta { font-size: 12px; color: var(--muted); line-height: 1.6; }
+    .folder-tab { padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 12px; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+    .folder-tab:hover { border-color: var(--accent2); color: var(--text); }
+    .folder-tab.active { background: rgba(99,102,241,0.12); border-color: var(--accent2); color: var(--accent2); font-weight: 600; }
+    .folder-add-btn { padding: 5px 10px; border-radius: 6px; border: 1px dashed var(--border); background: transparent; color: var(--muted); font-size: 12px; cursor: pointer; font-family: inherit; }
+    .folder-add-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+    .folder-del { margin-left: 4px; font-size: 10px; opacity: 0.5; cursor: pointer; }
+    .folder-del:hover { opacity: 1; color: #f87171; }
     .video-actions { display: flex; gap: 8px; justify-content: flex-end; }
     .btn-delete { background: transparent; color: #f87171; border: 1px solid #f87171; padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; }
     .btn-copy { background: #6366f1; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600; }
@@ -331,6 +338,12 @@
       </div>
     </div>
 
+    <div id="folderBar" style="display:flex;align-items:center;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+      <button class="folder-tab active" data-folder="" onclick="selectFolder(null)">All Videos</button>
+      <button class="folder-tab" data-folder="unfiled" onclick="selectFolder('unfiled')">Unfiled</button>
+      <span id="folderTabs"></span>
+      <button class="folder-add-btn" onclick="createFolder()" title="New folder">+ Folder</button>
+    </div>
     <div id="videosContainer">
       <div class="empty-state"><div class="icon">🎬</div><p>No videos yet. Upload your first video!</p></div>
     </div>
@@ -547,8 +560,81 @@
       } else {
         document.getElementById('dropPlan').textContent = userPlan.charAt(0).toUpperCase() + userPlan.slice(1) + ' Plan';
       }
+      await loadFolders();
       await loadVideos();
       await loadStorage();
+    }
+
+    let folders = [];
+    let selectedFolderId = null; // null=all, 'unfiled'=no folder, uuid=specific
+
+    async function loadFolders() {
+      try {
+        const res = await fetch(`${SERVER_URL}/folders`, {
+          headers: { 'x-api-key': API_KEY, 'x-user-id': currentUser.id }
+        });
+        folders = await res.json();
+      } catch { folders = []; }
+      renderFolderTabs();
+    }
+
+    function renderFolderTabs() {
+      const container = document.getElementById('folderTabs');
+      container.innerHTML = folders.map(f => `<button class="folder-tab${selectedFolderId === f.id ? ' active' : ''}" data-folder="${f.id}" onclick="selectFolder('${f.id}')">${escapeHtml(f.name)}<span class="folder-del" onclick="event.stopPropagation();deleteFolder('${f.id}')">&times;</span></button>`).join('');
+      // Update active state on fixed tabs
+      document.querySelectorAll('#folderBar > .folder-tab').forEach(btn => {
+        const fid = btn.dataset.folder;
+        btn.classList.toggle('active', fid === '' ? selectedFolderId === null : fid === selectedFolderId);
+      });
+    }
+
+    function selectFolder(folderId) {
+      selectedFolderId = folderId === '' ? null : folderId;
+      renderFolderTabs();
+      renderVideos(currentVideos);
+    }
+
+    async function createFolder() {
+      const name = prompt('Folder name:');
+      if (!name?.trim()) return;
+      try {
+        await fetch(`${SERVER_URL}/folders`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY, 'x-user-id': currentUser.id },
+          body: JSON.stringify({ name: name.trim() })
+        });
+        await loadFolders();
+      } catch { toast('Failed to create folder', 'error'); }
+    }
+
+    async function deleteFolder(folderId) {
+      if (!confirm('Delete this folder? Videos will be moved to Unfiled.')) return;
+      try {
+        await fetch(`${SERVER_URL}/folders/${folderId}`, {
+          method: 'DELETE',
+          headers: { 'x-api-key': API_KEY, 'x-user-id': currentUser.id }
+        });
+        if (selectedFolderId === folderId) selectedFolderId = null;
+        await loadFolders();
+        await loadVideos();
+      } catch { toast('Failed to delete folder', 'error'); }
+    }
+
+    async function moveToFolder(filename, folderId) {
+      try {
+        await fetch(`${SERVER_URL}/videos/${encodeURIComponent(filename)}/folder`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY, 'x-user-id': currentUser.id },
+          body: JSON.stringify({ folderId: folderId || null })
+        });
+        await loadVideos();
+      } catch { toast('Failed to move video', 'error'); }
+    }
+
+    function getFilteredVideos(videos) {
+      if (selectedFolderId === null) return videos;
+      if (selectedFolderId === 'unfiled') return videos.filter(v => !v.folder_id);
+      return videos.filter(v => v.folder_id === selectedFolderId);
     }
 
     async function loadStorage() {
@@ -895,8 +981,9 @@
 
     function renderVideos(videos) {
       const container = document.getElementById('videosContainer');
-      if (!videos.length) {
-        container.innerHTML = `<div class="empty-state"><div class="icon">🎬</div><p>No videos yet. Upload your first video!</p></div>`;
+      const filtered = getFilteredVideos(videos);
+      if (!filtered.length) {
+        container.innerHTML = `<div class="empty-state"><div class="icon">🎬</div><p>${videos.length ? 'No videos in this folder.' : 'No videos yet. Upload your first video!'}</p></div>`;
         return;
       }
 
@@ -904,7 +991,7 @@
       videos.forEach(v => { if (v.normalized) clearNormalizing(v.filename); });
 
       // Try soft refresh (no DOM rebuild) if structure unchanged
-      if (container.querySelector('.videos-list') && softRefreshNormalize(videos)) {
+      if (container.querySelector('.videos-list') && softRefreshNormalize(filtered)) {
         // Soft refresh handled normalize bars, just update timer
         const anyNormalizing = videos.some(v => isNormalizing(v));
         if (anyNormalizing && !normalizeRefreshTimer) {
@@ -917,7 +1004,7 @@
       }
 
       const nameOverrides = loadNameOverrides();
-      container.innerHTML = `<div class="videos-list">${videos.map((v, i) => {
+      container.innerHTML = `<div class="videos-list">${filtered.map((v, i) => {
         const metaId = makeMetaId(v, i);
         const displayName = nameOverrides[v.filename] || v.originalName || v.filename;
         const isEditing = editingVideoFilename === v.filename;
@@ -941,6 +1028,11 @@
           </div>
           <div class="video-meta" id="${metaId}">${getMetaLine(v, getServerFps(v), getServerDuration(v))}${normalizing ? `<div class="normalize-bar-wrap" style="margin-top:4px;"><div style="font-size:11px;color:#60a5fa;margin-bottom:3px;">Optimizing...${pct ? ' ' + pct + '%' : ''}</div><div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;"><div class="norm-fill" style="height:100%;width:${pct || 5}%;background:#3b82f6;border-radius:2px;transition:width 0.3s;"></div></div></div>` : ''}</div>
           <div class="video-actions">
+            <select onchange="moveToFolder('${v.filename}', this.value); this.value='_move'" style="padding:4px 6px;background:var(--bg);border:1px solid var(--border);color:var(--muted);border-radius:4px;font-size:11px;max-width:90px;">
+              <option value="_move" selected disabled>${folders.find(f=>f.id===v.folder_id)?.name || 'Move...'}</option>
+              <option value="">Unfiled</option>
+              ${folders.map(f=>`<option value="${f.id}"${f.id===v.folder_id?' disabled':''}>${escapeHtml(f.name)}</option>`).join('')}
+            </select>
             <button class="btn-copy" onclick="copyPath('${v.path}', this)">📋 Copy Path</button>
             <button class="btn-delete" onclick="deleteVideo('${v.filename}')">Delete</button>
           </div>
@@ -949,7 +1041,7 @@
       </div>`;
 
       bindVideoRowInteractions();
-      hydrateVideoMeta(videos);
+      hydrateVideoMeta(filtered);
 
       // Auto-refresh while any video is normalizing
       const anyNormalizing = videos.some(v => isNormalizing(v));

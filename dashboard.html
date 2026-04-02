@@ -382,7 +382,12 @@
       <div class="form-group">
         <label>Playlist</label>
         <div class="playlist-builder">
-          <input type="text" id="videoSearch" placeholder="Search videos..." oninput="filterVideoSelect('videoSearch','videoSelect')" style="width:100%;padding:8px 12px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;margin-bottom:6px;">
+          <div style="display:flex;gap:6px;margin-bottom:6px;">
+            <select id="folderFilter" onchange="filterVideoSelect('videoSearch','videoSelect')" style="padding:8px 10px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;">
+              <option value="">All folders</option>
+            </select>
+            <input type="text" id="videoSearch" placeholder="Search videos..." oninput="filterVideoSelect('videoSearch','videoSelect')" style="flex:1;padding:8px 12px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;">
+          </div>
           <div class="playlist-add">
             <select id="videoSelect"><option value="">Loading videos...</option></select>
             <button class="btn-add" onclick="addToPlaylist()">+ Add</button>
@@ -603,14 +608,22 @@
       document.querySelector('.main').prepend(banner);
     }
 
+    let dashFolders = [];
+
     async function loadVideos() {
       const select = document.getElementById('videoSelect');
       select.innerHTML = '<option value="">Loading...</option>';
       try {
-        const res = await fetch(`${SERVER_URL}/videos`, {
-          headers: { 'x-api-key': API_KEY, 'x-user-id': currentUser.id }
-        });
-        availableVideos = await res.json();
+        const [vidRes, fldRes] = await Promise.all([
+          fetch(`${SERVER_URL}/videos`, { headers: { 'x-api-key': API_KEY, 'x-user-id': currentUser.id } }),
+          fetch(`${SERVER_URL}/folders`, { headers: { 'x-api-key': API_KEY, 'x-user-id': currentUser.id } }),
+        ]);
+        availableVideos = await vidRes.json();
+        dashFolders = await fldRes.json();
+        // Populate folder filter
+        const ff = document.getElementById('folderFilter');
+        if (ff) ff.innerHTML = '<option value="">All folders</option>' +
+          dashFolders.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
         if (!availableVideos.length) {
           select.innerHTML = '<option value="">No videos uploaded yet</option>';
           return;
@@ -624,10 +637,15 @@
 
     function filterVideoSelect(searchId, selectId) {
       const q = document.getElementById(searchId).value.toLowerCase();
+      const folderId = document.getElementById('folderFilter')?.value || '';
       const select = document.getElementById(selectId);
       select.innerHTML = '<option value="">Select a video...</option>' +
         availableVideos
-          .filter(v => !q || (v.originalName || v.filename).toLowerCase().includes(q))
+          .filter(v => {
+            if (q && !(v.originalName || v.filename).toLowerCase().includes(q)) return false;
+            if (folderId && v.folder_id !== folderId) return false;
+            return true;
+          })
           .map(v => `<option value="${v.path}">${v.originalName || v.filename}</option>`).join('');
     }
 

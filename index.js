@@ -764,7 +764,8 @@ app.get('/videos', async (req, res) => {
       originalName: (typeof meta[f] === 'object' ? meta[f].originalName : meta[f]) || f,
       width: typeof meta[f] === 'object' ? meta[f].width : null,
       height: typeof meta[f] === 'object' ? meta[f].height : null,
-      size: fs.statSync(filePath).size
+      size: fs.statSync(filePath).size,
+      folder_id: typeof meta[f] === 'object' ? meta[f].folder_id || null : null,
     };
     const metadata = await getVideoMetadata(filePath);
     item.duration = metadata.duration;
@@ -1003,6 +1004,77 @@ app.delete('/videos/:filename', (req, res) => {
   processNormalizeQueue();
 });
 
+
+// ── Video Folders ────────────────────────────────────────────────────────────
+
+app.get('/folders', async (req, res) => {
+  const userId = req.headers['x-user-id'];
+  if (!userId) return res.status(400).json({ error: 'x-user-id required' });
+  const { data, error } = await supabaseAdmin.from('video_folders')
+    .select('*').eq('user_id', userId).order('created_at');
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+app.post('/folders', async (req, res) => {
+  const userId = req.headers['x-user-id'];
+  const { name } = req.body;
+  if (!userId || !name) return res.status(400).json({ error: 'user_id and name required' });
+  const { data, error } = await supabaseAdmin.from('video_folders')
+    .insert({ user_id: userId, name }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+app.delete('/folders/:folderId', async (req, res) => {
+  const userId = req.headers['x-user-id'];
+  if (!userId) return res.status(400).json({ error: 'x-user-id required' });
+
+  // Clear folder_id from videos in this folder (don't delete videos)
+  const dir = `/var/castloop/videos/${userId}/`;
+  const metaFile = dir + '_meta.json';
+  try {
+    if (fs.existsSync(metaFile)) {
+      const meta = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
+      let changed = false;
+      for (const [, entry] of Object.entries(meta)) {
+        if (entry?.folder_id === req.params.folderId) {
+          delete entry.folder_id;
+          changed = true;
+        }
+      }
+      if (changed) fs.writeFileSync(metaFile, JSON.stringify(meta));
+    }
+  } catch {}
+
+  const { error } = await supabaseAdmin.from('video_folders')
+    .delete().eq('id', req.params.folderId).eq('user_id', userId);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true });
+});
+
+app.patch('/videos/:filename/folder', (req, res) => {
+  const userId = req.headers['x-user-id'];
+  const filename = req.params.filename;
+  const { folderId } = req.body;
+  if (!userId) return res.status(400).json({ error: 'x-user-id required' });
+
+  const metaFile = `/var/castloop/videos/${userId}/_meta.json`;
+  try {
+    let meta = {};
+    if (fs.existsSync(metaFile)) meta = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
+    if (!meta[filename]) return res.status(404).json({ error: 'Video not found' });
+    if (folderId) {
+      meta[filename].folder_id = folderId;
+    } else {
+      delete meta[filename].folder_id;
+    }
+    fs.writeFileSync(metaFile, JSON.stringify(meta));
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
 app.get('/storage', (req, res) => {
   const userId = req.headers['x-user-id'];
