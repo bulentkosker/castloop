@@ -382,19 +382,22 @@
       <div class="form-group">
         <label>Playlist</label>
         <div class="playlist-builder">
-          <div class="playlist-add" style="display:flex;gap:6px;align-items:center;">
-            <select id="folderFilter" onchange="filterVideoSelect('videoSearch','videoSelect')" style="padding:8px 8px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:12px;max-width:120px;">
+          <div style="display:flex;gap:6px;align-items:center;">
+            <select id="folderFilter" onchange="updateVideoDropdown()" style="padding:8px 8px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:12px;max-width:120px;">
               <option value="">All folders</option>
             </select>
-            <select id="videoSelect" style="flex:1;min-width:0;"><option value="">Loading videos...</option></select>
-            <button class="btn-add" onclick="addToPlaylist()">+ Add</button>
+            <div style="flex:1;position:relative;" id="videoPickerWrap">
+              <input type="text" id="videoSearch" placeholder="Search and select video..." autocomplete="off"
+                oninput="updateVideoDropdown()" onfocus="showVideoDropdown()" onblur="hideVideoDropdown()"
+                style="width:100%;padding:8px 12px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:12px;box-sizing:border-box;">
+              <ul id="videoDropdown" style="display:none;position:absolute;left:0;right:0;top:100%;margin:2px 0 0;padding:0;list-style:none;background:var(--bg2);border:1px solid var(--border);border-radius:8px;max-height:180px;overflow-y:auto;z-index:100;"></ul>
+            </div>
             <button class="btn-add" onclick="togglePathPopup()" title="Paste video path" style="padding:6px 10px;">📋</button>
           </div>
           <div id="pathPopup" style="display:none;margin-top:6px;gap:6px;align-items:center;">
             <input type="text" id="manualPathInput" placeholder="Paste video path..." style="flex:1;padding:8px 12px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:12px;">
             <button class="btn-add" onclick="addManualPath('manualPathInput'); togglePathPopup();">Add</button>
           </div>
-          <input type="text" id="videoSearch" placeholder="Search videos..." oninput="console.log('[search] oninput fired:', this.value); filterVideoSelect('videoSearch','videoSelect')" style="width:100%;padding:7px 12px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:12px;margin-top:6px;">
           <div class="playlist-items" id="playlistItems">
             <div class="playlist-empty">No videos added yet</div>
           </div>
@@ -610,8 +613,6 @@
     let dashFolders = [];
 
     async function loadVideos() {
-      const select = document.getElementById('videoSelect');
-      select.innerHTML = '<option value="">Loading...</option>';
       try {
         const [vidRes, fldRes] = await Promise.all([
           fetch(`${SERVER_URL}/videos`, { headers: { 'x-api-key': API_KEY, 'x-user-id': currentUser.id } }),
@@ -627,30 +628,63 @@
           select.innerHTML = '<option value="">No videos uploaded yet</option>';
           return;
         }
-        filterVideoSelect('videoSearch', 'videoSelect');
+        // Videos loaded, dropdown will populate on focus/input
       } catch (e) {
-        select.innerHTML = '<option value="">Could not load videos</option>';
+        availableVideos = [];
       }
     }
 
-    function filterVideoSelect(searchId, selectId) {
-      const searchEl = document.getElementById(searchId);
-      const select = document.getElementById(selectId);
-      if (!searchEl) { console.error('[filter] searchEl not found:', searchId); return; }
-      if (!select) { console.error('[filter] select not found:', selectId); return; }
-      const q = searchEl.value.toLowerCase();
+    function updateVideoDropdown() {
+      const q = (document.getElementById('videoSearch')?.value || '').toLowerCase();
       const folderId = document.getElementById('folderFilter')?.value || '';
-      console.log(`[filter] query="${q}", folder="${folderId}", total=${availableVideos?.length || 0}`);
       const filtered = (availableVideos || []).filter(v => {
         if (q && !(v.originalName || v.filename).toLowerCase().includes(q)) return false;
         if (folderId && v.folder_id !== folderId) return false;
         return true;
       });
-      console.log(`[filter] matched=${filtered.length}, selectId=${selectId}, selectEl=`, select);
-      const html = '<option value="">Select a video...</option>' +
+      const dd = document.getElementById('videoDropdown');
+      if (!filtered.length) {
+        dd.innerHTML = '<li style="padding:8px 12px;color:var(--muted);font-size:12px;">No videos found</li>';
+      } else {
+        dd.innerHTML = filtered.map(v =>
+          `<li data-path="${escapeHtml(v.path)}" style="padding:8px 12px;font-size:12px;cursor:pointer;border-bottom:1px solid var(--border);color:var(--text);"
+            onmousedown="pickVideo(this)" onmouseenter="this.style.background='rgba(99,102,241,0.1)'" onmouseleave="this.style.background=''">${escapeHtml(v.originalName || v.filename)}</li>`
+        ).join('');
+      }
+      dd.style.display = '';
+    }
+
+    function showVideoDropdown() { updateVideoDropdown(); }
+
+    function hideVideoDropdown() {
+      setTimeout(() => { document.getElementById('videoDropdown').style.display = 'none'; }, 150);
+    }
+
+    function pickVideo(li) {
+      const path = li.dataset.path;
+      const video = availableVideos.find(v => v.path === path);
+      if (!video) return;
+      playlist.push({ path: video.path, name: video.originalName });
+      renderPlaylist();
+      document.getElementById('videoSearch').value = '';
+      document.getElementById('videoDropdown').style.display = 'none';
+      if (playlist.length > 1 && checkMixedCodecs(playlist)) {
+        const msg = document.getElementById('modalMessage');
+        msg.style.color = '#f59e0b';
+        msg.textContent = 'Mixed video formats detected in your playlist. Mixing HEVC (H.265) and H.264 videos may cause stream interruptions. We recommend using videos in the same format.';
+      }
+    }
+
+    // Keep for edit modal compatibility
+    function filterVideoSelect(searchId, selectId) {
+      const q = (document.getElementById(searchId)?.value || '').toLowerCase();
+      const select = document.getElementById(selectId);
+      if (!select) return;
+      const filtered = (availableVideos || []).filter(v =>
+        !q || (v.originalName || v.filename).toLowerCase().includes(q)
+      );
+      select.innerHTML = '<option value="">Select a video...</option>' +
         filtered.map(v => `<option value="${v.path}">${v.originalName || v.filename}</option>`).join('');
-      select.innerHTML = html;
-      console.log(`[filter] select options count=${select.options.length}`);
     }
 
     function togglePathPopup() {
@@ -686,18 +720,14 @@
     }
 
     function addToPlaylist() {
-      const select = document.getElementById('videoSelect');
-      const path = select.value;
+      // Used by edit modal's native select only
+      const select = document.getElementById('editVideoSelect');
+      const path = select?.value;
       if (!path) return;
       const video = availableVideos.find(v => v.path === path);
       if (!video) return;
-      playlist.push({ path: video.path, name: video.originalName });
-      renderPlaylist();
-      if (playlist.length > 1 && checkMixedCodecs(playlist)) {
-        const msg = document.getElementById('modalMessage');
-        msg.style.color = '#f59e0b';
-        msg.textContent = 'Mixed video formats detected in your playlist. Mixing HEVC (H.265) and H.264 videos may cause stream interruptions. We recommend using videos in the same format.';
-      }
+      editPlaylist.push({ path: video.path, name: video.originalName });
+      renderEditPlaylist();
     }
 
     function removeFromPlaylist(index) {
@@ -1411,6 +1441,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       document.getElementById('modalOverlay').classList.add('active');
       document.getElementById('modalMessage').textContent = '';
       document.getElementById('videoSearch').value = '';
+      document.getElementById('videoDropdown').style.display = 'none';
       document.getElementById('folderFilter').value = '';
       document.getElementById('pathPopup').style.display = 'none';
       await loadVideos();
