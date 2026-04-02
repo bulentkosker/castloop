@@ -382,20 +382,19 @@
       <div class="form-group">
         <label>Playlist</label>
         <div class="playlist-builder">
-          <div style="display:flex;gap:6px;margin-bottom:6px;">
-            <select id="folderFilter" onchange="filterVideoSelect('videoSearch','videoSelect')" style="padding:8px 10px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;">
+          <div class="playlist-add" style="display:flex;gap:6px;align-items:center;">
+            <select id="folderFilter" onchange="filterVideoSelect('videoSearch','videoSelect')" style="padding:8px 8px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:12px;max-width:120px;">
               <option value="">All folders</option>
             </select>
-            <input type="text" id="videoSearch" placeholder="Search videos..." oninput="filterVideoSelect('videoSearch','videoSelect')" style="flex:1;padding:8px 12px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;">
-          </div>
-          <div class="playlist-add">
-            <select id="videoSelect"><option value="">Loading videos...</option></select>
+            <select id="videoSelect" style="flex:1;"><option value="">Loading videos...</option></select>
             <button class="btn-add" onclick="addToPlaylist()">+ Add</button>
+            <button class="btn-add" onclick="togglePathPopup()" title="Paste video path" style="padding:6px 10px;">📋</button>
           </div>
-          <div style="display:flex;gap:6px;margin-top:6px;align-items:center;">
-            <input type="text" id="manualPathInput" placeholder="Or paste video path manually..." style="flex:1;padding:8px 12px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:12px;">
-            <button class="btn-add" onclick="addManualPath('manualPathInput')" style="white-space:nowrap;">+ Add Path</button>
+          <div id="pathPopup" style="display:none;margin-top:6px;display:none;flex-direction:row;gap:6px;align-items:center;">
+            <input type="text" id="manualPathInput" placeholder="Paste video path..." style="flex:1;padding:8px 12px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:12px;">
+            <button class="btn-add" onclick="addManualPath('manualPathInput'); togglePathPopup();">Add</button>
           </div>
+          <input type="text" id="videoSearch" placeholder="Search videos..." oninput="filterVideoSelect('videoSearch','videoSelect')" style="width:100%;padding:7px 12px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:12px;margin-top:6px;">
           <div class="playlist-items" id="playlistItems">
             <div class="playlist-empty">No videos added yet</div>
           </div>
@@ -647,6 +646,11 @@
             return true;
           })
           .map(v => `<option value="${v.path}">${v.originalName || v.filename}</option>`).join('');
+    }
+
+    function togglePathPopup() {
+      const p = document.getElementById('pathPopup');
+      p.style.display = p.style.display === 'flex' ? 'none' : 'flex';
     }
 
     function addManualPath(inputId) {
