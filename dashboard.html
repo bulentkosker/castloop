@@ -635,10 +635,10 @@
     }
 
     function updateVideoDropdown() {
-      const q = (document.getElementById('videoSearch')?.value || '').toLowerCase();
+      const q = (document.getElementById('videoSearch')?.value || '').normalize('NFC').toLowerCase();
       const folderId = document.getElementById('folderFilter')?.value || '';
       const filtered = (availableVideos || []).filter(v => {
-        if (q && !(v.originalName || v.filename).toLowerCase().includes(q)) return false;
+        if (q && !(v.originalName || v.filename).normalize('NFC').toLowerCase().includes(q)) return false;
         if (folderId && v.folder_id !== folderId) return false;
         return true;
       });
@@ -677,11 +677,11 @@
 
     // Keep for edit modal compatibility
     function filterVideoSelect(searchId, selectId) {
-      const q = (document.getElementById(searchId)?.value || '').toLowerCase();
+      const q = (document.getElementById(searchId)?.value || '').normalize('NFC').toLowerCase();
       const select = document.getElementById(selectId);
       if (!select) return;
       const filtered = (availableVideos || []).filter(v =>
-        !q || (v.originalName || v.filename).toLowerCase().includes(q)
+        !q || (v.originalName || v.filename).normalize('NFC').toLowerCase().includes(q)
       );
       select.innerHTML = '<option value="">Select a video...</option>' +
         filtered.map(v => `<option value="${v.path}">${v.originalName || v.filename}</option>`).join('');
