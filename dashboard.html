@@ -386,7 +386,7 @@
             <select id="folderFilter" onchange="filterVideoSelect('videoSearch','videoSelect')" style="padding:8px 8px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:12px;max-width:120px;">
               <option value="">All folders</option>
             </select>
-            <select id="videoSelect" style="flex:1;"><option value="">Loading videos...</option></select>
+            <select id="videoSelect" style="flex:1;min-width:0;"><option value="">Loading videos...</option></select>
             <button class="btn-add" onclick="addToPlaylist()">+ Add</button>
             <button class="btn-add" onclick="togglePathPopup()" title="Paste video path" style="padding:6px 10px;">📋</button>
           </div>
@@ -646,9 +646,11 @@
         if (folderId && v.folder_id !== folderId) return false;
         return true;
       });
-      console.log(`[filter] matched=${filtered.length}`);
-      select.innerHTML = '<option value="">Select a video...</option>' +
+      console.log(`[filter] matched=${filtered.length}, selectId=${selectId}, selectEl=`, select);
+      const html = '<option value="">Select a video...</option>' +
         filtered.map(v => `<option value="${v.path}">${v.originalName || v.filename}</option>`).join('');
+      select.innerHTML = html;
+      console.log(`[filter] select options count=${select.options.length}`);
     }
 
     function togglePathPopup() {
