@@ -155,9 +155,10 @@ function getVideoMetadata(filePath) {
 // --- Bitrate normalization queue ---
 const normalizeQueue = [];
 let normalizeRunning = false;
-const normalizeProgress = {}; // { filename: { status, percent } }
-let normalizeCurrentFile = null; // filename currently being normalized
-let normalizeCurrentProcess = null; // active FFmpeg child process
+const normalizeProgress = {}; // { filename: { percent } }
+const normalizingFiles = new Set(); // filenames currently normalizing or queued
+let normalizeCurrentFile = null;
+let normalizeCurrentProcess = null;
 
 function enqueueNormalize(filePath, width, height, bitrateBps, metaFile, filename) {
   const bitrateMbps = bitrateBps ? bitrateBps / 1_000_000 : 0;
@@ -175,18 +176,8 @@ function enqueueNormalize(filePath, width, height, bitrateBps, metaFile, filenam
   }
 
   console.log(`[normalize] Queued ${filename}: ${bitrateMbps.toFixed(1)} Mbps → target ${targetKbps / 1000} Mbps`);
-  normalizeProgress[filename] = { status: 'running', percent: 0 };
-  // Write normalizing flag to _meta.json
-  try {
-    let meta = {};
-    if (fs.existsSync(metaFile)) meta = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
-    if (!meta[filename]) meta[filename] = {};
-    meta[filename].normalizing = true;
-    fs.writeFileSync(metaFile, JSON.stringify(meta));
-    console.log(`[normalize] Set normalizing=true in meta for ${filename}`);
-  } catch (e) {
-    console.error(`[normalize] Failed to write normalizing flag for ${filename}:`, e.message);
-  }
+  normalizingFiles.add(filename);
+  normalizeProgress[filename] = { percent: 0 };
   normalizeQueue.push({ filePath, targetKbps, metaFile, filename });
   processNormalizeQueue();
 }
@@ -204,7 +195,6 @@ async function processNormalizeQueue() {
   // Get duration for progress calculation
   const preMeta = await getVideoMetadata(filePath);
   const totalDuration = preMeta.duration || 0;
-  normalizeProgress[filename] = { status: 'running', percent: 0 };
 
   normalizeCurrentFile = filename;
 
@@ -258,31 +248,21 @@ async function processNormalizeQueue() {
       meta[filename].width = resolution.width;
       meta[filename].height = resolution.height;
       meta[filename].normalized = true;
-      delete meta[filename].normalizing;
       const quality = checkVideoQuality(resolution.width, resolution.height, newMeta.bitrate);
       meta[filename].low_quality = quality.low_quality;
       fs.writeFileSync(metaFile, JSON.stringify(meta));
-      console.log(`[normalize] Cleared normalizing flag, set normalized=true for ${filename}`);
     } catch (e) {
       console.error(`[normalize] Failed to update meta for ${filename}:`, e.message);
     }
 
-    normalizeProgress[filename] = { status: 'done', percent: 100 };
+    normalizingFiles.delete(filename);
+    delete normalizeProgress[filename];
     console.log(`[normalize] Done ${filename}: new bitrate ${newMeta.bitrate ? (newMeta.bitrate / 1_000_000).toFixed(1) : '?'} Mbps`);
   } catch (err) {
     console.error(`[normalize] Failed ${filename}:`, err.message);
-    normalizeProgress[filename] = { status: 'idle', percent: 0 };
-    // Clean up temp file, original is preserved
+    normalizingFiles.delete(filename);
+    delete normalizeProgress[filename];
     if (fs.existsSync(tmpOut)) fs.unlinkSync(tmpOut);
-    // Clear normalizing flag in meta
-    try {
-      let meta = {};
-      if (fs.existsSync(metaFile)) meta = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
-      if (meta[filename]) { delete meta[filename].normalizing; fs.writeFileSync(metaFile, JSON.stringify(meta)); }
-      console.log(`[normalize] Cleared normalizing flag after error for ${filename}`);
-    } catch (e2) {
-      console.error(`[normalize] Failed to clear normalizing flag for ${filename}:`, e2.message);
-    }
   }
 
   normalizeCurrentFile = null;
@@ -809,37 +789,22 @@ app.get('/videos', async (req, res) => {
     meta[f].bitrate = metadata.bitrate;
     meta[f].codec = metadata.codec;
     meta[f].low_quality = quality.low_quality;
-    // Include normalize status: in-memory (authoritative) or meta flag (persistent)
-    const np = normalizeProgress[f];
-    if ((np && np.status === 'running') || meta[f]?.normalizing === true) {
+    // Normalize status: purely in-memory, no race conditions
+    if (normalizingFiles.has(f)) {
       item.normalizing = true;
-      item.normalize_percent = np ? np.percent : 0;
+      item.normalize_percent = normalizeProgress[f]?.percent || 0;
     }
     return item;
   }));
-  // Re-read meta to avoid clobbering normalizing flags set by enqueueNormalize during ffprobe calls
-  let freshMeta = {};
-  try { if (fs.existsSync(metaFile)) freshMeta = JSON.parse(fs.readFileSync(metaFile, 'utf8')); } catch {}
-  for (const f of fileNames) {
-    if (!freshMeta[f] || typeof freshMeta[f] !== 'object') freshMeta[f] = {};
-    // Merge only non-normalize fields from our scan
-    if (meta[f]) {
-      freshMeta[f].duration = meta[f].duration;
-      freshMeta[f].fps = meta[f].fps;
-      freshMeta[f].bitrate = meta[f].bitrate;
-      freshMeta[f].codec = meta[f].codec;
-      freshMeta[f].low_quality = meta[f].low_quality;
-    }
-    // Preserve normalizing/normalized flags from freshMeta (don't overwrite)
-  }
-  try { fs.writeFileSync(metaFile, JSON.stringify(freshMeta, null, 2)); } catch (e) {}
+  try { fs.writeFileSync(metaFile, JSON.stringify(meta, null, 2)); } catch (e) {}
   res.json(files);
 });
 
 app.get('/normalize-progress/:filename', (req, res) => {
   const filename = req.params.filename;
-  const np = normalizeProgress[filename];
-  if (np) return res.json(np);
+  if (normalizingFiles.has(filename)) {
+    return res.json({ status: 'running', percent: normalizeProgress[filename]?.percent || 0 });
+  }
   res.json({ status: 'idle', percent: 0 });
 });
 
@@ -1006,6 +971,7 @@ app.delete('/videos/:filename', (req, res) => {
   // Remove from normalize queue if queued
   const qIdx = normalizeQueue.findIndex(j => j.filename === filename);
   if (qIdx !== -1) normalizeQueue.splice(qIdx, 1);
+  normalizingFiles.delete(filename);
   delete normalizeProgress[filename];
 
   // Delete main video file
