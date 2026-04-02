@@ -809,21 +809,30 @@ app.get('/videos', async (req, res) => {
     meta[f].bitrate = metadata.bitrate;
     meta[f].codec = metadata.codec;
     meta[f].low_quality = quality.low_quality;
-    // Include normalize status: check both meta (persistent) and in-memory progress
+    // Include normalize status: in-memory (authoritative) or meta flag (persistent)
     const np = normalizeProgress[f];
-    const metaNormalizing = meta[f]?.normalizing === true;
-    const memNormalizing = np && (np.status === 'running');
-    if (metaNormalizing || memNormalizing) {
+    if ((np && np.status === 'running') || meta[f]?.normalizing === true) {
       item.normalizing = true;
       item.normalize_percent = np ? np.percent : 0;
-      // Ensure meta flag stays in sync
-      if (!metaNormalizing && memNormalizing) {
-        meta[f].normalizing = true;
-      }
     }
     return item;
   }));
-  try { fs.writeFileSync(metaFile, JSON.stringify(meta, null, 2)); } catch (e) {}
+  // Re-read meta to avoid clobbering normalizing flags set by enqueueNormalize during ffprobe calls
+  let freshMeta = {};
+  try { if (fs.existsSync(metaFile)) freshMeta = JSON.parse(fs.readFileSync(metaFile, 'utf8')); } catch {}
+  for (const f of fileNames) {
+    if (!freshMeta[f] || typeof freshMeta[f] !== 'object') freshMeta[f] = {};
+    // Merge only non-normalize fields from our scan
+    if (meta[f]) {
+      freshMeta[f].duration = meta[f].duration;
+      freshMeta[f].fps = meta[f].fps;
+      freshMeta[f].bitrate = meta[f].bitrate;
+      freshMeta[f].codec = meta[f].codec;
+      freshMeta[f].low_quality = meta[f].low_quality;
+    }
+    // Preserve normalizing/normalized flags from freshMeta (don't overwrite)
+  }
+  try { fs.writeFileSync(metaFile, JSON.stringify(freshMeta, null, 2)); } catch (e) {}
   res.json(files);
 });
 
