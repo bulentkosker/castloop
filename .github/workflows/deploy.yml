@@ -1,0 +1,64 @@
+name: Deploy to Servers
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.js'
+      - 'scheduler.js'
+
+jobs:
+  deploy-server1:
+    name: Deploy to server-1 (HD)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy index.js + restart
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER1_HOST }}
+          username: ${{ secrets.SERVER1_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /root/castloop
+            curl -sL https://raw.githubusercontent.com/bulentkosker/castloop/main/index.js -o index.js
+            curl -sL https://raw.githubusercontent.com/bulentkosker/castloop/main/scheduler.js -o scheduler.js
+            pm2 restart castloop-api
+            echo "server-1 deployed at $(date)"
+
+  deploy-server4k:
+    name: Deploy to server-4k (4K)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy index.js + restart
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER4K_HOST }}
+          username: ${{ secrets.SERVER4K_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /root/castloop
+            curl -sL https://raw.githubusercontent.com/bulentkosker/castloop/main/index.js -o index.js
+            curl -sL https://raw.githubusercontent.com/bulentkosker/castloop/main/scheduler.js -o scheduler.js
+            pm2 restart castloop-api
+            echo "server-4k deployed at $(date)"
+
+  deploy-auto:
+    name: Deploy to castloop-auto (HD)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy index.js + badges + restart
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.AUTO_HOST }}
+          username: ${{ secrets.AUTO_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /root/castloop
+            curl -sL https://raw.githubusercontent.com/bulentkosker/castloop/main/index.js -o index.js
+            curl -sL https://raw.githubusercontent.com/bulentkosker/castloop/main/scheduler.js -o scheduler.js
+            mkdir -p badges
+            for f in badge_live badge_live_streaming badge_247_live badge_nonstop badge_inf_247 badge_4k_uhd badge_full_hd; do
+              curl -sL "https://raw.githubusercontent.com/bulentkosker/castloop/main/badges/${f}.png" -o "badges/${f}.png"
+            done
+            pm2 restart castloop-api
+            echo "castloop-auto deployed at $(date)"
