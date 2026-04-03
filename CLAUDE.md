@@ -18,6 +18,7 @@ Three servers run the same `index.js` (FFmpeg streaming API):
 
 ### Workflow
 - Always proceed without asking for confirmation. Apply all changes directly without waiting for approval.
+- Her değişiklikten sonra `git add . && git commit && git push` yap. Sadece `index.js` değil, tüm değiştirilen dosyaları commit et.
 
 ### Supabase Keys
 - **NEVER** hardcode Supabase keys in source code
