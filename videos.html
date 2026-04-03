@@ -21,13 +21,12 @@
     .sidebar { width: var(--sidebar-w); background: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; top: 0; bottom: 0; left: 0; z-index: 60; }
     .sidebar-logo { padding: 24px 24px 28px; }
     .sidebar-logo a { display: block; text-decoration: none; line-height: 0; }
-    .logo-svg { width: 150px; height: 28px; display: block; }
+    .logo-svg { width: 130px; height: 36px; display: block; }
+    [data-theme="light"] .logo-c { stroke: #111827; }
     [data-theme="light"] .logo-t1 { fill: #111827; }
-    [data-theme="light"] .logo-arc { stroke: #4f46e5; }
-    [data-theme="light"] .logo-play { stop-color: #4f46e5; }
-    [data-theme="light"] .logo-wave { stroke: #4f46e5; }
-    [data-theme="light"] .logo-arrow { stroke: #4f46e5; }
     [data-theme="light"] .logo-t2 { fill: #4f46e5; }
+    [data-theme="light"] .logo-wave { stroke: #4f46e5; }
+    [data-theme="light"] .logo-play-tri { fill: #4f46e5; }
     .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 2px; padding: 0 12px; }
     .sidebar-link { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; font-size: 14px; font-weight: 500; color: var(--muted); text-decoration: none; transition: all 0.15s; }
     .sidebar-link:hover { background: rgba(99,102,241,0.06); color: var(--text); }
@@ -48,8 +47,8 @@
     /* Responsive: mobile sidebar */
     @media (max-width: 768px) {
       .sidebar { width: 60px; overflow: hidden; }
-      .sidebar-logo { padding: 18px 12px 20px; }
-      .logo-svg { width: 34px; }
+      .sidebar-logo { padding: 18px 10px 20px; }
+      .logo-svg { width: 36px; height: 36px; }
       .sidebar-link span:not(.sl-icon) { display: none; }
       .sidebar-link { justify-content: center; padding: 10px; }
       .sl-icon { margin: 0; }
@@ -259,25 +258,15 @@
   <div class="app-layout">
   <aside class="sidebar">
     <div class="sidebar-logo"><a href="dashboard.html" aria-label="CastLoop">
-      <svg class="logo-svg" viewBox="0 0 150 28" preserveAspectRatio="xMinYMid slice" fill="none">
-        <defs>
-          <linearGradient id="loopG" x1="4" y1="4" x2="24" y2="24" gradientUnits="userSpaceOnUse">
-            <stop class="logo-play" stop-color="#7b8cde"/>
-            <stop offset="1" class="logo-play" stop-color="#5b6af0"/>
-          </linearGradient>
-          <linearGradient id="playG" x1="10" y1="8" x2="19" y2="20" gradientUnits="userSpaceOnUse">
-            <stop class="logo-play" stop-color="#8b9aef"/>
-            <stop offset="1" class="logo-play" stop-color="#5b6af0"/>
-          </linearGradient>
-        </defs>
-        <path class="logo-arc" d="M22 8.3 A10 10 0 1 0 22 19.7" stroke="url(#loopG)" stroke-width="2.4" stroke-linecap="round"/>
-        <path class="logo-arrow" d="M20 22.2 L22 19.7 L24.5 21.5" stroke="#5b6af0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M10.5 8.5 L10.5 19.5 L18.5 14 Z" fill="url(#playG)"/>
-        <path class="logo-wave" d="M24 11 Q27 14 24 17" stroke="#5b6af0" stroke-width="1.6" stroke-linecap="round" opacity="0.55"/>
-        <path class="logo-wave" d="M27 9 Q31 14 27 19" stroke="#5b6af0" stroke-width="1.4" stroke-linecap="round" opacity="0.25"/>
-        <text x="36" y="20" font-family="Figtree,sans-serif" font-weight="800" font-size="18" letter-spacing="-0.5">
-          <tspan class="logo-t1" fill="#e8eaf0">Cast</tspan><tspan class="logo-t2" fill="#5b6af0">Loop</tspan>
+      <svg class="logo-svg" viewBox="0 0 130 36" preserveAspectRatio="xMinYMid slice" fill="none">
+        <path class="logo-c" d="M18 11.5 A9 9 0 1 0 18 24.5" stroke="#e8eaf0" stroke-width="3.6" stroke-linecap="round"/>
+        <path class="logo-c" d="M15.5 9 L18.5 11.8 L15 13.8" stroke="#e8eaf0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path class="logo-play-tri" d="M7 14 L7 22 L13.5 18 Z" fill="#5b6af0"/>
+        <text x="24" y="27" font-family="Figtree,sans-serif" font-weight="800" font-size="24" letter-spacing="-0.8">
+          <tspan class="logo-t1" fill="#e8eaf0">ast</tspan><tspan class="logo-t2" fill="#5b6af0">Loop</tspan>
         </text>
+        <path class="logo-wave" d="M112 14 Q116 18 112 22" stroke="#5b6af0" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+        <path class="logo-wave" d="M116 12 Q121 18 116 24" stroke="#5b6af0" stroke-width="1.3" stroke-linecap="round" opacity="0.2"/>
       </svg>
     </a></div>
     <nav class="sidebar-nav">
