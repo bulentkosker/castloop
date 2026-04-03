@@ -21,12 +21,9 @@
     .sidebar { width: var(--sidebar-w); background: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; top: 0; bottom: 0; left: 0; z-index: 60; }
     .sidebar-logo { padding: 24px 24px 28px; }
     .sidebar-logo a { display: block; text-decoration: none; line-height: 0; }
-    .logo-svg { width: 130px; height: 36px; display: block; }
-    [data-theme="light"] .logo-c { stroke: #111827; }
-    [data-theme="light"] .logo-t1 { fill: #111827; }
-    [data-theme="light"] .logo-t2 { fill: #4f46e5; }
-    [data-theme="light"] .logo-wave { stroke: #4f46e5; }
-    [data-theme="light"] .logo-play-tri { fill: #4f46e5; }
+    .logo-svg { width: 120px; height: 36px; display: block; }
+    [data-theme="light"] .logo-c { stroke: #1e1b4b; }
+    [data-theme="light"] .logo-t1 { fill: #1e1b4b; }
     .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 2px; padding: 0 12px; }
     .sidebar-link { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; font-size: 14px; font-weight: 500; color: var(--muted); text-decoration: none; transition: all 0.15s; }
     .sidebar-link:hover { background: rgba(99,102,241,0.06); color: var(--text); }
@@ -258,15 +255,17 @@
   <div class="app-layout">
   <aside class="sidebar">
     <div class="sidebar-logo"><a href="dashboard.html" aria-label="CastLoop">
-      <svg class="logo-svg" viewBox="0 0 130 36" preserveAspectRatio="xMinYMid slice" fill="none">
-        <path class="logo-c" d="M18 11.5 A9 9 0 1 0 18 24.5" stroke="#e8eaf0" stroke-width="3.6" stroke-linecap="round"/>
-        <path class="logo-c" d="M15.5 9 L18.5 11.8 L15 13.8" stroke="#e8eaf0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <path class="logo-play-tri" d="M7 14 L7 22 L13.5 18 Z" fill="#5b6af0"/>
+      <svg class="logo-svg" viewBox="0 0 120 36" preserveAspectRatio="xMinYMid slice" fill="none">
+        <defs>
+          <linearGradient id="loopGrad" x1="58" y1="0" x2="118" y2="0" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#818cf8"/>
+            <stop offset="100%" stop-color="#c084fc"/>
+          </linearGradient>
+        </defs>
+        <path class="logo-c" d="M19 24.5 A9.5 9.5 0 1 1 19 11.5 C17 9 14.5 9.8 15 12" stroke="#e8eaf0" stroke-width="3.5" stroke-linecap="round"/>
         <text x="24" y="27" font-family="Figtree,sans-serif" font-weight="800" font-size="24" letter-spacing="-0.8">
-          <tspan class="logo-t1" fill="#e8eaf0">ast</tspan><tspan class="logo-t2" fill="#5b6af0">Loop</tspan>
+          <tspan class="logo-t1" fill="#e8eaf0">ast</tspan><tspan fill="url(#loopGrad)">Loop</tspan>
         </text>
-        <path class="logo-wave" d="M112 14 Q116 18 112 22" stroke="#5b6af0" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
-        <path class="logo-wave" d="M116 12 Q121 18 116 24" stroke="#5b6af0" stroke-width="1.3" stroke-linecap="round" opacity="0.2"/>
       </svg>
     </a></div>
     <nav class="sidebar-nav">
