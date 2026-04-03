@@ -13,12 +13,12 @@
     /* Inter loaded in head */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'DM Sans', 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; transition: background 0.3s, color 0.3s; }
-    :root { --bg:#10121a; --bg2:#171923; --bg3:#1e2130; --border:#262a3a; --accent:#6366f1; --accent2:#818cf8; --text:#e8e8f0; --muted:#7a7d8e; --green:#34d399; --red:#f87171; --sidebar-w:240px; }
-    [data-theme="light"] { --bg:#f4f5f9; --bg2:#ffffff; --bg3:#eef0f6; --border:#d8dae5; --accent:#6366f1; --accent2:#4f46e5; --text:#111827; --muted:#4b5563; --green:#059669; --red:#dc2626; }
+    :root { --bg:#0f1117; --bg2:#1a1d27; --bg3:#1e2130; --border:#2a2d3a; --accent:#6366f1; --accent2:#818cf8; --text:#e8eaf0; --muted:#8b90a0; --green:#34d399; --red:#f87171; --sidebar-w:240px; --sidebar-bg:#13161e; }
+    [data-theme="light"] { --bg:#f4f5f9; --bg2:#ffffff; --bg3:#eef0f6; --border:#d8dae5; --accent:#6366f1; --accent2:#4f46e5; --text:#111827; --muted:#4b5563; --green:#059669; --red:#dc2626; --sidebar-bg:#ffffff; }
 
     /* ── Sidebar Layout ── */
     .app-layout { display: flex; min-height: 100vh; }
-    .sidebar { width: var(--sidebar-w); background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; top: 0; bottom: 0; left: 0; z-index: 60; }
+    .sidebar { width: var(--sidebar-w); background: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; top: 0; bottom: 0; left: 0; z-index: 60; }
     .sidebar-logo { padding: 24px 24px 28px; }
     .sidebar-logo a { font-family: 'Figtree', sans-serif; font-size: 22px; font-weight: 800; color: var(--accent2); text-decoration: none; letter-spacing: -0.5px; }
     .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 2px; padding: 0 12px; }
@@ -115,15 +115,15 @@
     .modal-message.success { color: #34d399; }
 
     /* Playlist styles */
-    .playlist-builder { background: #0f0f1a; border: 1px solid #2a2a3e; border-radius: 8px; padding: 12px; }
+    .playlist-builder { background: #0f1117; border: 1px solid #2a2d3a; border-radius: 8px; padding: 12px; }
     .playlist-add { display: flex; gap: 8px; margin-bottom: 10px; }
-    .playlist-add select { flex: 1; padding: 8px 12px; background: #0f0f1a; border: 1px solid #2a2a3e; border-radius: 8px; color: #fff; font-size: 13px; outline: none; }
+    .playlist-add select { flex: 1; padding: 8px 12px; background: #0f1117; border: 1px solid #2a2d3a; border-radius: 8px; color: #fff; font-size: 13px; outline: none; }
     .btn-add { background: #6366f1; color: #fff; border: none; padding: 8px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; white-space: nowrap; }
     .playlist-items { display: flex; flex-direction: column; gap: 6px; min-height: 40px; }
-    .playlist-item { display: flex; align-items: center; gap: 8px; background: #1a1a2e; border: 1px solid #2a2a3e; border-radius: 6px; padding: 8px 10px; font-size: 13px; }
+    .playlist-item { display: flex; align-items: center; gap: 8px; background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 6px; padding: 8px 10px; font-size: 13px; }
     .playlist-item .order-num { color: #6366f1; font-weight: 700; width: 20px; }
-    .playlist-item .item-name { flex: 1; color: #ddd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .playlist-item .btn-move { background: transparent; border: none; color: #555; cursor: pointer; font-size: 14px; padding: 2px 4px; }
+    .playlist-item .item-name { flex: 1; color: #e8eaf0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .playlist-item .btn-move { background: transparent; border: none; color: #8b90a0; cursor: pointer; font-size: 14px; padding: 2px 4px; }
     .playlist-item .btn-move:hover { color: #fff; }
     .playlist-item .btn-remove { background: transparent; border: none; color: var(--red); cursor: pointer; font-size: 14px; padding: 2px 4px; }
     .playlist-empty { color: var(--muted); font-size: 13px; text-align: center; padding: 12px; }
@@ -204,7 +204,7 @@
     .btn-edit:disabled, .btn-delete:disabled { opacity: 0.3; cursor: not-allowed; }
     .sched-row .date-row { margin-bottom: 8px; }
     .sched-row .date-row label { color: #aaa; font-size: 11px; display: block; }
-    .sched-row .date-row input[type="date"] { width: 100%; padding: 8px; background: #0f0f1a; border: 1px solid #2a2a3e; color: #f0f0ff; border-radius: 6px; font-size: 13px; margin-top: 3px; font-family: inherit; color-scheme: dark; }
+    .sched-row .date-row input[type="date"] { width: 100%; padding: 8px; background: #0f1117; border: 1px solid #2a2d3a; color: #e8eaf0; border-radius: 6px; font-size: 13px; margin-top: 3px; font-family: inherit; color-scheme: dark; }
     .sched-row { position: relative; padding: 14px; background: rgba(99,102,241,0.04); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; }
     .sched-row-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
     .sched-row-header span { font-size: 12px; color: var(--accent2); font-weight: 600; }
@@ -213,10 +213,10 @@
     .sched-row .time-row { display: flex; gap: 10px; margin-bottom: 8px; align-items: flex-end; }
     .sched-row .time-row > div { flex: 1; }
     .sched-row .time-row label { color: #aaa; font-size: 11px; display: block; }
-    .sched-row .time-row input, .sched-row .time-row select { width: 100%; padding: 8px; background: #0f0f1a; border: 1px solid #2a2a3e; color: #f0f0ff; border-radius: 6px; font-size: 13px; margin-top: 3px; }
+    .sched-row .time-row input, .sched-row .time-row select { width: 100%; padding: 8px; background: #0f1117; border: 1px solid #2a2d3a; color: #e8eaf0; border-radius: 6px; font-size: 13px; margin-top: 3px; }
     .sched-row .dur-group { display: flex; gap: 6px; }
     .sched-row .dur-group > div { flex: 1; }
-    .sched-row .dur-group select { width: 100%; padding: 8px; background: #0f0f1a; border: 1px solid #2a2a3e; color: #f0f0ff; border-radius: 6px; font-size: 13px; margin-top: 3px; }
+    .sched-row .dur-group select { width: 100%; padding: 8px; background: #0f1117; border: 1px solid #2a2d3a; color: #e8eaf0; border-radius: 6px; font-size: 13px; margin-top: 3px; }
     .sched-row .end-preview { font-size: 11px; color: var(--accent2); margin-top: 4px; margin-bottom: 4px; }
     .sched-overlap-warn { font-size: 11px; color: #f87171; margin-top: 4px; margin-bottom: 4px; padding: 4px 8px; background: rgba(248,113,113,0.08); border-radius: 4px; display: none; }
 
@@ -495,7 +495,7 @@
   <div class="modal-overlay" id="deleteModalOverlay">
     <div class="modal" style="max-width:380px">
       <h3 style="color:#f87171">Delete Stream</h3>
-      <p style="color:#aaa;font-size:14px;margin:16px 0">Are you sure you want to delete <strong id="deleteStreamName" style="color:#fff"></strong>? This cannot be undone.</p>
+      <p style="color:#8b90a0;font-size:14px;margin:16px 0">Are you sure you want to delete <strong id="deleteStreamName" style="color:#fff"></strong>? This cannot be undone.</p>
       <input type="hidden" id="deleteStreamId">
       <input type="hidden" id="deleteStreamStatus">
       <div class="modal-actions">
@@ -512,8 +512,8 @@
       <input type="hidden" id="scheduleStreamId">
 
       <div style="margin-top:16px;">
-        <label style="color:#aaa;font-size:12px;">Timezone</label>
-        <select id="scheduleTz" style="width:100%;padding:10px;background:#0f0f1a;border:1px solid #2a2a3e;color:#f0f0ff;border-radius:8px;font-size:14px;margin-top:4px;margin-bottom:16px;">
+        <label style="color:#8b90a0;font-size:12px;">Timezone</label>
+        <select id="scheduleTz" style="width:100%;padding:10px;background:#0f1117;border:1px solid #2a2d3a;color:#e8eaf0;border-radius:8px;font-size:14px;margin-top:4px;margin-bottom:16px;">
         </select>
 
         <div id="scheduleRows"></div>
@@ -1788,7 +1788,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
 
       return `<div class="sched-row" data-idx="${idx}" data-db-id="${dbId}">
         <div class="sched-row-header">
-          <label style="color:#aaa;font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;">
+          <label style="color:#8b90a0;font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;">
             <input type="checkbox" name="${id}_enabled" ${enabled ? 'checked' : ''} style="width:16px;height:16px;accent-color:#6366f1;" onchange="checkOverlaps()">
             <span>Enabled</span>
           </label>
