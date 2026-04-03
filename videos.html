@@ -20,11 +20,11 @@
     .app-layout { display: flex; min-height: 100vh; }
     .sidebar { width: var(--sidebar-w); background: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; top: 0; bottom: 0; left: 0; z-index: 60; }
     .sidebar-logo { padding: 24px 24px 28px; }
-    .sidebar-logo a { font-family: 'Figtree', sans-serif; font-size: 22px; font-weight: 800; color: var(--accent2); text-decoration: none; letter-spacing: -0.5px; }
+    .sidebar-logo a { font-family: 'Figtree', sans-serif; font-size: 22px; font-weight: 800; color: #e8eaf0; text-decoration: none; letter-spacing: -0.5px; }
     .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 2px; padding: 0 12px; }
     .sidebar-link { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; font-size: 14px; font-weight: 500; color: var(--muted); text-decoration: none; transition: all 0.15s; }
     .sidebar-link:hover { background: rgba(99,102,241,0.06); color: var(--text); }
-    .sidebar-link.active { background: rgba(99,102,241,0.12); color: var(--accent2); font-weight: 600; border-left: 3px solid var(--accent); padding-left: 11px; }
+    .sidebar-link.active { background: rgba(91,106,240,0.10); color: #5b6af0; font-weight: 600; border-left: 3px solid #5b6af0; padding-left: 11px; }
     .sl-icon { font-size: 16px; width: 22px; text-align: center; }
     .sidebar-bottom { padding: 16px 12px; border-top: 1px solid var(--border); }
     .sidebar-user { position: relative; }
@@ -33,7 +33,7 @@
     .sidebar-user-btn .avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
     .sidebar-user-info { flex: 1; text-align: left; overflow: hidden; }
     .sidebar-user-email { display: block; font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .sidebar-user-plan { display: block; font-size: 11px; color: var(--accent2); font-weight: 600; }
+    .sidebar-user-plan { display: block; font-size: 11px; color: #7b8cde; font-weight: 600; }
     .sidebar-user-btn .chevron { color: var(--muted); font-size: 9px; flex-shrink: 0; }
     .user-dropdown { position: absolute; bottom: calc(100% + 8px); left: 0; right: 0; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; z-index: 200; box-shadow: 0 -8px 24px rgba(0,0,0,0.4); opacity: 0; pointer-events: none; transform: translateY(8px); transition: all 0.15s; }
     .sidebar-user.open .user-dropdown { opacity: 1; pointer-events: all; transform: translateY(0); }
@@ -54,7 +54,7 @@
     /* Dropdown items kept for sidebar */
     .dropdown-header { padding: 12px 16px; border-bottom: 1px solid var(--border); }
     .dropdown-header .d-email { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .dropdown-header .d-plan { font-size: 11px; color: var(--accent2); font-weight: 600; margin-top: 2px; }
+    .dropdown-header .d-plan { font-size: 11px; color: #7b8cde; font-weight: 600; margin-top: 2px; }
     .dropdown-item {
       display: flex; align-items: center; gap: 10px;
       padding: 10px 16px; font-size: 13px; color: var(--text);
@@ -140,7 +140,7 @@
       letter-spacing: -0.2px;
       transition: color 0.15s;
     }
-    .video-name-btn:hover { color: var(--accent2); }
+    .video-name-btn:hover { color: #7b8cde; }
     .video-original-name {
       font-size: 15px;
       font-weight: 700;
@@ -172,15 +172,16 @@
     .video-meta { font-size: 12px; color: var(--muted); line-height: 1.6; }
     .folder-tab { padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 12px; cursor: pointer; font-family: inherit; transition: all 0.15s; }
     .folder-tab:hover { border-color: var(--accent2); color: var(--text); }
-    .folder-tab.active { background: rgba(99,102,241,0.12); border-color: var(--accent2); color: var(--accent2); font-weight: 600; }
+    .folder-tab.active { background: rgba(91,106,240,0.08); border-color: #5b6af0; color: #7b8cde; font-weight: 600; }
     .folder-add-btn { padding: 5px 10px; border-radius: 6px; border: 1px dashed var(--border); background: transparent; color: var(--muted); font-size: 12px; cursor: pointer; font-family: inherit; }
     .folder-add-btn:hover { border-color: var(--accent2); color: var(--accent2); }
     .folder-del { margin-left: 4px; font-size: 10px; opacity: 0.5; cursor: pointer; }
     .folder-del:hover { opacity: 1; color: #f87171; }
     .video-actions { display: flex; gap: 8px; justify-content: flex-end; }
-    .btn-delete { background: transparent; color: #f87171; border: 1px solid #f87171; padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; }
-    .btn-copy { background: #6366f1; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600; }
-    .btn-copy:hover { background: #4f46e5; }
+    .btn-delete { background: transparent; color: #9095a8; border: 1px solid #2a2d3a; padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+    .btn-delete:hover { background: rgba(144,149,168,0.08); border-color: #9095a8; }
+    .btn-copy { background: transparent; color: #9095a8; border: 1px solid #2a2d3a; padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+    .btn-copy:hover { background: rgba(144,149,168,0.08); border-color: #9095a8; }
     .empty-state { background: #1a1d27; border: 1px dashed #2a2d3a; border-radius: 12px; padding: 48px; text-align: center; color: #8b90a0; }
     .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
     .empty-state p { font-size: 14px; }
