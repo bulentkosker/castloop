@@ -47,15 +47,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #080810;
-      --bg2: #0f0f1a;
-      --bg3: #1a1a2e;
-      --border: #1e1e35;
+      --bg: #0f1117;
+      --bg2: #1a1d27;
+      --bg3: #1e2130;
+      --border: #2a2d3a;
       --accent: #14b8a6;
       --accent2: #5eead4;
       --accent-glow: rgba(94,234,212,0.15);
-      --text: #f0f0ff;
-      --muted: #6b6b8a;
+      --text: #e8eaf0;
+      --muted: #8b90a0;
       --green: #34d399;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -77,7 +77,7 @@
       backdrop-filter: blur(0px);
     }
     nav.scrolled {
-      background: rgba(8,8,16,0.85);
+      background: rgba(15,17,23,0.85);
       border-color: var(--border);
       backdrop-filter: blur(20px);
       padding: 14px 48px;
@@ -186,7 +186,7 @@
     }
     .btn-secondary:hover { border-color: var(--accent); color: var(--accent2); }
     .hero-note { font-size: 12px; color: var(--muted); margin-top: 14px; position: relative; z-index: 1; }
-    .live-marquee { position: relative; z-index: 1; width: 100vw; overflow: hidden; margin-top: 48px; padding: 14px 0; border-top: 1px solid rgba(94,234,212,0.1); border-bottom: 1px solid rgba(94,234,212,0.1); background: rgba(8,8,16,0.6); backdrop-filter: blur(8px);
+    .live-marquee { position: relative; z-index: 1; width: 100vw; overflow: hidden; margin-top: 48px; padding: 14px 0; border-top: 1px solid rgba(94,234,212,0.1); border-bottom: 1px solid rgba(94,234,212,0.1); background: rgba(15,17,23,0.6); backdrop-filter: blur(8px);
       mask-image: linear-gradient(90deg, transparent 0%, black 8%, black 92%, transparent 100%); -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 8%, black 92%, transparent 100%); }
     .live-marquee-track { display: flex; gap: 32px; width: max-content; animation: marquee-scroll 90s linear infinite; }
     .marquee-item { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text); white-space: nowrap; font-weight: 500; }
