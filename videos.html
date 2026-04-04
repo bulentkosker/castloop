@@ -96,7 +96,7 @@
     .videos-list { display: flex; flex-direction: column; gap: 6px; }
     .video-row {
       display: grid;
-      grid-template-columns: 96px minmax(180px, 2fr) minmax(220px, 1.6fr) auto;
+      grid-template-columns: 32px 96px minmax(180px, 2fr) minmax(220px, 1.6fr) auto;
       align-items: center;
       gap: 12px;
       background: var(--bg2);
@@ -105,6 +105,7 @@
       padding: 0 16px 0 0;
       transition: all 0.2s;
     }
+    .video-row .check-col { display:flex; align-items:center; justify-content:center; }
     .video-row:hover { border-color: rgba(94,234,212,0.25); background: rgba(94,234,212,0.03); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
     .video-row.dragging { opacity: 0.55; }
     .video-row.drag-over { border-color: var(--accent2); background: rgba(94,234,212,0.06); }
@@ -214,6 +215,18 @@
     .modal-confirm:hover{background:#ef4444;}
     .modal-confirm.info{background:#14b8a6;}
     .modal-confirm.info:hover{background:#0d9488;}
+    /* Bulk selection */
+    .bulk-bar { display:none; align-items:center; gap:12px; padding:12px 16px; background:var(--bg2); border:1px solid var(--border); border-radius:10px; margin-bottom:12px; }
+    .bulk-bar.active { display:flex; }
+    .bulk-bar .bulk-count { font-size:13px; font-weight:600; color:var(--text); flex:1; }
+    .bulk-bar .bulk-btn { background:transparent; color:#9095a8; border:1px solid #2a2d3a; padding:6px 14px; border-radius:6px; font-size:12px; cursor:pointer; font-family:inherit; transition:all 0.2s; }
+    .bulk-bar .bulk-btn:hover { border-color:#9095a8; background:rgba(144,149,168,0.08); }
+    .bulk-bar .bulk-btn.danger:hover { border-color:#f87171; color:#f87171; background:rgba(248,113,113,0.08); }
+    .bulk-bar select { padding:6px 10px; background:var(--bg); border:1px solid var(--border); color:var(--muted); border-radius:6px; font-size:12px; font-family:inherit; cursor:pointer; }
+    .select-all-row { display:flex; align-items:center; gap:8px; padding:8px 12px; margin-bottom:6px; }
+    .select-all-row label { font-size:12px; color:var(--muted); cursor:pointer; display:flex; align-items:center; gap:6px; }
+    .video-checkbox { width:16px; height:16px; accent-color:#14b8a6; cursor:pointer; flex-shrink:0; }
+
     .toast{position:fixed;bottom:24px;right:24px;background:#1a1d27;border:1px solid #2a2d3a;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;z-index:2000;transform:translateY(20px);opacity:0;transition:all 0.3s;pointer-events:none;}
     .toast.active{transform:translateY(0);opacity:1;}
     .toast.success{border-color:#34d399;color:#34d399;}
@@ -234,14 +247,15 @@
 
     @media (max-width: 900px) {
       .video-row {
-        grid-template-columns: 80px 1fr auto;
+        grid-template-columns: 28px 80px 1fr auto;
         grid-template-areas:
-          'thumb name actions'
-          'thumb meta meta';
+          'check thumb name actions'
+          'check thumb meta meta';
         row-gap: 4px;
         padding: 6px;
       }
       .video-thumb, .video-thumb-fallback { width: 80px; height: 45px; }
+      .video-row .check-col { grid-area: check; }
       .video-row .thumb-col { grid-area: thumb; }
       .video-row .video-name-wrap { grid-area: name; }
       .video-row .video-meta { grid-area: meta; }
@@ -363,6 +377,15 @@
       <button class="folder-tab" data-folder="unfiled" onclick="selectFolder('unfiled')">Unfiled</button>
       <span id="folderTabs"></span>
       <button class="folder-add-btn" onclick="createFolder()" title="New folder">+ Folder</button>
+    </div>
+    <div class="bulk-bar" id="bulkBar">
+      <span class="bulk-count" id="bulkCount">0 selected</span>
+      <select id="bulkMoveFolder" onchange="bulkMoveToFolder(this.value); this.value=''">
+        <option value="" selected disabled>Move to folder...</option>
+        <option value="__unfiled">Unfiled</option>
+      </select>
+      <button class="bulk-btn danger" onclick="bulkDelete()">Delete</button>
+      <button class="bulk-btn" onclick="clearSelection()">Cancel</button>
     </div>
     <div id="videosContainer">
       <div class="empty-state"><div class="icon">🎬</div><p>No videos yet. Upload your first video!</p></div>
@@ -1024,7 +1047,7 @@
       }
 
       const nameOverrides = loadNameOverrides();
-      container.innerHTML = `<div class="videos-list">${filtered.map((v, i) => {
+      container.innerHTML = `<div class="select-all-row"><label><input type="checkbox" class="video-checkbox" id="selectAllCb" onchange="toggleSelectAll(this.checked)"> Select all</label></div><div class="videos-list">${filtered.map((v, i) => {
         const metaId = makeMetaId(v, i);
         const displayName = nameOverrides[v.filename] || v.originalName || v.filename;
         const isEditing = editingVideoFilename === v.filename;
@@ -1033,6 +1056,7 @@
         const pct = v.normalize_percent || 0;
         return `
         <div class="video-row" draggable="true" data-filename="${v.filename}">
+          <div class="check-col"><input type="checkbox" class="video-checkbox row-cb" data-fn="${escapeHtml(v.filename)}" onchange="updateBulkBar()"></div>
           <div class="thumb-col">
             ${v.thumbnail_path
               ? `<img class="video-thumb" src="${getThumbUrl(v)}" alt="" loading="lazy">`
@@ -1318,6 +1342,95 @@
     document.getElementById('playerModalOverlay').onclick = (e) => {
       if (e.target.id === 'playerModalOverlay') closeVideoPlayerModal();
     };
+    // ── Bulk Selection ─────────────────────────────────────────────────────
+    function getSelectedFilenames() {
+      return [...document.querySelectorAll('.row-cb:checked')].map(cb => cb.dataset.fn);
+    }
+
+    function updateBulkBar() {
+      const selected = getSelectedFilenames();
+      const bar = document.getElementById('bulkBar');
+      const count = document.getElementById('bulkCount');
+      if (selected.length) {
+        bar.classList.add('active');
+        count.textContent = selected.length + ' video' + (selected.length > 1 ? 's' : '') + ' selected';
+      } else {
+        bar.classList.remove('active');
+      }
+      // Sync select-all checkbox
+      const allCb = document.getElementById('selectAllCb');
+      const allRows = document.querySelectorAll('.row-cb');
+      if (allCb) allCb.checked = allRows.length > 0 && selected.length === allRows.length;
+      // Update folder dropdown in bulk bar
+      updateBulkFolderDropdown();
+    }
+
+    function toggleSelectAll(checked) {
+      document.querySelectorAll('.row-cb').forEach(cb => cb.checked = checked);
+      updateBulkBar();
+    }
+
+    function clearSelection() {
+      document.querySelectorAll('.row-cb').forEach(cb => cb.checked = false);
+      const allCb = document.getElementById('selectAllCb');
+      if (allCb) allCb.checked = false;
+      document.getElementById('bulkBar').classList.remove('active');
+    }
+
+    function updateBulkFolderDropdown() {
+      const sel = document.getElementById('bulkMoveFolder');
+      sel.innerHTML = '<option value="" selected disabled>Move to folder...</option><option value="__unfiled">Unfiled</option>' +
+        folders.map(f => `<option value="${f.id}">${escapeHtml(f.name)}</option>`).join('');
+    }
+
+    async function bulkMoveToFolder(folderId) {
+      const filenames = getSelectedFilenames();
+      if (!filenames.length) return;
+      const realFolderId = folderId === '__unfiled' ? null : folderId;
+      try {
+        const res = await fetch(`${SERVER_URL}/videos/bulk-move`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY, 'x-user-id': currentUser.id },
+          body: JSON.stringify({ filenames, folderId: realFolderId })
+        });
+        const data = await res.json();
+        if (data.success) {
+          toast(`Moved ${data.moved} video${data.moved > 1 ? 's' : ''}`, 'success');
+          clearSelection();
+          await loadVideos();
+        } else {
+          toast('Move failed: ' + (data.error || 'Unknown error'), 'error');
+        }
+      } catch (e) {
+        toast('Move failed', 'error');
+      }
+    }
+
+    async function bulkDelete() {
+      const filenames = getSelectedFilenames();
+      if (!filenames.length) return;
+      showModal('Delete Videos', `Are you sure you want to delete ${filenames.length} video${filenames.length > 1 ? 's' : ''}? This cannot be undone.`, 'Delete', '', async () => {
+        try {
+          const res = await fetch(`${SERVER_URL}/videos/bulk-delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY, 'x-user-id': currentUser.id },
+            body: JSON.stringify({ filenames })
+          });
+          const data = await res.json();
+          if (data.success) {
+            toast(`Deleted ${data.deleted} video${data.deleted > 1 ? 's' : ''}`, 'success');
+            clearSelection();
+            await loadVideos();
+            await loadStorage();
+          } else {
+            toast('Delete failed: ' + (data.error || 'Unknown error'), 'error');
+          }
+        } catch (e) {
+          toast('Delete failed', 'error');
+        }
+      });
+    }
+
     init();
   </script>
   </div><!-- /main-content -->

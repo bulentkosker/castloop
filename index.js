@@ -1077,6 +1077,79 @@ app.patch('/videos/:filename/folder', (req, res) => {
   }
 });
 
+// ── Bulk Video Operations ─────────────────────────────────────────────────
+
+app.post('/videos/bulk-move', (req, res) => {
+  const userId = req.headers['x-user-id'];
+  const { filenames, folderId } = req.body;
+  if (!userId) return res.status(400).json({ error: 'x-user-id required' });
+  if (!Array.isArray(filenames) || !filenames.length) return res.status(400).json({ error: 'filenames array required' });
+
+  const metaFile = `/var/castloop/videos/${userId}/_meta.json`;
+  try {
+    let meta = {};
+    if (fs.existsSync(metaFile)) meta = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
+    let moved = 0;
+    for (const filename of filenames) {
+      if (!meta[filename]) continue;
+      if (folderId) {
+        meta[filename].folder_id = folderId;
+      } else {
+        delete meta[filename].folder_id;
+      }
+      moved++;
+    }
+    fs.writeFileSync(metaFile, JSON.stringify(meta));
+    res.json({ success: true, moved });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/videos/bulk-delete', (req, res) => {
+  const userId = req.headers['x-user-id'];
+  const { filenames } = req.body;
+  if (!userId) return res.status(400).json({ error: 'x-user-id required' });
+  if (!Array.isArray(filenames) || !filenames.length) return res.status(400).json({ error: 'filenames array required' });
+
+  const dir = `/var/castloop/videos/${userId}`;
+  const metaFile = `${dir}/_meta.json`;
+  let meta = {};
+  try { if (fs.existsSync(metaFile)) meta = JSON.parse(fs.readFileSync(metaFile, 'utf8')); } catch {}
+
+  let deleted = 0;
+  for (const filename of filenames) {
+    const filePath = `${dir}/${filename}`;
+    if (!fs.existsSync(filePath)) continue;
+
+    // Kill normalize if active
+    if (normalizeCurrentFile === filename && normalizeCurrentProcess) {
+      normalizeCurrentProcess.kill('SIGTERM');
+      normalizeCurrentFile = null;
+      normalizeCurrentProcess = null;
+      normalizeRunning = false;
+    }
+    const qIdx = normalizeQueue.findIndex(j => j.filename === filename);
+    if (qIdx !== -1) normalizeQueue.splice(qIdx, 1);
+    normalizingFiles.delete(filename);
+    delete normalizeProgress[filename];
+
+    fs.unlinkSync(filePath);
+    const tmpFile = filePath + '.normalizing.mp4';
+    if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
+    const thumbName = filename.replace(/\.[^.]+$/, '') + '_thumb.jpg';
+    const thumbPath = `${dir}/${thumbName}`;
+    if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath);
+    delete meta[filename];
+    deleted++;
+  }
+
+  try { fs.writeFileSync(metaFile, JSON.stringify(meta)); } catch {}
+  console.log(`[bulk-delete] Deleted ${deleted}/${filenames.length} files for user ${userId}`);
+  res.json({ success: true, deleted });
+  processNormalizeQueue();
+});
+
 app.get('/storage', (req, res) => {
   const userId = req.headers['x-user-id'];
   const plan = (req.headers['x-user-plan'] || 'free').toLowerCase();
