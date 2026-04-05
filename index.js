@@ -205,6 +205,7 @@ async function processNormalizeQueue() {
         '-y', '-i', filePath,
         '-c:v', 'libx264', '-preset', 'veryfast',
         '-b:v', `${targetKbps}k`, '-maxrate', `${Math.round(targetKbps * 1.2)}k`, '-bufsize', `${targetKbps * 2}k`,
+        '-g', '48',
         '-c:a', 'aac', '-b:a', '128k',
         '-movflags', '+faststart',
         tmpOut,
@@ -1980,6 +1981,11 @@ app.post('/youtube/create-broadcast', async (req, res) => {
 
   if (!userId) return res.status(400).json({ error: 'x-user-id required' });
 
+  // Determine YouTube cdn settings based on resolution
+  const is4K = resolution === '2160p';
+  const cdnResolution = is4K ? '2160p' : '1080p';
+  const cdnFrameRate = is4K ? '60fps' : '30fps';
+
   try {
     // 1. Create broadcast
     const broadcast = await ytApi(userId,
@@ -2008,7 +2014,7 @@ app.post('/youtube/create-broadcast', async (req, res) => {
       return res.status(400).json({ error: broadcast.error.message || 'Failed to create broadcast' });
     }
 
-    // 2. Create stream
+    // 2. Create stream with resolution-aware cdn settings
     const liveStream = await ytApi(userId,
       'https://www.googleapis.com/youtube/v3/liveStreams?part=snippet,cdn',
       {
@@ -2017,9 +2023,9 @@ app.post('/youtube/create-broadcast', async (req, res) => {
         body: JSON.stringify({
           snippet: { title: (title || 'Castloop Stream') + ' - ingestion' },
           cdn: {
-            frameRate: 'variable',
+            frameRate: cdnFrameRate,
             ingestionType: 'rtmp',
-            resolution: 'variable',
+            resolution: cdnResolution,
           },
         }),
       },
@@ -2102,9 +2108,13 @@ app.post('/youtube/end-broadcast', async (req, res) => {
 // POST /youtube/restart-broadcast — end current, create new, return new keys
 app.post('/youtube/restart-broadcast', async (req, res) => {
   const userId = req.headers['x-user-id'];
-  const { broadcast_id, title, description, privacy } = req.body;
+  const { broadcast_id, title, description, privacy, resolution } = req.body;
 
   if (!userId) return res.status(400).json({ error: 'x-user-id required' });
+
+  const is4K = resolution === '2160p';
+  const cdnResolution = is4K ? '2160p' : '1080p';
+  const cdnFrameRate = is4K ? '60fps' : '30fps';
 
   try {
     // End current broadcast if provided
@@ -2120,7 +2130,7 @@ app.post('/youtube/restart-broadcast', async (req, res) => {
       }
     }
 
-    // Create new broadcast (reuse create-broadcast logic internally)
+    // Create new broadcast
     const broadcast = await ytApi(userId,
       'https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status,contentDetails',
       {
@@ -2145,7 +2155,7 @@ app.post('/youtube/restart-broadcast', async (req, res) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           snippet: { title: (title || 'Castloop Stream') + ' - ingestion' },
-          cdn: { frameRate: 'variable', ingestionType: 'rtmp', resolution: 'variable' },
+          cdn: { frameRate: cdnFrameRate, ingestionType: 'rtmp', resolution: cdnResolution },
         }),
       }
     );
@@ -2213,7 +2223,7 @@ app.post('/set-restart-timer', async (req, res) => {
             'x-api-key': API_KEY,
             'x-user-id': userId,
           },
-          body: JSON.stringify({ broadcast_id: broadcastId, title }),
+          body: JSON.stringify({ broadcast_id: broadcastId, title, resolution: process.env.SERVER_TYPE === '4k' ? '2160p' : '1080p' }),
         });
         const newBroadcast = await resp.json();
 
