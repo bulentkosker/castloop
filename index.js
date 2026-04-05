@@ -1620,12 +1620,12 @@ if (fs.existsSync(BADGE_DIR)) {
 }
 const BADGE_CONFIG = {
   'live':           { file: 'badge_live.png',           position: 'right' },
-  'live_streaming': { file: 'badge_live_streaming.png', position: 'right' },
+  'live_streaming': { file: 'live-stream.png', position: 'right' },
   '247_live':       { file: 'badge_247_live.png',       position: 'right' },
   'nonstop':        { file: 'badge_nonstop.png',        position: 'right' },
   'inf_247':        { file: 'badge_inf_247.png',        position: 'right' },
-  '4k_uhd':        { file: 'badge_4k_uhd.png',         position: 'left' },
-  'full_hd':       { file: 'badge_full_hd.png',        position: 'left' },
+  '4k_uhd':        { file: '4k icon.png',               position: 'left' },
+  'full_hd':       { file: 'full-hd-icon.png',         position: 'left' },
 };
 
 // Generate thumbnail from video frame + optional badge overlays
