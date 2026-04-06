@@ -6,13 +6,14 @@ on:
     paths:
       - 'index.js'
       - 'scheduler.js'
+      - 'badges/**'
 
 jobs:
   deploy-server1:
     name: Deploy to server-1 (HD)
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy index.js + restart
+      - name: Deploy index.js + badges + restart
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SERVER1_HOST }}
@@ -22,6 +23,14 @@ jobs:
             cd /root/castloop
             curl -sL https://raw.githubusercontent.com/bulentkosker/castloop/main/index.js -o index.js
             curl -sL https://raw.githubusercontent.com/bulentkosker/castloop/main/scheduler.js -o scheduler.js
+            mkdir -p badges
+            curl -sL "https://raw.githubusercontent.com/bulentkosker/castloop/main/badges/badge_live.png" -o "badges/badge_live.png"
+            curl -sL "https://raw.githubusercontent.com/bulentkosker/castloop/main/badges/badge_247_live.png" -o "badges/badge_247_live.png"
+            curl -sL "https://raw.githubusercontent.com/bulentkosker/castloop/main/badges/badge_nonstop.png" -o "badges/badge_nonstop.png"
+            curl -sL "https://raw.githubusercontent.com/bulentkosker/castloop/main/badges/badge_inf_247.png" -o "badges/badge_inf_247.png"
+            curl -sL "https://raw.githubusercontent.com/bulentkosker/castloop/main/badges/4k%20icon.png" -o "badges/4k icon.png"
+            curl -sL "https://raw.githubusercontent.com/bulentkosker/castloop/main/badges/full-hd-icon.png" -o "badges/full-hd-icon.png"
+            curl -sL "https://raw.githubusercontent.com/bulentkosker/castloop/main/badges/live-stream.png" -o "badges/live-stream.png"
             pm2 restart castloop-api
             echo "server-1 deployed at $(date)"
 
@@ -29,7 +38,7 @@ jobs:
     name: Deploy to server-4k (4K)
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy index.js + restart
+      - name: Deploy index.js + badges + restart
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SERVER4K_HOST }}
@@ -39,6 +48,14 @@ jobs:
             cd /root/castloop
             curl -sL https://raw.githubusercontent.com/bulentkosker/castloop/main/index.js -o index.js
             curl -sL https://raw.githubusercontent.com/bulentkosker/castloop/main/scheduler.js -o scheduler.js
+            mkdir -p badges
+            curl -sL "https://raw.githubusercontent.com/bulentkosker/castloop/main/badges/badge_live.png" -o "badges/badge_live.png"
+            curl -sL "https://raw.githubusercontent.com/bulentkosker/castloop/main/badges/badge_247_live.png" -o "badges/badge_247_live.png"
+            curl -sL "https://raw.githubusercontent.com/bulentkosker/castloop/main/badges/badge_nonstop.png" -o "badges/badge_nonstop.png"
+            curl -sL "https://raw.githubusercontent.com/bulentkosker/castloop/main/badges/badge_inf_247.png" -o "badges/badge_inf_247.png"
+            curl -sL "https://raw.githubusercontent.com/bulentkosker/castloop/main/badges/4k%20icon.png" -o "badges/4k icon.png"
+            curl -sL "https://raw.githubusercontent.com/bulentkosker/castloop/main/badges/full-hd-icon.png" -o "badges/full-hd-icon.png"
+            curl -sL "https://raw.githubusercontent.com/bulentkosker/castloop/main/badges/live-stream.png" -o "badges/live-stream.png"
             pm2 restart castloop-api
             echo "server-4k deployed at $(date)"
 
@@ -57,8 +74,12 @@ jobs:
             curl -sL https://raw.githubusercontent.com/bulentkosker/castloop/main/index.js -o index.js
             curl -sL https://raw.githubusercontent.com/bulentkosker/castloop/main/scheduler.js -o scheduler.js
             mkdir -p badges
-            for f in badge_live badge_live_streaming badge_247_live badge_nonstop badge_inf_247 badge_4k_uhd badge_full_hd; do
-              curl -sL "https://raw.githubusercontent.com/bulentkosker/castloop/main/badges/${f}.png" -o "badges/${f}.png"
-            done
+            curl -sL "https://raw.githubusercontent.com/bulentkosker/castloop/main/badges/badge_live.png" -o "badges/badge_live.png"
+            curl -sL "https://raw.githubusercontent.com/bulentkosker/castloop/main/badges/badge_247_live.png" -o "badges/badge_247_live.png"
+            curl -sL "https://raw.githubusercontent.com/bulentkosker/castloop/main/badges/badge_nonstop.png" -o "badges/badge_nonstop.png"
+            curl -sL "https://raw.githubusercontent.com/bulentkosker/castloop/main/badges/badge_inf_247.png" -o "badges/badge_inf_247.png"
+            curl -sL "https://raw.githubusercontent.com/bulentkosker/castloop/main/badges/4k%20icon.png" -o "badges/4k icon.png"
+            curl -sL "https://raw.githubusercontent.com/bulentkosker/castloop/main/badges/full-hd-icon.png" -o "badges/full-hd-icon.png"
+            curl -sL "https://raw.githubusercontent.com/bulentkosker/castloop/main/badges/live-stream.png" -o "badges/live-stream.png"
             pm2 restart castloop-api
             echo "castloop-auto deployed at $(date)"
