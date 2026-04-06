@@ -1329,7 +1329,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
         div.style.cssText = `position:absolute;left:${b.x_pct}%;top:${b.y_pct}%;width:${b.w_pct}%;cursor:move;user-select:none;`;
         div.dataset.idx = i;
         const img = document.createElement('img');
-        img.src = `${SERVER_URL}/badges/${BADGE_FILES[b.key]}`;
+        img.src = `${SERVER_URL}/badges/${encodeURIComponent(BADGE_FILES[b.key])}`;
         img.style.cssText = 'width:100%;height:auto;display:block;pointer-events:none;border-radius:3px;';
         img.draggable = false;
         div.appendChild(img);
