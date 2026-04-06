@@ -1,4 +1,4 @@
-// test deploy
+// test deploy — trigger badge sync
 require('dotenv').config({ path: '/root/.env' });
 const express = require('express');
 const cors = require('cors');
