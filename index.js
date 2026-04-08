@@ -1974,17 +1974,45 @@ app.delete('/youtube/accounts/:id', async (req, res) => {
   res.json({ success: true });
 });
 
+// Detect YouTube cdn resolution + frameRate from a source video file via ffprobe.
+// YouTube requires both fields together: variable+variable, or specific+specific.
+async function detectCdnSettings(videoPath) {
+  let cdnResolution = 'variable';
+  let cdnFrameRate = 'variable';
+  if (!videoPath || !fs.existsSync(videoPath)) return { cdnResolution, cdnFrameRate };
+  try {
+    const [vRes, vMeta] = await Promise.all([
+      getVideoResolution(videoPath),
+      getVideoMetadata(videoPath),
+    ]);
+    const w = vRes.width || 0;
+    const h = vRes.height || 0;
+    const fps = vMeta.fps || 0;
+    if (w >= 3840 && h >= 2160) cdnResolution = '2160p';
+    else if (w >= 1920 && h >= 1080) cdnResolution = '1080p';
+    else if (w >= 1280 && h >= 720) cdnResolution = '720p';
+    if (fps >= 50) cdnFrameRate = '60fps';
+    else if (fps >= 24 && fps <= 31) cdnFrameRate = '30fps';
+    // Both must be specific or both variable
+    if (cdnResolution === 'variable' || cdnFrameRate === 'variable') {
+      cdnResolution = 'variable';
+      cdnFrameRate = 'variable';
+    }
+    console.log(`[youtube] Detected ${w}x${h} @ ${fps}fps → cdn resolution=${cdnResolution}, frameRate=${cdnFrameRate}`);
+  } catch (e) {
+    console.warn(`[youtube] Resolution detection failed for ${videoPath}:`, e.message);
+  }
+  return { cdnResolution, cdnFrameRate };
+}
+
 // POST /youtube/create-broadcast — create live broadcast + stream
 app.post('/youtube/create-broadcast', async (req, res) => {
   const userId = req.headers['x-user-id'];
-  const { title, description, privacy, account_id, video_path, thumbnail_badges, resolution } = req.body;
+  const { title, description, privacy, account_id, video_path, thumbnail_badges } = req.body;
 
   if (!userId) return res.status(400).json({ error: 'x-user-id required' });
 
-  // YouTube cdn: both resolution and frameRate must be variable together,
-  // or both specific. Variable lets YouTube auto-detect any input.
-  const cdnResolution = 'variable';
-  const cdnFrameRate = 'variable';
+  const { cdnResolution, cdnFrameRate } = await detectCdnSettings(video_path);
 
   try {
     // 1. Create broadcast
@@ -2185,12 +2213,11 @@ app.post('/youtube/end-broadcast', async (req, res) => {
 // POST /youtube/restart-broadcast — end current, create new, return new keys
 app.post('/youtube/restart-broadcast', async (req, res) => {
   const userId = req.headers['x-user-id'];
-  const { broadcast_id, title, description, privacy, resolution } = req.body;
+  const { broadcast_id, title, description, privacy, video_path } = req.body;
 
   if (!userId) return res.status(400).json({ error: 'x-user-id required' });
 
-  const cdnResolution = 'variable';
-  const cdnFrameRate = 'variable';
+  const { cdnResolution, cdnFrameRate } = await detectCdnSettings(video_path);
 
   try {
     // End current broadcast if provided
@@ -2295,6 +2322,18 @@ app.post('/set-restart-timer', async (req, res) => {
 
       // 2. If YouTube broadcast, end old + create new
       if (userId && broadcastId) {
+        // Fetch first video path for cdn auto-detection
+        let firstVideoPath = null;
+        try {
+          const { data: streamRow } = await supabaseAdmin
+            .from('streams').select('video_paths').eq('id', streamId).single();
+          let paths = streamRow?.video_paths;
+          if (typeof paths === 'string') { try { paths = JSON.parse(paths); } catch { paths = []; } }
+          if (Array.isArray(paths) && paths.length) {
+            firstVideoPath = typeof paths[0] === 'object' ? paths[0].path : paths[0];
+          }
+        } catch (e) { console.warn('[restart] Could not fetch video_paths:', e.message); }
+
         const resp = await fetch(`http://localhost:3000/youtube/restart-broadcast`, {
           method: 'POST',
           headers: {
@@ -2302,7 +2341,7 @@ app.post('/set-restart-timer', async (req, res) => {
             'x-api-key': API_KEY,
             'x-user-id': userId,
           },
-          body: JSON.stringify({ broadcast_id: broadcastId, title, resolution: process.env.SERVER_TYPE === '4k' ? '2160p' : '1080p' }),
+          body: JSON.stringify({ broadcast_id: broadcastId, title, video_path: firstVideoPath }),
         });
         const newBroadcast = await resp.json();
 
