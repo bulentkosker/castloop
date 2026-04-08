@@ -1991,8 +1991,11 @@ async function detectCdnSettings(videoPath) {
     if (w >= 3840 && h >= 2160) cdnResolution = '2160p';
     else if (w >= 1920 && h >= 1080) cdnResolution = '1080p';
     else if (w >= 1280 && h >= 720) cdnResolution = '720p';
-    if (fps >= 50) cdnFrameRate = '60fps';
-    else if (fps >= 24 && fps <= 31) cdnFrameRate = '30fps';
+    // Only exact 30 or 60 — anything else (24/25/50) must be variable,
+    // otherwise YouTube creates a stream slot that won't match the
+    // actual ingestion fps and shows "No data".
+    if (fps >= 58 && fps <= 61) cdnFrameRate = '60fps';
+    else if (fps >= 29 && fps <= 31) cdnFrameRate = '30fps';
     // Both must be specific or both variable
     if (cdnResolution === 'variable' || cdnFrameRate === 'variable') {
       cdnResolution = 'variable';
