@@ -1981,9 +1981,9 @@ app.post('/youtube/create-broadcast', async (req, res) => {
 
   if (!userId) return res.status(400).json({ error: 'x-user-id required' });
 
-  // Determine YouTube cdn settings based on resolution
-  const is4K = resolution === '2160p';
-  const cdnResolution = is4K ? '2160p' : '1080p';
+  // YouTube cdn: both resolution and frameRate must be variable together,
+  // or both specific. Variable lets YouTube auto-detect any input.
+  const cdnResolution = 'variable';
   const cdnFrameRate = 'variable';
 
   try {
@@ -2189,8 +2189,7 @@ app.post('/youtube/restart-broadcast', async (req, res) => {
 
   if (!userId) return res.status(400).json({ error: 'x-user-id required' });
 
-  const is4K = resolution === '2160p';
-  const cdnResolution = is4K ? '2160p' : '1080p';
+  const cdnResolution = 'variable';
   const cdnFrameRate = 'variable';
 
   try {
