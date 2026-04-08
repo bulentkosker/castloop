@@ -2043,7 +2043,7 @@ app.post('/youtube/create-broadcast', async (req, res) => {
       return res.status(400).json({ error: broadcast.error.message || 'Failed to create broadcast' });
     }
 
-    // 2. Create stream — let YouTube auto-detect resolution + frame rate
+    // 2. Create stream — variable cdn lets YouTube auto-detect from ingestion
     const liveStream = await ytApi(userId,
       'https://www.googleapis.com/youtube/v3/liveStreams?part=snippet,cdn',
       {
@@ -2053,6 +2053,8 @@ app.post('/youtube/create-broadcast', async (req, res) => {
           snippet: { title: (title || 'Castloop Stream') + ' - ingestion' },
           cdn: {
             ingestionType: 'rtmp',
+            resolution: 'variable',
+            frameRate: 'variable',
           },
         }),
       },
