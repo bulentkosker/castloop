@@ -1984,7 +1984,7 @@ app.post('/youtube/create-broadcast', async (req, res) => {
   // Determine YouTube cdn settings based on resolution
   const is4K = resolution === '2160p';
   const cdnResolution = is4K ? '2160p' : '1080p';
-  const cdnFrameRate = is4K ? '60fps' : '30fps';
+  const cdnFrameRate = 'variable';
 
   try {
     // 1. Create broadcast
@@ -2191,7 +2191,7 @@ app.post('/youtube/restart-broadcast', async (req, res) => {
 
   const is4K = resolution === '2160p';
   const cdnResolution = is4K ? '2160p' : '1080p';
-  const cdnFrameRate = is4K ? '60fps' : '30fps';
+  const cdnFrameRate = 'variable';
 
   try {
     // End current broadcast if provided
