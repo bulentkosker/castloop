@@ -2015,8 +2015,6 @@ app.post('/youtube/create-broadcast', async (req, res) => {
 
   if (!userId) return res.status(400).json({ error: 'x-user-id required' });
 
-  const { cdnResolution, cdnFrameRate } = await detectCdnSettings(video_path);
-
   try {
     // 1. Create broadcast
     const broadcast = await ytApi(userId,
@@ -2045,7 +2043,7 @@ app.post('/youtube/create-broadcast', async (req, res) => {
       return res.status(400).json({ error: broadcast.error.message || 'Failed to create broadcast' });
     }
 
-    // 2. Create stream with resolution-aware cdn settings
+    // 2. Create stream — let YouTube auto-detect resolution + frame rate
     const liveStream = await ytApi(userId,
       'https://www.googleapis.com/youtube/v3/liveStreams?part=snippet,cdn',
       {
@@ -2054,9 +2052,7 @@ app.post('/youtube/create-broadcast', async (req, res) => {
         body: JSON.stringify({
           snippet: { title: (title || 'Castloop Stream') + ' - ingestion' },
           cdn: {
-            frameRate: cdnFrameRate,
             ingestionType: 'rtmp',
-            resolution: cdnResolution,
           },
         }),
       },
