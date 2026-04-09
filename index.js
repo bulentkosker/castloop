@@ -1555,7 +1555,14 @@ async function getYtAccount(userId, accountId) {
   return data;
 }
 
+// refreshYouTubeToken
+// Hits POST https://oauth2.googleapis.com/token with grant_type=refresh_token
+// to exchange the stored refresh_token for a fresh access_token.
+// On success: writes new access_token to youtube_accounts.access_token
+// On failure: logs everything (status, raw body, error code) and returns null
 async function refreshYouTubeToken(accountId) {
+  console.log(`\n[youtube refresh] ▶ START for accountId=${accountId}`);
+
   const { data: account, error: selErr } = await supabaseAdmin
     .from('youtube_accounts')
     .select('refresh_token, channel_name')
@@ -1563,15 +1570,24 @@ async function refreshYouTubeToken(accountId) {
     .single();
 
   if (selErr) {
-    console.error(`[youtube refresh] DB select failed for ${accountId}:`, selErr.message);
+    console.error(`[youtube refresh] ✗ DB select failed:`, selErr.message);
     return null;
   }
-  if (!account?.refresh_token) {
-    console.error(`[youtube refresh] No refresh_token in DB for account ${accountId} (${account?.channel_name || 'unknown'})`);
+  if (!account) {
+    console.error(`[youtube refresh] ✗ Account not found in DB`);
+    return null;
+  }
+  if (!account.refresh_token) {
+    console.error(`[youtube refresh] ✗ refresh_token is NULL in DB for "${account.channel_name || 'unknown'}"`);
     return null;
   }
 
-  console.log(`[youtube refresh] Attempting refresh for ${accountId} (${account.channel_name || 'unknown'})`);
+  const rtPreview = account.refresh_token.slice(0, 8) + '...' + account.refresh_token.slice(-4);
+  console.log(`[youtube refresh] Account: "${account.channel_name || 'unknown'}", refresh_token=${rtPreview} (len=${account.refresh_token.length})`);
+  console.log(`[youtube refresh] YT_CLIENT_ID set: ${!!YT_CLIENT_ID} (len=${YT_CLIENT_ID?.length || 0})`);
+  console.log(`[youtube refresh] YT_CLIENT_SECRET set: ${!!YT_CLIENT_SECRET} (len=${YT_CLIENT_SECRET?.length || 0})`);
+  console.log(`[youtube refresh] POST https://oauth2.googleapis.com/token`);
+  console.log(`[youtube refresh]   body: client_id=${YT_CLIENT_ID?.slice(0, 12)}..., client_secret=***, refresh_token=${rtPreview}, grant_type=refresh_token`);
 
   let resp;
   try {
@@ -1586,27 +1602,38 @@ async function refreshYouTubeToken(accountId) {
       }),
     });
   } catch (e) {
-    console.error(`[youtube refresh] Network error for ${accountId}:`, e.message);
+    console.error(`[youtube refresh] ✗ Network error (fetch threw):`, e.message);
     return null;
   }
 
+  // Read raw body so we can log it before parsing
+  let rawBody = '';
+  try {
+    rawBody = await resp.text();
+  } catch (e) {
+    console.error(`[youtube refresh] ✗ Could not read response body:`, e.message);
+    return null;
+  }
+
+  console.log(`[youtube refresh] Google responded: status=${resp.status} ${resp.statusText}`);
+  console.log(`[youtube refresh] Raw response body: ${rawBody}`);
+
   let tokens;
   try {
-    tokens = await resp.json();
+    tokens = JSON.parse(rawBody);
   } catch (e) {
-    console.error(`[youtube refresh] Invalid JSON response for ${accountId}:`, e.message);
+    console.error(`[youtube refresh] ✗ Response is not valid JSON:`, e.message);
     return null;
   }
 
   if (!resp.ok || !tokens.access_token) {
-    console.error(`[youtube refresh] Google rejected refresh for ${accountId}: status=${resp.status}, body=${JSON.stringify(tokens)}`);
-    // If invalid_grant, the refresh_token is permanently dead — clear it so UI shows "expired"
+    console.error(`[youtube refresh] ✗ Google rejected: error=${tokens.error}, error_description=${tokens.error_description}`);
     if (tokens.error === 'invalid_grant') {
       await supabaseAdmin
         .from('youtube_accounts')
         .update({ refresh_token: null })
         .eq('id', accountId);
-      console.log(`[youtube refresh] Cleared dead refresh_token for ${accountId}`);
+      console.log(`[youtube refresh] Cleared dead refresh_token from DB (will require user reconnect)`);
     }
     return null;
   }
@@ -1617,11 +1644,12 @@ async function refreshYouTubeToken(accountId) {
     .eq('id', accountId);
 
   if (updErr) {
-    console.error(`[youtube refresh] DB update failed for ${accountId}:`, updErr.message);
+    console.error(`[youtube refresh] ✗ DB update failed:`, updErr.message);
     return null;
   }
 
-  console.log(`[youtube refresh] Success: refreshed access_token for ${accountId} (${account.channel_name || 'unknown'})`);
+  const newPreview = tokens.access_token.slice(0, 12) + '...';
+  console.log(`[youtube refresh] ✓ SUCCESS: new access_token=${newPreview}, expires_in=${tokens.expires_in}s`);
   return tokens.access_token;
 }
 
