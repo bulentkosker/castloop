@@ -2011,9 +2011,13 @@ async function detectCdnSettings(videoPath) {
 // POST /youtube/create-broadcast — create live broadcast + stream
 app.post('/youtube/create-broadcast', async (req, res) => {
   const userId = req.headers['x-user-id'];
-  const { title, description, privacy, account_id, video_path, thumbnail_badges } = req.body;
+  const { title, description, privacy, account_id, video_path, thumbnail_badges, resolution } = req.body;
 
   if (!userId) return res.status(400).json({ error: 'x-user-id required' });
+
+  // Map user-selected resolution to YouTube cdn settings (paired)
+  const cdnResolution = resolution === '2160p' ? '2160p' : '1080p';
+  const cdnFrameRate = resolution === '2160p' ? '60fps' : '30fps';
 
   try {
     // 1. Create broadcast
@@ -2043,7 +2047,7 @@ app.post('/youtube/create-broadcast', async (req, res) => {
       return res.status(400).json({ error: broadcast.error.message || 'Failed to create broadcast' });
     }
 
-    // 2. Create stream — variable cdn lets YouTube auto-detect from ingestion
+    // 2. Create stream with user-selected resolution
     const liveStream = await ytApi(userId,
       'https://www.googleapis.com/youtube/v3/liveStreams?part=snippet,cdn',
       {
@@ -2053,8 +2057,8 @@ app.post('/youtube/create-broadcast', async (req, res) => {
           snippet: { title: (title || 'Castloop Stream') + ' - ingestion' },
           cdn: {
             ingestionType: 'rtmp',
-            resolution: 'variable',
-            frameRate: 'variable',
+            resolution: cdnResolution,
+            frameRate: cdnFrameRate,
           },
         }),
       },

@@ -51,7 +51,7 @@ TWILIO_WHATSAPP_FROM=whatsapp:+14155238886  # Twilio WhatsApp sender
 ## Database Schema
 
 ### `streams` table columns
-`id`, `rtmp_url`, `stream_key`, `video_paths`, `status`, `server_id`, `name`, `platform`, `created_at`, `user_id`, `restart_at`, `youtube_account_id`, `youtube_broadcast_id`, `youtube_stream_id`
+`id`, `rtmp_url`, `stream_key`, `video_paths`, `status`, `server_id`, `name`, `platform`, `created_at`, `user_id`, `restart_at`, `youtube_account_id`, `youtube_broadcast_id`, `youtube_stream_id`, `youtube_description`, `youtube_resolution`, `thumbnail_badge`
 
 **Columns that DO NOT exist:** `max_duration`, `stream_id`
 

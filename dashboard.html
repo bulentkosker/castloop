@@ -393,6 +393,13 @@
       <div id="ytAutoMessage" style="display:none;padding:12px;background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);border-radius:8px;margin-bottom:16px;font-size:13px;color:#34d399;">
         ▶ YouTube will create broadcast and manage stream key automatically when you start this stream.
       </div>
+      <div class="form-group" id="ytResolutionGroup" style="display:none">
+        <label>Broadcast Resolution</label>
+        <select id="ytResolution">
+          <option value="1080p">1080p (Full HD)</option>
+          <option value="2160p">2160p (4K Ultra HD)</option>
+        </select>
+      </div>
       <div id="ytThumbBtnGroup" style="display:none;margin-bottom:16px;">
         <button type="button" onclick="openThumbModal()" style="width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;cursor:pointer;text-align:left;">
           <span id="thumbBtnLabel">Customize Thumbnail</span>
@@ -959,6 +966,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       if (ytAccountId) {
         insertData.youtube_account_id = ytAccountId;
         if (description) insertData.youtube_description = description;
+        insertData.youtube_resolution = document.getElementById('ytResolution')?.value || '1080p';
         const badges = getSelectedBadgesPayload();
         if (badges.length) insertData.thumbnail_badge = JSON.stringify(badges);
         console.log('[createStream] thumbnail badges:', badges);
@@ -1151,7 +1159,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
               account_id: streamData.youtube_account_id,
               video_path: firstVideoPath,
               thumbnail_badges: parsedBadges,
-              resolution: requiredServerType === '4k' ? '2160p' : '1080p',
+              resolution: streamData.youtube_resolution || '1080p',
             })
           });
           const ytData = await ytRes.json();
@@ -1281,6 +1289,7 @@ if (!Array.isArray(paths)) paths = s.video_path ? [s.video_path] : [];
       const val = document.getElementById('ytAccountSelect').value;
       document.getElementById('manualRtmpFields').style.display = val ? 'none' : '';
       document.getElementById('ytAutoMessage').style.display = val ? '' : 'none';
+      document.getElementById('ytResolutionGroup').style.display = val ? '' : 'none';
       document.getElementById('ytThumbBtnGroup').style.display = val ? '' : 'none';
       // Reset thumb state when switching accounts
       if (!val) {
