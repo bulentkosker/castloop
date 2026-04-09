@@ -2105,88 +2105,11 @@ app.post('/youtube/create-broadcast', async (req, res) => {
     } else {
       console.warn(`[youtube] No video_path provided, skipping thumbnail generation`);
     }
-
-    // 5. Transition broadcast: testing → live (non-blocking, after response)
-    // Wait for FFmpeg to start ingesting before transitioning
-    transitionBroadcastToLive(userId, account_id, broadcast.id);
   } catch (e) {
     console.error('[youtube] Create broadcast error:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
-
-// Transition broadcast from upcoming → testing → live
-// Polls stream health and waits until ingestion is active before transitioning
-async function transitionBroadcastToLive(userId, accountId, broadcastId) {
-  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-  try {
-    // Wait for FFmpeg to start streaming and YouTube to detect ingestion
-    // Poll stream status up to 60s
-    let ready = false;
-    for (let i = 0; i < 20; i++) {
-      await sleep(3000);
-      try {
-        const status = await ytApi(userId,
-          `https://www.googleapis.com/youtube/v3/liveBroadcasts?part=status&id=${broadcastId}`,
-          { method: 'GET' },
-          accountId
-        );
-        const lifeCycle = status?.items?.[0]?.status?.lifeCycleStatus;
-        console.log(`[youtube] Broadcast ${broadcastId} lifeCycleStatus: ${lifeCycle} (poll ${i + 1}/20)`);
-        if (lifeCycle === 'live' || lifeCycle === 'liveStarting') {
-          console.log(`[youtube] Broadcast ${broadcastId} already live, skip manual transition`);
-          return;
-        }
-        if (lifeCycle === 'ready' || lifeCycle === 'testing' || lifeCycle === 'testStarting') {
-          ready = true;
-          break;
-        }
-      } catch (e) {
-        console.warn(`[youtube] Status poll failed:`, e.message);
-      }
-    }
-
-    if (!ready) {
-      console.warn(`[youtube] Broadcast ${broadcastId} not ready after polling, attempting transition anyway`);
-    }
-
-    // Transition to testing
-    try {
-      const testRes = await ytApi(userId,
-        `https://www.googleapis.com/youtube/v3/liveBroadcasts/transition?broadcastStatus=testing&id=${broadcastId}&part=id,status`,
-        { method: 'POST' },
-        accountId
-      );
-      if (testRes?.error) {
-        console.warn(`[youtube] testing transition error:`, testRes.error.message);
-      } else {
-        console.log(`[youtube] Broadcast ${broadcastId} transitioned to testing`);
-      }
-    } catch (e) {
-      console.warn(`[youtube] testing transition exception:`, e.message);
-    }
-
-    await sleep(3000);
-
-    // Transition to live
-    try {
-      const liveRes = await ytApi(userId,
-        `https://www.googleapis.com/youtube/v3/liveBroadcasts/transition?broadcastStatus=live&id=${broadcastId}&part=id,status`,
-        { method: 'POST' },
-        accountId
-      );
-      if (liveRes?.error) {
-        console.error(`[youtube] live transition error:`, liveRes.error.message);
-      } else {
-        console.log(`[youtube] Broadcast ${broadcastId} transitioned to LIVE`);
-      }
-    } catch (e) {
-      console.error(`[youtube] live transition exception:`, e.message);
-    }
-  } catch (e) {
-    console.error(`[youtube] transitionBroadcastToLive failed for ${broadcastId}:`, e.message);
-  }
-}
 
 // POST /youtube/end-broadcast — transition broadcast to complete
 app.post('/youtube/end-broadcast', async (req, res) => {
@@ -2281,9 +2204,6 @@ app.post('/youtube/restart-broadcast', async (req, res) => {
       rtmp_url: ingestion?.ingestionAddress,
       stream_key: ingestion?.streamName,
     });
-
-    // Transition new broadcast to live (non-blocking)
-    transitionBroadcastToLive(userId, null, broadcast.id);
   } catch (e) {
     console.error('[youtube] Restart broadcast error:', e.message);
     res.status(500).json({ error: e.message });
