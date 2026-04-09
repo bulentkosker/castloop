@@ -1556,33 +1556,72 @@ async function getYtAccount(userId, accountId) {
 }
 
 async function refreshYouTubeToken(accountId) {
-  const { data: account } = await supabaseAdmin
+  const { data: account, error: selErr } = await supabaseAdmin
     .from('youtube_accounts')
-    .select('refresh_token')
+    .select('refresh_token, channel_name')
     .eq('id', accountId)
     .single();
 
-  if (!account?.refresh_token) return null;
+  if (selErr) {
+    console.error(`[youtube refresh] DB select failed for ${accountId}:`, selErr.message);
+    return null;
+  }
+  if (!account?.refresh_token) {
+    console.error(`[youtube refresh] No refresh_token in DB for account ${accountId} (${account?.channel_name || 'unknown'})`);
+    return null;
+  }
 
-  const resp = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: YT_CLIENT_ID,
-      client_secret: YT_CLIENT_SECRET,
-      refresh_token: account.refresh_token,
-      grant_type: 'refresh_token',
-    }),
-  });
+  console.log(`[youtube refresh] Attempting refresh for ${accountId} (${account.channel_name || 'unknown'})`);
 
-  const tokens = await resp.json();
-  if (!tokens.access_token) return null;
+  let resp;
+  try {
+    resp = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: YT_CLIENT_ID,
+        client_secret: YT_CLIENT_SECRET,
+        refresh_token: account.refresh_token,
+        grant_type: 'refresh_token',
+      }),
+    });
+  } catch (e) {
+    console.error(`[youtube refresh] Network error for ${accountId}:`, e.message);
+    return null;
+  }
 
-  await supabaseAdmin
+  let tokens;
+  try {
+    tokens = await resp.json();
+  } catch (e) {
+    console.error(`[youtube refresh] Invalid JSON response for ${accountId}:`, e.message);
+    return null;
+  }
+
+  if (!resp.ok || !tokens.access_token) {
+    console.error(`[youtube refresh] Google rejected refresh for ${accountId}: status=${resp.status}, body=${JSON.stringify(tokens)}`);
+    // If invalid_grant, the refresh_token is permanently dead — clear it so UI shows "expired"
+    if (tokens.error === 'invalid_grant') {
+      await supabaseAdmin
+        .from('youtube_accounts')
+        .update({ refresh_token: null })
+        .eq('id', accountId);
+      console.log(`[youtube refresh] Cleared dead refresh_token for ${accountId}`);
+    }
+    return null;
+  }
+
+  const { error: updErr } = await supabaseAdmin
     .from('youtube_accounts')
     .update({ access_token: tokens.access_token })
     .eq('id', accountId);
 
+  if (updErr) {
+    console.error(`[youtube refresh] DB update failed for ${accountId}:`, updErr.message);
+    return null;
+  }
+
+  console.log(`[youtube refresh] Success: refreshed access_token for ${accountId} (${account.channel_name || 'unknown'})`);
   return tokens.access_token;
 }
 

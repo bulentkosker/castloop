@@ -184,7 +184,7 @@
             : '<div class="yt-status expired">⚠ Token expired</div>';
           const actionBtn = a.token_valid
             ? `<button class="btn-disconnect" onclick="disconnectYouTube('${a.id}')">Disconnect</button>`
-            : `<button class="btn-reconnect" onclick="connectYouTube()">Reconnect</button><button class="btn-disconnect" onclick="disconnectYouTube('${a.id}')" style="margin-left:6px;">Disconnect</button>`;
+            : `<button class="btn-reconnect" onclick="reconnectYouTube('${a.id}')">Reconnect</button><button class="btn-disconnect" onclick="disconnectYouTube('${a.id}')" style="margin-left:6px;">Disconnect</button>`;
           return `
           <div class="yt-account">
             ${a.channel_thumb ? `<img src="${a.channel_thumb}" alt="">` : '<div style="width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;">▶</div>'}
@@ -203,6 +203,18 @@
     }
 
     function connectYouTube() {
+      window.location.href = `${SERVER_URL}/auth/youtube?user_id=${currentUser.id}`;
+    }
+
+    async function reconnectYouTube(accountId) {
+      // Delete the stale account row, then start a fresh OAuth flow.
+      // Callback will insert the new row with a fresh refresh_token.
+      try {
+        await fetch(`${SERVER_URL}/youtube/accounts/${accountId}`, {
+          method: 'DELETE',
+          headers: { 'x-api-key': API_KEY, 'x-user-id': currentUser.id }
+        });
+      } catch (e) { /* ignore — proceed to OAuth anyway */ }
       window.location.href = `${SERVER_URL}/auth/youtube?user_id=${currentUser.id}`;
     }
 
