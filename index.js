@@ -1952,12 +1952,43 @@ app.get('/youtube/accounts', async (req, res) => {
 
   const { data, error } = await supabaseAdmin
     .from('youtube_accounts')
-    .select('id, channel_id, channel_name, channel_thumb, created_at')
+    .select('id, channel_id, channel_name, channel_thumb, access_token, refresh_token, created_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: true });
 
   if (error) return res.status(500).json({ error: error.message });
-  res.json(data || []);
+
+  // Test each account's token validity in parallel
+  const results = await Promise.all((data || []).map(async (acc) => {
+    let valid = false;
+    try {
+      // Lightweight test: hit channels endpoint with current token
+      const probeUrl = 'https://www.googleapis.com/youtube/v3/channels?part=id&mine=true';
+      let resp = await fetch(probeUrl, { headers: { Authorization: `Bearer ${acc.access_token}` } });
+      if (resp.status === 401) {
+        // Try refreshing
+        const newToken = await refreshYouTubeToken(acc.id);
+        if (newToken) {
+          resp = await fetch(probeUrl, { headers: { Authorization: `Bearer ${newToken}` } });
+          if (resp.ok) valid = true;
+        }
+      } else if (resp.ok) {
+        valid = true;
+      }
+    } catch (e) {
+      console.warn(`[youtube] Token check failed for ${acc.id}:`, e.message);
+    }
+    return {
+      id: acc.id,
+      channel_id: acc.channel_id,
+      channel_name: acc.channel_name,
+      channel_thumb: acc.channel_thumb,
+      created_at: acc.created_at,
+      token_valid: valid,
+    };
+  }));
+
+  res.json(results);
 });
 
 app.delete('/youtube/accounts/:id', async (req, res) => {

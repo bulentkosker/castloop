@@ -38,6 +38,13 @@
     .yt-account-info { flex: 1; }
     .yt-account-name { font-size: 14px; font-weight: 600; }
     .yt-account-id { font-size: 11px; color: var(--muted); }
+    .yt-status { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; margin-top: 3px; }
+    .yt-status .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+    .yt-status.connected { color: #34d399; }
+    .yt-status.connected .dot { background: #34d399; box-shadow: 0 0 6px rgba(52,211,153,0.6); }
+    .yt-status.expired { color: #fbbf24; }
+    .btn-reconnect { background: rgba(251,191,36,0.1); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); padding: 6px 12px; border-radius: 8px; font-size: 11px; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+    .btn-reconnect:hover { background: rgba(251,191,36,0.2); border-color: #fbbf24; }
     .btn-disconnect { background: transparent; color: #9095a8; border: 1px solid #2a2d3a; padding: 6px 12px; border-radius: 8px; font-size: 11px; cursor: pointer; font-family: inherit; transition: all 0.2s; }
     .btn-disconnect:hover { background: rgba(144,149,168,0.08); border-color: #9095a8; }
     .btn-yt-connect { background: #ff0000; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; cursor: pointer; font-family: inherit; font-weight: 600; margin-top: 8px; }
@@ -171,16 +178,25 @@
           return;
         }
 
-        container.innerHTML = data.map(a => `
+        container.innerHTML = data.map(a => {
+          const statusEl = a.token_valid
+            ? '<div class="yt-status connected"><span class="dot"></span> Connected</div>'
+            : '<div class="yt-status expired">⚠ Token expired</div>';
+          const actionBtn = a.token_valid
+            ? `<button class="btn-disconnect" onclick="disconnectYouTube('${a.id}')">Disconnect</button>`
+            : `<button class="btn-reconnect" onclick="connectYouTube()">Reconnect</button><button class="btn-disconnect" onclick="disconnectYouTube('${a.id}')" style="margin-left:6px;">Disconnect</button>`;
+          return `
           <div class="yt-account">
             ${a.channel_thumb ? `<img src="${a.channel_thumb}" alt="">` : '<div style="width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;">▶</div>'}
             <div class="yt-account-info">
               <div class="yt-account-name">${a.channel_name || 'YouTube Channel'}</div>
               <div class="yt-account-id">${a.channel_id || ''}</div>
+              ${statusEl}
             </div>
-            <button class="btn-disconnect" onclick="disconnectYouTube('${a.id}')">Disconnect</button>
+            ${actionBtn}
           </div>
-        `).join('');
+        `;
+        }).join('');
       } catch (e) {
         container.innerHTML = '<p style="font-size:13px;color:var(--red);">Failed to load YouTube accounts.</p>';
       }
